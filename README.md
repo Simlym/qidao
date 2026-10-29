@@ -57,5 +57,6 @@
 
 - [部署自己的服务](docs/deployment/backend.md)：启动、管理员设置、备份与升级。
 - [构建客户端与本地开发](docs/development/build-clients.md)：网页、Windows、Android，以及默认服务地址配置。
+- [参与开发 / 贡献指南](CONTRIBUTING.md)：从零启动、目录导航、编码约定和提交前验证。
 - [技术文档目录](docs/README.md)：架构、题库、引擎、AI 额度和第三方声明。
 - [开发进度与待验收事项](docs/IMPLEMENTATION_STATUS.md)：已完成的功能与正式发布前仍需完成的工作。
