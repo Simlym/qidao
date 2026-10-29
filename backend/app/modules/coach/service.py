@@ -15,7 +15,7 @@ from datetime import date, datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.modules.puzzles import repository as repo
-from app.modules.credits import service as credits
+from app.modules.ai_usage import service as ai_usage
 from app.shared import elo
 from app.integrations.llm import write_coach_plan
 from app.core.models import CoachPlan, Game, GameAnalysis, Puzzle, Review
@@ -192,17 +192,17 @@ def build_progress(db: Session, user: str, current: dict) -> dict | None:
     }
 
 
-def generate_plan(db: Session, user: str, trigger: str = "manual") -> CoachPlan:
+def generate_plan(db: Session, user: str, trigger: str = "manual", request_key: str | None = None) -> CoachPlan:
     """生成并保存一份训练计划；LLM 可用时附教练叙述（含进步点评）。"""
     profile = build_profile(db, user)
     recs = build_recommendations(profile)
     progress = build_progress(db, user, profile)
     text = ""
-    # PRO 已包含 AI；免费账号按次使用积分，余额不足则降级为纯数据计划。
-    if get_llm_config(db).active and credits.charge(db, user, "coach_plan", "coach"):
-        text = write_coach_plan(profile, recs, progress)
-        if not text:
-            credits.refund(db, user, "coach_plan", "coach")  # 调用失败退回积分
+    ai_status = "disabled"
+    if get_llm_config(db).active:
+        result = ai_usage.generate(db, user, "coach_plan", trigger,
+            lambda: write_coach_plan(profile, recs, progress, user_id=user, ref=trigger), key=request_key)
+        text, ai_status = result.text, result.status
     plan = CoachPlan(
         user_id=user,
         trigger=trigger,
@@ -213,4 +213,5 @@ def generate_plan(db: Session, user: str, trigger: str = "manual") -> CoachPlan:
     )
     db.add(plan)
     db.commit()
+    plan.ai_status = ai_status
     return plan

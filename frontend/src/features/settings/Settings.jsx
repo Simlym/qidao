@@ -1,4 +1,5 @@
 import React from "react";
+import AiUsage from "../account/AiUsage";
 import ServerSettings from "./ServerSettings";
 import NativeEngineSettings from "./NativeEngineSettings";
 import BrowserEngineSettings from "./BrowserEngineSettings";
@@ -13,6 +14,7 @@ const xiangqiEngine = createEngineManager({ remoteEvaluate: evalPosition });
 const jieqiEngine = createEngineManager({ variant: "jieqi", remoteEvaluate: evalJieqiPosition });
 const SECTIONS = [
   { key: "general", label: "通用", icon: "sliders" },
+  { key: "account", label: "账户与 AI 额度", icon: "sliders" },
   { key: "server", label: "服务器（高级）", icon: "sliders" },
   { key: "appearance", label: "棋盘与外观", icon: "palette" },
   { key: "xiangqi", label: "标准象棋引擎", icon: "cpu" },
@@ -201,6 +203,8 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
             </div>
           </div>
         )}
+
+        {section === "account" && <AiUsage user={user} credits={credits} onRequireLogin={onRequireLogin} />}
 
         {section === "server" && <ServerSettings />}
 

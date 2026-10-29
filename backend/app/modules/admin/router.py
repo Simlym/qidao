@@ -9,8 +9,10 @@ from sqlalchemy.orm import Session
 from app.modules.credits import service as credits
 from app.modules.auth.service import require_admin
 from app.core.dependencies import get_db
+from app.core.rate_limit import limiter
 from app.core.models import (
     Attempt, CreditAccount, CreditLog, Game, Puzzle, Review, SecurityLog,
+    AIQuotaAccount, AIQuotaMonth, AIOperation, AIQuotaAdjustment, LLMCallLog,
     User, UserStat,
 )
 from app.modules.puzzles.content import solution_lines
@@ -135,11 +137,16 @@ def delete_user(user_id: int, request: Request, db: Session = Depends(get_db),
         raise HTTPException(404, "用户不存在")
     if user.id == admin.id:
         raise HTTPException(400, "不能删除自己")
+    from app.modules.ai_usage.service import lock_account_for_deletion
+    lock_account_for_deletion(db, user.username)
     # 一并清理其训练与积分数据，避免同名用户重新注册后继承旧余额。
     db.query(Attempt).filter(Attempt.user_id == user.username).delete()
     db.query(Review).filter(Review.user_id == user.username).delete()
     db.query(CreditLog).filter(CreditLog.user_id == user.username).delete()
     db.query(CreditAccount).filter(CreditAccount.user_id == user.username).delete()
+    for model in (AIOperation, AIQuotaAdjustment, AIQuotaMonth, AIQuotaAccount):
+        db.query(model).filter(model.user_id == user.username).delete()
+    db.query(LLMCallLog).filter(LLMCallLog.user_id == user.username).update({"user_id": ""})
     db.delete(user)
     db.commit()
     admin_action(request, admin.username, "delete_user", user.username, db=db)
@@ -308,13 +315,16 @@ def update_llm_settings(body: LlmSettingsUpdate, request: Request,
 
 
 @router.post("/settings/llm/test")
-def test_llm_settings(db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+@limiter.limit("5/minute")
+def test_llm_settings(request: Request, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
     """用当前配置发一次最小请求，验证密钥是否可用。仅管理员可调用。"""
     from app.integrations.llm import _chat_raw
 
     cfg = get_llm_config(db)
     if not cfg.active:
         raise HTTPException(400, "未启用或未配置密钥")
+    from app.modules.ai_usage.context import current_operation
+    token = current_operation.set((None, db.get_bind()))
     try:
         reply, error = _chat_raw(
             "回复\"ok\"两个字即可。", max_tokens=10, timeout=15,
@@ -322,6 +332,8 @@ def test_llm_settings(db: Session = Depends(get_db), admin: User = Depends(requi
         )
     except Exception as exc:  # 防止配置适配错误泄漏为无说明的 500
         raise HTTPException(502, f"调用失败：{type(exc).__name__}: {exc}") from exc
+    finally:
+        current_operation.reset(token)
     if not reply:
         raise HTTPException(502, f"调用失败：{error or '响应正文为空'}")
     return {"ok": True, "reply": reply.strip()[:50]}

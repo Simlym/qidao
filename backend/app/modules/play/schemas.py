@@ -83,5 +83,6 @@ class CoachRequest(BaseModel):
 
 
 class CoachResponse(BaseModel):
+    ai_status: str = "disabled"
     enabled: bool   # AI 点评是否可用（未配置 key 时 False）
     text: str

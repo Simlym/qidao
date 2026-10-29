@@ -5,7 +5,10 @@ import json
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from app.modules.credits import service as credits
+from app.modules.ai_usage import service as ai_usage
+from app.modules.ai_usage.http import http_request_key
+from uuid import uuid4
+import hashlib
 from app.modules.auth.service import current_user, current_user_id
 from app.core.dependencies import get_db
 from app.core.rate_limit import limiter
@@ -91,7 +94,7 @@ def _trim_pv(fen: str, pv, max_plies: int = 7) -> list[str]:
     return out
 
 
-def _run_analysis(game_id: int, owner: str = "default") -> None:
+def _run_analysis(game_id: int, owner: str = "default", run_key: str | None = None) -> None:
     """后台分析函数：逐步分析棋局并写入 game_analysis 表。
 
     owner 为棋局归属用户，用于把实战漏着自动生成的练习题归为其私有题。
@@ -99,6 +102,8 @@ def _run_analysis(game_id: int, owner: str = "default") -> None:
     from app.core.models import SessionLocal  # 避免循环导入
 
     db = SessionLocal()
+    run_key = run_key or str(uuid4())
+    call_key = lambda suffix: hashlib.sha256(f"{run_key}:{suffix}".encode()).hexdigest()
     try:
         game = db.get(Game, game_id)
         if not game:
@@ -171,26 +176,18 @@ def _run_analysis(game_id: int, owner: str = "default") -> None:
             is_mistake = eval_drop > MISTAKE_DROP
 
             explanation = ""
-            # 失误讲解由大模型生成，逐处消耗积分；扣不动则只保留引擎数据（不再调用 LLM）。
+            # 失误讲解由大模型生成，逐处消耗 AI 额度；扣不动则只保留引擎数据（不再调用 LLM）。
             if (
                 (is_blunder or is_mistake)
                 and best_move
                 and best_move != move
                 and llm_active
-                and credits.charge(db, owner, "mistake_explain", f"game:{game_id}")
             ):
-                explanation = explain_mistake(
-                    fen=fen_before,
-                    move_played=move,
-                    best_move=best_move,
-                    score_drop_cp=eval_drop,
-                    move_number=i + 1,
-                    side=side,
-                    user_id=owner,
-                    ref=f"game:{game_id}",
-                )
-                if not explanation:
-                    credits.refund(db, owner, "mistake_explain", f"game:{game_id}")
+                ref = f"game:{game_id}:move:{i + 1}"
+                explanation = ai_usage.generate(db, owner, "mistake_explain", ref,
+                    lambda: explain_mistake(fen=fen_before, move_played=move, best_move=best_move,
+                        score_drop_cp=eval_drop, move_number=i + 1, side=side, user_id=owner, ref=ref),
+                    key=call_key(f"move:{i}")).text
 
             # 对严重失误与普通失误都创建私有练习题，供“本局 3 个关键问题”训练包使用。
             puzzle_id: int | None = None
@@ -241,13 +238,13 @@ def _run_analysis(game_id: int, owner: str = "default") -> None:
             db.commit()  # 逐步提交，使前端可轮询出进度
 
         # 全部走法分析完成后，汇总失误生成 LLM 综合复盘报告
-        _generate_report(db, game_id, owner)
+        _generate_report(db, game_id, owner, request_key=call_key("report"))
 
         # 据本局新数据（失误画像/新生成的漏算题）刷新 AI 教练训练计划
         try:
             from app.modules.coach.service import generate_plan
 
-            generate_plan(db, owner, trigger=f"game:{game_id}")
+            generate_plan(db, owner, trigger=f"game:{game_id}", request_key=call_key("coach"))
         except Exception:
             db.rollback()  # 计划生成失败不影响已落库的分析结果
 
@@ -258,17 +255,15 @@ def _run_analysis(game_id: int, owner: str = "default") -> None:
         db.close()
 
 
-def _generate_report(db, game_id: int, owner: str = "default") -> None:
+def _generate_report(db, game_id: int, owner: str = "default", request_key: str | None = None) -> None:
     """据逐步分析结果调用 LLM 生成整局综合复盘报告，写入 game.report。
 
-    报告由大模型生成，消耗积分；未启用大模型或积分不足时跳过（不影响逐步分析结果）。
+    报告由大模型生成，消耗 AI 额度；未启用大模型或额度不足时跳过（不影响逐步分析结果）。
     """
     if not get_llm_config(db).active:
         return
     game = db.get(Game, game_id)
     if not game:
-        return
-    if not credits.charge(db, owner, "game_report", f"game:{game_id}"):
         return
     records = (
         db.query(GameAnalysis)
@@ -289,19 +284,13 @@ def _generate_report(db, game_id: int, owner: str = "default") -> None:
         if r.is_blunder or r.is_mistake
     ]
 
-    report = summarize_game(
-        result=game.result or "未知",
-        human_side="",  # 复盘以客观视角，不强绑红/黑
-        total_moves=total,
-        mistakes=mistakes,
-        user_id=owner,
-        ref=f"game:{game_id}",
-    )
+    report = ai_usage.generate(db, owner, "game_report", f"game:{game_id}",
+        lambda: summarize_game(result=game.result or "未知", human_side="", total_moves=total,
+            mistakes=mistakes, user_id=owner, ref=f"game:{game_id}"), key=request_key).text
     if report:
         game.report = report
         db.commit()
-    else:
-        credits.refund(db, owner, "game_report", f"game:{game_id}")
+
 
 
 @router.post("/{game_id}/analyze")
@@ -315,8 +304,8 @@ def analyze_game(
 ):
     """触发棋局分析（后台执行）。
 
-    需登录。引擎逐步分析始终进行；大模型点评（失误讲解 / 复盘报告 / 教练计划）按积分
-    余额逐项消耗，余额耗尽则自动降级为纯引擎数据，不会无上限地刷大模型。
+    需登录。引擎逐步分析始终进行；大模型点评（失误讲解 / 复盘报告 / 教练计划）按 AI
+    额度逐项消耗，余额耗尽则自动降级为纯引擎数据，不会无上限地刷大模型。
     """
     game = db.get(Game, game_id)
     if not game or game.user_id != user.username:
@@ -327,7 +316,7 @@ def analyze_game(
             detail="服务器尚未配置揭棋 UCI 引擎，请管理员前往“管理后台 → 系统设置 → 揭棋引擎”配置",
         )
 
-    background_tasks.add_task(_run_analysis, game_id, user.username)
+    background_tasks.add_task(_run_analysis, game_id, user.username, http_request_key(request))
     return {"status": "analyzing", "game_id": game_id}
 
 

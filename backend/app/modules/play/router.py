@@ -7,7 +7,9 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.integrations import cloudbook
-from app.modules.credits import service as credits
+from app.modules.ai_usage import service as ai_usage
+from app.modules.ai_usage.http import http_request_key
+import hashlib
 from app.modules.auth.service import current_user
 from app.core.dependencies import get_db
 from app.engine.contract import EngineEvalResponse, response_from_result, stream_engine
@@ -140,22 +142,21 @@ def coach(
 ):
     """AI 教练点评一步推荐着法的意图，供「提示」面板的「AI 详解」按钮调用。
 
-    需登录；PRO 已包含，免费账号按次消耗积分。
+    需登录；按 AI 额度扣减，会员也受额度约束。
     """
     if req.move not in legal_moves_uci(req.fen):
         raise HTTPException(400, "不合规则的着法")
     if not get_llm_config(db).active:
         return CoachResponse(enabled=False, text="")
-    if not credits.charge(db, user.username, "play_coach", "play"):
-        raise HTTPException(
-            402,
-            f"免费账号本次 AI 走法点评需 {credits.cost(db, 'play_coach')} 积分；PRO 会员不限次。",
-        )
     side = "红方" if side_to_move(req.fen) == "w" else "黑方"
-    text = coach_move(req.fen, req.move, side, user_id=user.username, ref="play")
-    if not text:
-        credits.refund(db, user.username, "play_coach", "play")
-    return CoachResponse(enabled=True, text=text)
+    ref = "play:" + hashlib.sha256(f"{req.fen}|{req.move}".encode()).hexdigest()[:40]
+    result = ai_usage.generate(db, user.username, "play_coach", ref,
+        lambda: coach_move(req.fen, req.move, side, user_id=user.username, ref=ref), key=http_request_key(request))
+    if result.status == "insufficient":
+        raise HTTPException(402, "AI 额度不足，请查看账户额度；训练积分不能兑换模型调用。")
+    if result.status in {"pending", "conflict"}:
+        raise HTTPException(409, "同一 AI 请求正在处理或请求标识已用于其他内容")
+    return CoachResponse(enabled=bool(result.text), text=result.text, ai_status=result.status)
 
 
 @router.post("/new", response_model=NewGameResponse)

@@ -1,8 +1,4 @@
-"""积分接口：余额查询与每日签到。
-
-积分是「大模型权益」的内部货币：调用 AI 教练、对局点评、题目讲解等会消耗积分；
-签到、对弈、做题可赚取。所有接口要求登录（积分账户与真实账号绑定）。
-"""
+"""训练积分接口：余额与签到，不兑换 AI 使用额度。"""
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session

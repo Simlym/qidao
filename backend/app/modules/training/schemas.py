@@ -65,6 +65,7 @@ class ExplainRequest(BaseModel):
 
 
 class ExplainResponse(BaseModel):
+    ai_status: str = "rules"
     enabled: bool
     explanation: str
     cached: bool = False

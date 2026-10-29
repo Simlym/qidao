@@ -1,6 +1,6 @@
-"""积分系统测试：账户/赚取/消耗的服务逻辑，以及接口的登录要求与扣费门槛。
+"""训练积分与 AI 额度分离测试：奖励、账户与接口登录要求。
 
-不实际调用 LLM：以 monkeypatch 替换大模型函数，只验证「门槛 + 扣费 + 退款」。
+不实际调用 LLM：以 monkeypatch 替换大模型函数，验证训练积分不会被模型调用扣减。
 """
 import os
 import sys
@@ -15,6 +15,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.modules.credits import service as credits
+from app.modules.ai_usage import service as ai_usage
 from app.main import app
 from app.modules.auth.service import hash_password, make_token
 from app.core.dependencies import get_db
@@ -72,7 +73,7 @@ def test_guest_has_no_account_and_cannot_spend():
     TestSession = _session_factory()
     with TestSession() as db:
         assert credits.balance(db, "default") == 0
-        assert credits.try_spend(db, "default", "coach_plan") is False
+        assert credits.get_account(db, "default") is None
 
 
 def test_checkin_idempotent_and_streak():
@@ -113,25 +114,6 @@ def test_award_game_requires_min_moves():
         assert credits.award_game(db, "alice", move_count=40) == credits.DEFAULT_EARN["game"]
 
 
-def test_spend_and_refund():
-    TestSession = _session_factory()
-    with TestSession() as db:
-        credits.grant_signup(db, "alice")
-        start = credits.balance(db, "alice")
-        assert credits.try_spend(db, "alice", "coach_plan") is True
-        assert credits.balance(db, "alice") == start - credits.DEFAULT_COST["coach_plan"]
-        credits.refund(db, "alice", "coach_plan")
-        assert credits.balance(db, "alice") == start
-
-
-def test_try_spend_blocks_when_insufficient():
-    TestSession = _session_factory()
-    with TestSession() as db:
-        credits.get_account(db, "poor")  # 余额 0
-        db.commit()
-        assert credits.try_spend(db, "poor", "coach_plan") is False
-
-
 def test_admin_adjust_clamps_at_zero():
     TestSession = _session_factory()
     with TestSession() as db:
@@ -162,15 +144,16 @@ def test_checkin_endpoint_awards():
     me = client.get("/api/credits/me", headers=_auth()).json()
     assert me["balance"] == body["balance"]
     assert me["checkin_today"] is True
-    assert me["costs"]["coach_plan"] == credits.DEFAULT_COST["coach_plan"]
+    assert me["costs"] == {}
 
 
-def test_coach_plan_falls_back_when_no_credits(monkeypatch):
-    """大模型已启用但积分为 0 时，仍返回基于训练数据的免费计划。"""
+def test_coach_plan_falls_back_when_no_ai_quota(monkeypatch):
+    """大模型已启用但 AI 额度为 0 时，仍返回基于训练数据的免费计划。"""
     monkeypatch.delenv("LLM_API_KEY", raising=False)
     TestSession = _session_factory()
     _add_user(TestSession)
     with TestSession() as db:
+        set_setting(db, "ai_free_monthly_units", "0")
         set_setting(db, KEY_LLM_ENABLED, "1")
         set_setting(db, KEY_LLM_API_KEY, "sk-test")
         db.commit()
@@ -180,8 +163,8 @@ def test_coach_plan_falls_back_when_no_credits(monkeypatch):
     assert r.json()["plan"]
 
 
-def test_explain_charges_credits(monkeypatch):
-    """已登录、有积分、大模型启用：题目讲解扣费并返回讲解；大模型函数被替身拦截。"""
+def test_explain_charges_ai_quota_without_training_points(monkeypatch):
+    """已登录、大模型启用：题目讲解只消耗 AI 额度；大模型函数被替身拦截。"""
     monkeypatch.delenv("LLM_API_KEY", raising=False)
     monkeypatch.setattr("app.modules.training.router.explain_puzzle", lambda *a, **k: "测试讲解")
     TestSession = _session_factory()
@@ -203,7 +186,8 @@ def test_explain_charges_credits(monkeypatch):
     assert r.json()["explanation"] == "测试讲解"
 
     with TestSession() as db:
-        assert credits.balance(db, "tester") == before - credits.DEFAULT_COST["puzzle_explain"]
+        assert credits.balance(db, "tester") == before
+        assert ai_usage.summary(db, "tester")["monthly_used"] == ai_usage.DEFAULT_COSTS["puzzle_explain"]
 
 
 # ── 管理员积分接口 ──────────────────────────────────────────────

@@ -1,0 +1,15 @@
+.ai-quota-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin: 20px 0; }
+.ai-quota-cards > div { display: flex; flex-direction: column; gap: 8px; padding: 18px; border: 1px solid #d8cec2; border-radius: 10px; }
+.ai-quota-cards strong { font-size: 22px; }
+.ai-price-list { list-style: none; padding: 0; }
+.ai-price-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #e9e1d7; }
+.ai-usage-table { overflow-x: auto; max-width: 100%; }
+.ai-usage-table table { border-collapse: collapse; width: 100%; white-space: nowrap; }
+.ai-usage-table th, .ai-usage-table td { padding: 10px; text-align: left; border-bottom: 1px solid #e9e1d7; }
+.ai-policy-form { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px; margin: 18px 0; }
+.ai-policy-form label { display: flex; flex-direction: column; gap: 7px; }
+.ai-policy-form input, .ai-usage-admin select { padding: 9px; max-width: 210px; }
+.ai-usage-admin .panel { margin: 16px 0; }
+.ai-usage-page button, .ai-usage-admin button { padding: 9px 14px; border: 1px solid #cdbca7; border-radius: 8px; background: #faf7f1; color: #714521; cursor: pointer; }
+.ai-usage-page button:disabled, .ai-usage-admin button:disabled { opacity: .55; cursor: default; }
+@media (max-width: 600px) { .ai-policy-form label { width: 100%; } .ai-policy-form input { max-width: 100%; } }

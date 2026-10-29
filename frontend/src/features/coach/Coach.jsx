@@ -1,6 +1,6 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
-import { getCoachPlan, refreshCoachPlan, getRating, getOverview } from "../../shared/api";
+import { getCoachPlan, refreshCoachPlan, getRating, getOverview, getAiUsage } from "../../shared/api";
 
 // 建议类型 → 行动按钮文案与跳转
 function recAction(rec, { onPractice, onNavigate }) {
@@ -102,6 +102,7 @@ function fmtTime(iso) {
 }
 
 export default function Coach({ onPractice, onNavigate, user, credits, entitlements, onCreditsChanged, onRequireLogin }) {
+  const [aiUsage, setAiUsage] = React.useState(null);
   const [data, setData] = React.useState(null);       // {plan, llm_enabled}
   const [rating, setRating] = React.useState(null);   // {rating, title, peak, solved}
   const [overview, setOverview] = React.useState(null);
@@ -123,6 +124,11 @@ export default function Coach({ onPractice, onNavigate, user, credits, entitleme
       .finally(() => setLoading(false));
   }, []);
 
+  React.useEffect(() => {
+    if (user) getAiUsage().then(setAiUsage).catch(() => {});
+    else setAiUsage(null);
+  }, [user]);
+
   async function refresh() {
     if (refreshing) return;
     if (!user) {
@@ -138,15 +144,14 @@ export default function Coach({ onPractice, onNavigate, user, credits, entitleme
       if (e.status === 401) onRequireLogin?.();
       setError(e.message || "生成失败，请稍后再试");
     } finally {
-      onCreditsChanged?.(); // 余额可能已变化
+      getAiUsage().then(setAiUsage).catch(() => {});
+      onCreditsChanged?.();
       setRefreshing(false);
     }
   }
 
-  const planCost = credits?.costs?.coach_plan;
-  const aiPriceText = entitlements?.active
-    ? "（PRO 已包含）"
-    : planCost ? `（AI 叙述 ${planCost} 积分）` : "";
+  const planCost = aiUsage?.costs?.coach_plan;
+  const aiPriceText = planCost ? `（AI 叙述 ${planCost} 单位，可用 ${aiUsage.available_units}）` : "";
 
   if (loading) return <div className="panel">加载中…</div>;
 
@@ -207,8 +212,8 @@ export default function Coach({ onPractice, onNavigate, user, credits, entitleme
             制定一份针对性的训练安排；之后每局对弈复盘完成时会自动更新。
             {llmEnabled && (
               <>
-                <br />AI 教练点评需登录；免费账号可用积分兑换
-                {planCost ? `（每次 ${planCost} 积分）` : ""}，PRO 会员不限次。
+                <br />AI 教练点评需登录，使用独立 AI 额度
+                {planCost ? `（每次 ${planCost} 单位）` : ""}；Pro 会员也受月度额度约束。
               </>
             )}
           </p>
@@ -222,7 +227,7 @@ export default function Coach({ onPractice, onNavigate, user, credits, entitleme
             ) : (
               <p className="muted">
                 {llmEnabled
-                  ? "本次未生成教练点评，下方为数据驱动的训练安排。"
+                  ? (data?.ai_status === "insufficient" ? "AI 额度不足，下方仍提供免费的基础训练安排。" : data?.ai_status === "pending" ? "AI 请求仍在处理中，下方先显示基础训练安排。" : "本次未生成 AI 点评，未成功的模型调用不扣额度，下方为基础训练安排。")
                   : "未启用 AI 大模型（管理员可在后台配置），以下为数据驱动的训练安排；开启后教练会附上水平评估与指导。"}
               </p>
             )}

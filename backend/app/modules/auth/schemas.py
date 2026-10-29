@@ -27,3 +27,4 @@ class EntitlementsOut(BaseModel):
     active: bool
     expires_at: datetime | None
     features: list[str]
+    ai_quota_required: bool = True

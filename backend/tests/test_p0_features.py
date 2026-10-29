@@ -15,6 +15,7 @@ from sqlalchemy.pool import StaticPool
 from app.core.dependencies import get_db
 from app.main import app
 from app.modules.credits import service as credits
+from app.modules.ai_usage import service as ai_usage
 from app.core.models import Attempt, Base, Puzzle, User
 
 FEN = "9/9/5k1R1/9/9/9/9/9/7R1/4K4 w"
@@ -137,7 +138,7 @@ def test_first_attempt_statistics_are_deduplicated(env):
     assert categories == [{"category": "双车错", "attempts": 2, "accuracy": 0.5}]
 
 
-def test_pro_ai_is_included_and_free_user_uses_credits(env):
+def test_pro_and_free_ai_use_separate_quota(env):
     _, Session = env
     with Session() as db:
         free = User(username="free", password_hash="x", role="user")
@@ -149,7 +150,9 @@ def test_pro_ai_is_included_and_free_user_uses_credits(env):
         db.commit()
         credits.grant_signup(db, "free")
         before = credits.balance(db, "free")
-        assert credits.charge(db, "free", "coach_plan", "test") is True
-        assert credits.balance(db, "free") == before - credits.cost(db, "coach_plan")
-        assert credits.charge(db, "pro", "coach_plan", "test") is True
+        assert ai_usage.generate(db, "free", "coach_plan", "test", lambda: "计划").text == "计划"
+        assert credits.balance(db, "free") == before
+        assert ai_usage.summary(db, "free")["monthly_used"] == 20
+        assert ai_usage.generate(db, "pro", "coach_plan", "test", lambda: "计划").text == "计划"
+        assert ai_usage.summary(db, "pro")["monthly_used"] == 20
         assert credits.balance(db, "pro") == 0

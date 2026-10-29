@@ -25,8 +25,9 @@ def entitlement_payload(user: User) -> dict:
         "plan": "pro" if active else "free",
         "active": active,
         "expires_at": user.membership_expires_at,
-        # 免费账号也可用积分兑换 AI；PRO 表示不限次包含，不再形成双重门槛。
+        # AI 功能入口对登录账号开放，实际调用统一由额度账本校验，PRO 也有上限。
         "features": list(AI_FEATURES),
+        "ai_quota_required": True,
     }
 
 

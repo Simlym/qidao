@@ -204,7 +204,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
     }
   }
 
-  // AI 教练详解推荐着法的意图（需登录并消耗积分；未配置 AI 时按钮隐藏）
+  // AI 教练详解推荐着法的意图（需登录并消耗 AI 额度；未配置 AI 时按钮隐藏）
   async function requestCoach() {
     if (!hint?.move || coachLoading || !fen) return;
     if (!user) {
@@ -214,7 +214,8 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
     setCoachLoading(true);
     try {
       const r = await coachHintMove(fen, hint.move);
-      setCoach(r.enabled ? { text: r.text || "（AI 暂时没有返回点评）" } : { disabled: true });
+      setCoach(r.enabled ? { text: r.text || "（AI 暂时没有返回点评）" }
+        : r.ai_status === "refunded" ? { error: "AI 点评生成失败，额度已退回，请稍后重试。" } : { disabled: true });
     } catch (e) {
       if (e.status === 401) onRequireLogin?.();
       setCoach({ error: e.message || "AI 详解失败" });

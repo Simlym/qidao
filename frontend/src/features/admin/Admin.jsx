@@ -1,4 +1,5 @@
 import React from "react";
+import AiUsageAdmin from "./AiUsageAdmin";
 import {
   adminAdjustCredits,
   adminCreatePuzzle,
@@ -20,6 +21,7 @@ const EMPTY = { fen: "", solution: "", kind: "杀法", category: "未分类", ta
 
 const TABS = [
   { key: "overview", label: "概览" },
+  { key: "ai-usage", label: "AI 额度" },
   { key: "users", label: "用户" },
   { key: "puzzles", label: "题库" },
   { key: "settings", label: "系统设置" },
@@ -131,6 +133,8 @@ export default function Admin() {
           <LlmSettingsPanel />
         </>
       )}
+
+      {tab === "ai-usage" && <AiUsageAdmin users={users} />}
 
       {/* 日志 */}
       {tab === "logs" && <LogsPanel />}

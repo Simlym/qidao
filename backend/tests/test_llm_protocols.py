@@ -84,9 +84,9 @@ def test_anthropic_messages_adapter_and_usage():
     assert _normalize_usage(PROTOCOL_ANTHROPIC, {
         "input_tokens": 10, "output_tokens": 3, "cache_read_input_tokens": 4,
     }) == {
-        "prompt_tokens": 10,
+        "prompt_tokens": 14,
         "completion_tokens": 3,
-        "total_tokens": 13,
+        "total_tokens": 17,
         "prompt_tokens_details": {"cached_tokens": 4},
     }
 

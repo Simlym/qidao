@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.modules.credits import service as credits
+from app.modules.ai_usage import service as ai_usage
+from app.modules.ai_usage.http import http_request_key
 from app.modules.puzzles import repository as repo
 from app.modules.auth.service import current_user_id
 from app.core.dependencies import get_db
@@ -276,21 +278,18 @@ def explain(
     if not get_llm_config(db).active:
         return ExplainResponse(enabled=True, explanation=rule_explanation(puzzle), mode="rules")
 
-    if not credits.charge(db, user_id, "puzzle_explain", f"puzzle:{puzzle.id}"):
-        return ExplainResponse(enabled=True, explanation=rule_explanation(puzzle), mode="rules")
-
     solution = primary_line(puzzle.solution)
     side = "红方" if puzzle.side_to_move == "w" else "黑方"
-    text = explain_puzzle(puzzle.fen, solution, puzzle.category, side,
-                          user_id=user_id, ref=f"puzzle:{puzzle.id}")
-    if text:
-        puzzle.ai_explanation = text
-        db.commit()
-    else:
-        credits.refund(db, user_id, "puzzle_explain", f"puzzle:{puzzle.id}")
-    if not text:
-        return ExplainResponse(enabled=True, explanation=rule_explanation(puzzle), mode="rules")
-    return ExplainResponse(enabled=True, explanation=text, mode="ai")
+    result = ai_usage.generate(db, user_id, "puzzle_explain", f"puzzle:{puzzle.id}",
+        lambda: explain_puzzle(puzzle.fen, solution, puzzle.category, side,
+            user_id=user_id, ref=f"puzzle:{puzzle.id}"), key=http_request_key(request))
+    if result.status in {"pending", "conflict"}:
+        raise HTTPException(409, "同一 AI 请求正在处理或请求标识已用于其他内容")
+    if not result.text:
+        return ExplainResponse(enabled=True, explanation=rule_explanation(puzzle), mode="rules", ai_status=result.status)
+    puzzle.ai_explanation = result.text
+    db.commit()
+    return ExplainResponse(enabled=True, explanation=result.text, mode="ai", ai_status=result.status)
 
 
 @router.post("/submit", response_model=SubmitResponse)

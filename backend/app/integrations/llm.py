@@ -112,6 +112,8 @@ def _normalize_usage(protocol: str, usage: dict | None) -> dict:
     if protocol == PROTOCOL_OPENAI_CHAT:
         return usage
     prompt = int(usage.get("input_tokens", 0) or 0)
+    if protocol == PROTOCOL_ANTHROPIC:
+        prompt += int(usage.get("cache_read_input_tokens", 0) or 0) + int(usage.get("cache_creation_input_tokens", 0) or 0)
     completion = int(usage.get("output_tokens", 0) or 0)
     cached = int(usage.get("cache_read_input_tokens", 0) or 0)
     input_details = usage.get("input_tokens_details") or {}
@@ -166,6 +168,7 @@ def _response_text(protocol: str, data: dict) -> tuple[str, str, str]:
 def _record_call(feature: str, user_id: str, model: str, usage: dict | None,
                  duration_ms: int, success: bool, error: str, ref: str) -> None:
     """把单次 LLM 调用的 token/费用落库到 llm_call_logs。失败绝不影响主流程。"""
+    cost_known = model in _PRICING and bool(usage)
     usage = usage or {}
     prompt_tokens = int(usage.get("prompt_tokens", 0) or 0)
     completion_tokens = int(usage.get("completion_tokens", 0) or 0)
@@ -187,7 +190,10 @@ def _record_call(feature: str, user_id: str, model: str, usage: dict | None,
     try:
         from app.core.models import LLMCallLog, SessionLocal
 
-        db = SessionLocal()
+        from sqlalchemy.orm import Session
+        from app.modules.ai_usage.context import current_operation
+        operation = current_operation.get()
+        db = Session(bind=operation[1]) if operation else SessionLocal()
         try:
             db.add(LLMCallLog(
                 feature=feature, user_id=user_id or "", model=model,
@@ -195,6 +201,7 @@ def _record_call(feature: str, user_id: str, model: str, usage: dict | None,
                 completion_tokens=completion_tokens, reasoning_tokens=reasoning_tokens,
                 total_tokens=total_tokens, cost_usd=cost, duration_ms=duration_ms,
                 success=success, error=error[:200], ref=ref[:80],
+                operation_id=operation[0] if operation else None, cost_known=cost_known,
             ))
             db.commit()
         finally:
@@ -220,7 +227,16 @@ def _chat_raw(prompt: str, max_tokens: int = 200, timeout: int = 15,
     每次调用（无论成败、只要真正发出了请求）都把 token 用量与费用落库供审计。
     feature/user_id/ref 标识本次调用的事项、触发者与关联对象。
     """
-    cfg = config or get_llm_config()
+    from app.modules.ai_usage.context import current_operation
+    operation = current_operation.get()
+    if config is not None:
+        cfg = config
+    elif operation:
+        from sqlalchemy.orm import Session
+        with Session(bind=operation[1]) as config_db:
+            cfg = get_llm_config(config_db)
+    else:
+        cfg = get_llm_config()
     if not cfg.active:
         return "", "未启用或未配置密钥"
     effort = _EFFORT_MAP.get(cfg.reasoning_effort, "high")

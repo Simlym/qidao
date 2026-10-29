@@ -2,6 +2,7 @@
 
 from fastapi import FastAPI
 
+from .modules.ai_usage import router as ai_usage
 from .modules.admin import engine_router as engine_admin, router as admin
 from .modules.auth import account_router as account, router as auth
 from .modules.challenge import router as challenge
@@ -19,6 +20,7 @@ from .modules.variants import router as variants
 API_ROUTERS = (
     auth.router,
     account.router,
+    ai_usage.router,
     admin.router,
     engine_admin.router,
     training.router,

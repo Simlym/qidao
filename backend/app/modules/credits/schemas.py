@@ -8,7 +8,7 @@ class CreditSummary(BaseModel):
     total_earned: int
     checkin_today: bool
     checkin_streak: int
-    costs: dict[str, int]      # 各大模型动作的消耗
+    costs: dict[str, int]      # 兼容旧客户端，始终为空；AI 单价由独立额度接口提供
     earn_rates: dict[str, int] # 各正向行为的入账
     is_member: bool
 

@@ -21,7 +21,7 @@ import { resolveNavigation } from "./navigation";
 import DesktopShell from "./shells/DesktopShell";
 import WebShell from "./shells/WebShell";
 
-// 顶部积分徽标 + 每日签到。积分用于兑换 AI（大模型）功能权益。
+// 顶部积分徽标 + 每日签到。训练积分用于外观兑换，AI 使用独立额度。
 function CreditsBadge({ credits, onCheckin }) {
   const [busy, setBusy] = React.useState(false);
   const [toast, setToast] = React.useState("");
@@ -44,7 +44,7 @@ function CreditsBadge({ credits, onCheckin }) {
 
   return (
     <span className="credits-box">
-      <span className="credits-amt" title="积分：用于兑换 AI 教练等大模型功能">
+      <span className="credits-amt" title="训练积分：用于外观兑换；AI 额度请在账户设置查看">
         💎 {credits.balance}
       </span>
       <button

@@ -4,6 +4,8 @@ from datetime import date, datetime
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
+    false,
     Date,
     DateTime,
     Float,
@@ -237,10 +239,10 @@ class SecurityLog(Base):
 
 
 class CreditAccount(Base):
-    """用户积分账户（仅登录用户拥有，故 LLM 权益必须登录才能使用）。
+    """用户训练积分账户，独立于 AI 使用额度。
 
-    积分是平台内部「大模型权益」货币：签到 / 对弈 / 做题赚取，调用大模型功能消耗。
-    访客（user_id='default'）不建账户，因此无法消耗积分调用 LLM，从根上挡住「白嫖刷接口」。
+    积分用于外观等训练奖励；签到、对弈与做题赚取，不兑换模型调用。
+    访客不参与训练积分结算；模型调用必须经过独立 AI 额度账本。
     """
 
     __tablename__ = "credit_accounts"
@@ -326,3 +328,58 @@ class LLMCallLog(Base):
     success: Mapped[bool] = mapped_column(Boolean, default=True)
     error: Mapped[str] = mapped_column(String(200), default="")     # 失败原因（成功为空）
     ref: Mapped[str] = mapped_column(String(80), default="")        # 关联对象，如 game:45 / puzzle:123
+
+    operation_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    cost_known: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+
+
+class AIQuotaAccount(Base):
+    """补充额度与每用户的数据库写锁；不与训练积分兑换。"""
+    __tablename__ = "ai_quota_accounts"
+    __table_args__ = (CheckConstraint("extra_balance >= 0", name="ck_ai_extra_nonnegative"),)
+    user_id: Mapped[str] = mapped_column(String(40), ForeignKey("users.username", ondelete="CASCADE"), primary_key=True)
+    extra_balance: Mapped[int] = mapped_column(Integer, default=0)
+    revision: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class AIQuotaMonth(Base):
+    """自然月使用量包含处理中预留；退款总是冲回原月份。"""
+    __tablename__ = "ai_quota_months"
+    __table_args__ = (CheckConstraint("used_units >= 0", name="ck_ai_month_nonnegative"),)
+    user_id: Mapped[str] = mapped_column(String(40), ForeignKey("users.username", ondelete="CASCADE"), primary_key=True)
+    period: Mapped[str] = mapped_column(String(7), primary_key=True)
+    used_units: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class AIOperation(Base):
+    """AI 请求预留/成功/退款流水；保存原单价及分摊，幂等结算。"""
+    __tablename__ = "ai_operations"
+    __table_args__ = (UniqueConstraint("user_id", "request_key", name="uq_ai_operation_request"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(40), ForeignKey("users.username", ondelete="CASCADE"), index=True)
+    request_key: Mapped[str] = mapped_column(String(80))
+    action: Mapped[str] = mapped_column(String(40))
+    ref: Mapped[str] = mapped_column(String(80), default="")
+    period: Mapped[str] = mapped_column(String(7))
+    units: Mapped[int] = mapped_column(Integer)
+    monthly_units: Mapped[int] = mapped_column(Integer)
+    extra_units: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(16), default="reserved", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    result_text: Mapped[str] = mapped_column(Text, default="")
+    error_code: Mapped[str] = mapped_column(String(40), default="")
+
+
+class AIQuotaAdjustment(Base):
+    """管理员发放/扣回补充额度，独立审计并支持重试幂等。"""
+    __tablename__ = "ai_quota_adjustments"
+    __table_args__ = (UniqueConstraint("user_id", "request_key", name="uq_ai_adjustment_request"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(40), ForeignKey("users.username", ondelete="CASCADE"), index=True)
+    request_key: Mapped[str] = mapped_column(String(80))
+    requested_delta: Mapped[int] = mapped_column(Integer)
+    actual_delta: Mapped[int] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(String(80))
+    actor: Mapped[str] = mapped_column(String(40))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

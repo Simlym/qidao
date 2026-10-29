@@ -74,7 +74,7 @@ export default function Games({ onNavigateToTrain, onStartPack, initialGameId, o
           pollRef.current = null;
           setAnalyzeStatus("done");
           setAnalysisData(result);
-          onCreditsChanged?.(); // 分析期间的大模型点评已消耗积分，刷新余额
+          onCreditsChanged?.(); // 分析期间的大模型点评使用独立 AI 额度
         }
       } catch {
         // keep polling
@@ -291,7 +291,7 @@ export default function Games({ onNavigateToTrain, onStartPack, initialGameId, o
       }
       // 其它错误：仍尝试轮询（分析可能已在进行）
     }
-    onCreditsChanged?.(); // 分析会按余额消耗大模型点评积分
+    onCreditsChanged?.(); // 分析按独立 AI 额度生成模型点评
     startPolling(selectedId);
   }
 

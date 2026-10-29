@@ -23,5 +23,6 @@ class PlanOut(BaseModel):
 
 
 class PlanResponse(BaseModel):
+    ai_status: str = "rules"
     plan: PlanOut | None
     llm_enabled: bool

@@ -30,12 +30,16 @@ export function readableErrorDetail(value) {
   return "请求失败";
 }
 
-export async function request(path, { method = "GET", body, signal } = {}) {
+export async function request(path, { method = "GET", body, signal, idempotencyKey } = {}) {
   return withApiConnection(async (requestSignal) => {
     const options = { method, headers: authHeaders(), signal: requestSignal, credentials: "omit", redirect: "error", cache: "no-store" };
     if (body !== undefined) {
       options.headers = authHeaders({ "Content-Type": "application/json" });
       options.body = JSON.stringify(body);
+    }
+    if (method === "POST") {
+      options.headers["Idempotency-Key"] = idempotencyKey || globalThis.crypto?.randomUUID?.()
+        || `request-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     }
     const response = await fetch(`${API_BASE_URL}${path}`, options);
     if (!response.ok) {

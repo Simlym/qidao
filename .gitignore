@@ -40,3 +40,6 @@ scripts/setup/
 
 # 独立原生安装器测试产物
 src-tauri/engine-installer/target/
+
+# 从仓库根目录启动时的默认 SQLite 数据库
+/data/*.db

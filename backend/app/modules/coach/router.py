@@ -12,6 +12,7 @@ from app.core.dependencies import get_db
 from app.core.models import CoachPlan, User
 from app.core.rate_limit import limiter
 from app.core.settings import get_llm_config
+from app.modules.ai_usage.http import http_request_key
 
 router = APIRouter(prefix="/api/coach", tags=["coach"])
 
@@ -55,8 +56,8 @@ def refresh_plan(
 ):
     """按当前数据重新生成训练计划（LLM 可用时附教练叙述，调用较慢）。
 
-    需登录；PRO 已包含，免费账号启用大模型时按次消耗积分。
+    需登录；AI 叙述按独立额度消耗，基础规则计划始终可用。
     """
-    # 积分不足时 generate_plan 自动降级为纯数据计划，基础教练能力始终可用。
-    plan = generate_plan(db, user.username, trigger="manual")
-    return PlanResponse(plan=_to_out(plan), llm_enabled=get_llm_config(db).active)
+    # AI 额度不足时 generate_plan 自动降级为纯数据计划，基础教练能力始终可用。
+    plan = generate_plan(db, user.username, trigger="manual", request_key=http_request_key(request))
+    return PlanResponse(plan=_to_out(plan), llm_enabled=get_llm_config(db).active, ai_status=plan.ai_status)

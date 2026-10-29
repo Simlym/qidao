@@ -1,14 +1,4 @@
-"""积分系统：大模型（LLM）权益的内部货币，集中在此模块管理获取与消耗。
-
-核心目的：防止未登录用户疯狂调用付费大模型接口刷成本。
-- 仅登录用户拥有积分账户；访客（GUEST_USER）无账户、无法消耗，故 LLM 功能必须登录。
-- 免费账号调用大模型按动作扣分；PRO 会员已包含，不再重复扣积分。
-- 通过签到 / 对弈 / 做题赚取积分，引导用户多在平台下棋、训练。
-- 默认成本与奖励见 DEFAULT_*，管理员可用 AppSetting 覆盖（键名见 _setting_key），无需重启。
-
-并发说明：面向 SQLite 单进程部署，余额采用读-改-写；极端并发下可能有竞态，
-对「内部权益货币」而言可接受，不引入额外锁。
-"""
+"""训练积分：签到、对弈、做题与外观兑换；不兑换 AI 调用。旧余额原样保留。"""
 
 from __future__ import annotations
 
@@ -23,7 +13,7 @@ from app.modules.auth.service import GUEST_USER
 from app.core.models import CreditAccount, CreditLog
 from app.core.settings import get_setting
 
-# 注册新用户赠送，够体验各项大模型功能若干次
+# 注册新用户赠送训练积分，可用于外观兑换
 DEFAULT_SIGNUP_GRANT = 200
 
 # 赚取规则（每次动作的入账积分）
@@ -40,15 +30,6 @@ DEFAULT_CHECKIN_STREAK_CAP = 30
 DEFAULT_DAILY_CAP = {
     "game": 50,
     "puzzle": 60,
-}
-
-# 消耗规则（调用大模型各功能的成本）
-DEFAULT_COST = {
-    "coach_plan": 20,        # 生成/刷新 AI 教练训练计划
-    "game_report": 10,       # 对局综合复盘报告
-    "mistake_explain": 2,    # 单步失误讲解（一局分析可能多次）
-    "puzzle_explain": 8,     # 题目解题思路讲解
-    "play_coach": 4,         # 对弈中走法点评
 }
 
 _MIN_GAME_MOVES = 12  # 少于此手数的对局不计对弈奖励，防止空局刷分
@@ -80,22 +61,12 @@ def _int_setting(db: Session, key: str, default: int) -> int:
         return default
 
 
-def cost(db: Session, action: str) -> int:
-    """某个大模型动作的消耗积分。"""
-    return _int_setting(db, f"credit_cost_{action}", DEFAULT_COST.get(action, 0))
-
-
 def _earn_amount(db: Session, action: str) -> int:
     return _int_setting(db, f"credit_earn_{action}", DEFAULT_EARN.get(action, 0))
 
 
 def _daily_cap(db: Session, action: str) -> int:
     return _int_setting(db, f"credit_cap_{action}", DEFAULT_DAILY_CAP.get(action, 0))
-
-
-def costs(db: Session) -> dict[str, int]:
-    """全部大模型动作成本，供前端展示「消耗 N 积分」。"""
-    return {a: cost(db, a) for a in DEFAULT_COST}
 
 
 def earn_rates(db: Session) -> dict[str, int]:
@@ -171,64 +142,6 @@ def grant_signup(db: Session, user_id: str) -> int:
     _log(db, acc, "grant:signup", amount, "")
     db.commit()
     return amount
-
-
-def can_afford(db: Session, user_id: str, action: str) -> bool:
-    return balance(db, user_id) >= cost(db, action)
-
-
-def _has_included_ai(db: Session, user_id: str) -> bool:
-    """PRO 的 AI 调用包含在会员内，不再叠加扣积分。"""
-    if not _is_member(user_id):
-        return False
-    from app.modules.auth.entitlements import membership_active
-    from app.core.models import User
-
-    user = db.scalar(select(User).where(User.username == user_id))
-    return bool(user and membership_active(user))
-
-
-def can_use_ai(db: Session, user_id: str, action: str) -> bool:
-    return _has_included_ai(db, user_id) or can_afford(db, user_id, action)
-
-
-def charge(db: Session, user_id: str, action: str, ref: str = "") -> bool:
-    """PRO 直接放行；免费用户使用积分兑换单次 AI 调用。"""
-    if _has_included_ai(db, user_id):
-        return True
-    return try_spend(db, user_id, action, ref)
-
-
-def try_spend(db: Session, user_id: str, action: str, ref: str = "") -> bool:
-    """扣减一次动作成本；余额不足或非会员返回 False（不抛异常）。
-
-    供后台分析等「能扣则扣、扣不动就降级为纯数据」的场景使用。
-    """
-    if not _is_member(user_id):
-        return False
-    price = cost(db, action)
-    acc = get_account(db, user_id)
-    if acc.balance < price:
-        return False
-    acc.balance -= price
-    acc.updated_at = datetime.utcnow()
-    _log(db, acc, f"spend:{action}", -price, ref)
-    db.commit()
-    return True
-
-
-def refund(db: Session, user_id: str, action: str, ref: str = "") -> None:
-    """退回一次动作成本（如大模型调用失败、返回空）。"""
-    if not _is_member(user_id) or _has_included_ai(db, user_id):
-        return
-    price = cost(db, action)
-    if price <= 0:
-        return
-    acc = get_account(db, user_id)
-    acc.balance += price
-    acc.updated_at = datetime.utcnow()
-    _log(db, acc, f"refund:{action}", price, ref)
-    db.commit()
 
 
 def admin_adjust(db: Session, user_id: str, delta: int, reason: str = "") -> int:
@@ -323,7 +236,7 @@ def summary(db: Session, user_id: str) -> dict:
         "total_earned": acc.total_earned if acc else 0,
         "checkin_today": bool(acc and acc.last_checkin == today),
         "checkin_streak": acc.checkin_streak if acc else 0,
-        "costs": costs(db),
+        "costs": {},  # 兼容旧客户端；AI 单价见 /account/ai-usage。
         "earn_rates": earn_rates(db),
         "is_member": _is_member(user_id),
     }

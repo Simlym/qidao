@@ -132,6 +132,8 @@ VITE_API_BASE_URL=https://chess.example.com/api
 更多云库参数和多端引擎降级逻辑见 [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md)。
 
 
+AI 月度额度、补充额度、独立训练积分和旧库升级见[会员与 AI 额度](ai-usage.md)。
+
 ### Web 构建配置
 
 Compose 根目录 `.env` 的 `VITE_API_BASE_URL=/api` 通过 Docker build arg 写入 Web 产物；默认无需修改。独立 API 部署可设为 `https://api.example.com/api` 并配置 CORS，之后必须重新构建：

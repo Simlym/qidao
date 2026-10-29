@@ -252,8 +252,10 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
       if (!res.enabled) {
         setAiDisabled(true);
       } else {
-        setAiText(res.explanation || "（AI 暂时没有返回讲解，稍后再试）");
-        if (!res.cached) onCreditsChanged?.(); // 新生成才扣分
+        const notice = res.ai_status === "insufficient" ? "AI 额度不足，以下为免费规则讲解。\n\n"
+          : res.ai_status === "refunded" ? "AI 生成失败，额度已退回，以下为规则讲解。\n\n" : "";
+        setAiText(notice + (res.explanation || "（AI 暂时没有返回讲解，稍后再试）"));
+        if (!res.cached) onCreditsChanged?.(); // AI 使用独立额度，训练积分不变
       }
     } catch (e) {
       if (e.status === 401) onRequireLogin?.();

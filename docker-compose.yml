@@ -42,6 +42,13 @@ services:
       LLM_PROTOCOL: ${LLM_PROTOCOL:-openai_chat}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
       LLM_MODEL: ${LLM_MODEL:-gpt-4.1-mini}
+      AI_FREE_MONTHLY_UNITS: ${AI_FREE_MONTHLY_UNITS:-20}
+      AI_PRO_MONTHLY_UNITS: ${AI_PRO_MONTHLY_UNITS:-600}
+      AI_COST_COACH_PLAN: ${AI_COST_COACH_PLAN:-20}
+      AI_COST_GAME_REPORT: ${AI_COST_GAME_REPORT:-10}
+      AI_COST_MISTAKE_EXPLAIN: ${AI_COST_MISTAKE_EXPLAIN:-2}
+      AI_COST_PUZZLE_EXPLAIN: ${AI_COST_PUZZLE_EXPLAIN:-8}
+      AI_COST_PLAY_COACH: ${AI_COST_PLAY_COACH:-4}
     volumes:
       - ./local-engines:/app/data/engines
     depends_on:
