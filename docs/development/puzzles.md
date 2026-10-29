@@ -64,7 +64,7 @@ CCPD 所称 58,528 个实例包含大量完整对局，不等于 58,528 道可�
 ```bash
 uv run python -m app.modules.puzzles.importer.import_wukong --limit 100 --out /tmp/wukong-raw.json
 uv run python -m app.modules.puzzles.importer.audit_puzzles --input /tmp/wukong-raw.json --output /tmp/wukong-audited.json --report /tmp/wukong-audit.md
-uv run python -m app.modules.puzzles.importer.prepare /tmp/wukong-audited.json --out /tmp/wukong-batches --license MIT --attribution "Maksym Korzh / wukong-xiangqi (2021)；象棋道求解与审计转换" --source-url https://github.com/maksimKorzh/wukong-xiangqi --source-revision 9ef8db735e78ec640a64d50240698087b44c5294
+uv run python -m app.modules.puzzles.importer.prepare /tmp/wukong-audited.json --out /tmp/wukong-batches --license MIT --attribution "Maksym Korzh / wukong-xiangqi (2021)；棋岛求解与审计转换" --source-url https://github.com/maksimKorzh/wukong-xiangqi --source-revision 9ef8db735e78ec640a64d50240698087b44c5294
 ```
 
 求解与多解审计可能耗时较长，放在离线维护流程中，避免占用在线请求。`--limit` 控制成功输出题数，不是扫描题数；不设置时会尝试全部局面。
@@ -77,7 +77,7 @@ uv run python -m app.modules.puzzles.importer.prepare /tmp/wukong-audited.json -
 git clone https://github.com/Yvonne761/Chinese-Chess-Practical-Dataset.git /tmp/CCPD
 git -C /tmp/CCPD checkout 368a47a947773dd8692c026e286dd19b6277b993
 uv run python -m app.modules.puzzles.importer.import_ccpd /tmp/CCPD/Dataset --out /tmp/ccpd-curriculum.json
-uv run python -m app.modules.puzzles.importer.prepare /tmp/ccpd-curriculum.json --out /tmp/ccpd-batches --license CC-BY-4.0 --attribution "Yu-Han Tseng and Bo-Nian Chen (2026), CCPD；象棋道记谱转换与课程截取" --source-url https://github.com/Yvonne761/Chinese-Chess-Practical-Dataset --source-revision 368a47a947773dd8692c026e286dd19b6277b993
+uv run python -m app.modules.puzzles.importer.prepare /tmp/ccpd-curriculum.json --out /tmp/ccpd-batches --license CC-BY-4.0 --attribution "Yu-Han Tseng and Bo-Nian Chen (2026), CCPD；棋岛记谱转换与课程截取" --source-url https://github.com/Yvonne761/Chinese-Chess-Practical-Dataset --source-revision 368a47a947773dd8692c026e286dd19b6277b993
 ```
 
 转换时可加 `--engine <Pikafish路径>` 核对第一手；没有通过引擎首选的实战主线也可能有教学价值，不能自动等同为错误或唯一正确答案。后台导入仍重新执行基础校验，不直接采信文件中的校验标记。

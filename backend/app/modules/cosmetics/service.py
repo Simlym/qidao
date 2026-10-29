@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.models import CosmeticPurchase
 
 CATALOG = (
-    {"key": "app_classic", "type": "app", "theme": "classic", "name": "雅木暖棕", "description": "象棋道经典暖棕与米白配色", "price": 0},
+    {"key": "app_classic", "type": "app", "theme": "classic", "name": "雅木暖棕", "description": "棋岛经典暖棕与米白配色", "price": 0},
     {"key": "app_ink", "type": "app", "theme": "ink", "name": "宣纸墨韵", "description": "纸白、炭黑与一抹朱砂红", "price": 0},
     {"key": "app_jade", "type": "app", "theme": "jade", "name": "翡翠深庭", "description": "沉静翠绿、暖金与玉白", "price": 120},
     {"key": "app_night", "type": "app", "theme": "night", "name": "夜弈玄青", "description": "专为夜间对弈设计的低亮深蓝主题", "price": 100},

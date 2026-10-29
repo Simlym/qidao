@@ -1,4 +1,4 @@
-// 象棋道 PWA service worker（极简）：提供安装能力与离线壳缓存。
+// 棋岛 QiDao PWA service worker（极简）：提供安装能力与离线壳缓存。
 const CACHE = "xq-shell-v3";
 
 self.addEventListener("install", (e) => {

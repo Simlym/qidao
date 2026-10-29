@@ -194,3 +194,12 @@ npm run build:android
 ```
 
 后两项需先提供发布 API 配置；它们仅验证前端产物。完整安装包仍需对应原生工具链。模块边界与引擎降级见[架构说明](../ARCHITECTURE.md)，题库操作见[题库维护](puzzles.md)。
+
+
+## QiDao 品牌与历史应用标识
+
+用户可见的产品名称为 **棋岛 QiDao**，网页标题、PWA 安装名称、桌面窗口标题及 Tauri 的 `productName` 已统一。安装包使用英文 `QiDao`，窗口标题使用「棋岛 QiDao」。
+
+为保留开发期已安装客户端的配置与既有服务兼容性，**内部标识暂不更名**：Tauri 的 `identifier` 仍为 `com.xiangqidao.desktop` / `com.xiangqidao.app`；后端 `/api/health` 的 `service` 仍为 `xiangqidao`；前端校验、应用缓存、Python / Rust / npm 包名及数据库默认名称仍使用原技术标识。请不要只修改其中一处字符串，否则会导致无法识别服务或数据目录变化。
+
+GitHub 仓库仍使用历史地址 `Simlym/xiangqidao`，若以后改为 `Simlym/qidao`，同步更新部署文档中的克隆 URL 和外部 CI/部署集成。

@@ -1,7 +1,7 @@
 [project]
 name = "xiangqidao-backend"
 version = "0.1.0"
-description = "Xiangqidao FastAPI backend"
+description = "QiDao (棋岛) Xiangqi & Jieqi backend"
 requires-python = ">=3.10"
 dependencies = [
     "alembic>=1.13",
