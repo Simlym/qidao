@@ -18,16 +18,30 @@ function excludeBundledEngines() {
 export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const tauriDevHost = process.env.TAURI_DEV_HOST;
-  const androidApiBase = env.VITE_API_BASE_URL?.replace(/\/+$/, "") || "";
-  if (mode === "android" && command === "build" && !/^https:\/\/[^/]+(?:\/.*)?\/api$/i.test(androidApiBase)) {
-    throw new Error("Android 构建前请在 frontend/.env.android.local 中配置 HTTPS 的 VITE_API_BASE_URL（必须以 /api 结尾）");
-  }
-  if (mode === "android" && command === "serve" && !/^https?:\/\/[^/]+(?:\/.*)?\/api$/i.test(androidApiBase)) {
-    throw new Error("Android 调试请配置设备可访问的 VITE_API_BASE_URL（完整 HTTP/HTTPS 地址，以 /api 结尾）");
+  const apiBase = (env.VITE_API_BASE_URL || "").trim().replace(/\/+$/, "");
+  const packagedClient = mode === "tauri" || mode === "android";
+  const label = mode === "android" ? "Android" : "PC";
+  const configFile = mode === "android" ? ".env.android.local" : ".env.tauri.local";
+  const release = command === "build";
+
+  if (packagedClient && (release || mode === "android" || apiBase)) {
+    let url;
+    try { url = new URL(apiBase); } catch { /* 由下方统一给出配置错误 */ }
+    const valid = url
+      && (release ? url.protocol === "https:" : ["http:", "https:"].includes(url.protocol))
+      && url.pathname.endsWith("/api")
+      && !url.search && !url.hash && !url.username && !url.password;
+    const loopback = url && /^(localhost|127(?:\.\d+){3}|\[::1\])$/i.test(url.hostname);
+    if (!valid || (release && loopback)) {
+      throw new Error(`${label} ${release ? "发布构建" : "调试"}请在 frontend/${configFile} 或构建环境变量中配置 VITE_API_BASE_URL：完整 ${release ? "HTTPS" : "HTTP/HTTPS"} 地址，以 /api 结尾，不含账号、查询参数或片段${release ? "，且不能使用 localhost/回环地址" : ""}。`);
+    }
   }
 
   return {
     plugins: [react(), excludeBundledEngines()],
+    define: {
+      "import.meta.env.VITE_API_BASE_URL": JSON.stringify(apiBase),
+    },
     server: {
       port: 5173,
       strictPort: true,

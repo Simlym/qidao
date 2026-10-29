@@ -10,7 +10,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --registry=${NPM_REGISTRY}
 
 COPY . .
-RUN npm run build
+ARG VITE_API_BASE_URL=/api
+RUN VITE_API_BASE_URL="$VITE_API_BASE_URL" npm run build
 
 FROM ${IMAGE_REGISTRY}/library/nginx:1.27-alpine
 

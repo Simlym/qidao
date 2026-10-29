@@ -11,7 +11,9 @@
     "build:android": "vite build --mode android --outDir dist-tauri",
     "test:core": "node --test src/**/*.test.js",
     "preview": "vite preview",
-    "tauri": "cd .. && node frontend/node_modules/@tauri-apps/cli/tauri.js"
+    "tauri": "cd .. && node frontend/node_modules/@tauri-apps/cli/tauri.js",
+    "dev:tauri": "vite --mode tauri",
+    "test:config": "node --test tests/build-config.test.js"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
