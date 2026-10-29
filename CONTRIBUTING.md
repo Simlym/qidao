@@ -1,6 +1,6 @@
-# 参与象棋道开发
+# 参与棋岛开发
 
-欢迎参与象棋道（Xiangqidao）。先阅读 [项目介绍](README.md) 和 [架构说明](docs/ARCHITECTURE.md)，再按照以下步骤启动项目。
+欢迎参与棋岛（QiDao，中国象棋与揭棋对弈、训练及分析平台）。先阅读 [项目介绍](README.md) 和 [架构说明](docs/ARCHITECTURE.md)，再按照以下步骤启动项目。
 
 ## 运行环境与启动
 

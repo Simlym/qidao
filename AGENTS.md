@@ -4,7 +4,7 @@ Canonical repository guidance for Codex, Claude Code, and human contributors. Se
 
 ## Project
 
-象棋道 Xiangqidao — a Chinese chess (xiangqi) training system: tactics puzzles with SM-2 spaced repetition, ELO ratings, human-vs-engine play, game review/analysis, and an AI coach. Code comments, commit messages, and all UI text are in Chinese — follow that convention.
+棋岛 QiDao — a Xiangqi and Jieqi play-and-training application (the repository and internal service IDs retain the historical name xiangqidao): tactics puzzles with SM-2 spaced repetition, ELO ratings, human-vs-engine play, game review/analysis, and an AI coach. Code comments, commit messages, and all UI text are in Chinese — follow that convention.
 
 ## Commands
 

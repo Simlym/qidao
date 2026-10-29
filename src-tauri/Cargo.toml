@@ -1,7 +1,7 @@
 [package]
 name = "xiangqidao"
 version = "0.1.0"
-description = "象棋道多端客户端"
+description = "棋岛 QiDao 中国象棋与揭棋多端客户端"
 authors = ["Xiangqidao"]
 edition = "2021"
 

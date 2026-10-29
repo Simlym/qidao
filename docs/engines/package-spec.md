@@ -1,4 +1,4 @@
-# 象棋道 WASM UCI 引擎包规范 v1
+# 棋岛 WASM UCI 引擎包规范 v1
 
 引擎包应先解压为一个目录。目录根部必须包含 `engine-manifest.json`，入口必须是可由 Web Worker
 直接加载并通过 `postMessage` 接收、返回逐行 UCI 文本的 JavaScript 文件。入口使用相对路径加载的

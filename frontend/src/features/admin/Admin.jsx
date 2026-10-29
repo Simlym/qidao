@@ -227,7 +227,7 @@ const OS_LABEL = { windows: "Windows", macos: "macOS", linux: "Linux" };
 const ENGINE_GUIDES = {
   xiangqi: {
     title: "标准象棋 UCI 引擎",
-    description: "象棋道不提供或代下载引擎，也不指定推荐引擎。请根据服务器平台自行选择上游来源下载，再将文件放到服务器的非公开目录。",
+    description: "棋岛不提供或代下载引擎，也不指定推荐引擎。请根据服务器平台自行选择上游来源下载，再将文件放到服务器的非公开目录。",
     example: "例如 /opt/xiangqidao/engines/xiangqi/engine 或 D:\\engines\\xiangqi\\engine.exe",
   },
   jieqi: {
@@ -283,7 +283,7 @@ function ServerEnginePanel({ variant }) {
       {status?.configured_path && <button className="game-delete-btn" style={{ width: "auto", padding: "0 12px" }} disabled={busy} onClick={() => save("")}>清除</button>}
     </div>
     <p className="muted" style={{ fontSize: 12 }}>
-      引擎程序和权重可能采用不同许可；商业使用前请自行确认。象棋道只保存路径并通过 UCI 协议调用。
+      引擎程序和权重可能采用不同许可；商业使用前请自行确认。棋岛只保存路径并通过 UCI 协议调用。
     </p>
     {error && <div className="import-error">{error}</div>}
     {message && <div className={status?.available ? "import-ok" : "muted"}>{message}</div>}
