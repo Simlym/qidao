@@ -53,7 +53,7 @@ docker compose logs --tail=100 backend
 curl --fail http://127.0.0.1:8080/api/health
 ```
 
-PowerShell 可用 `Invoke-RestMethod http://127.0.0.1:8080/api/health`。应返回 `{"status":"ok"}`；首次启动会等待数据库健康，自动迁移并播种空公共题库。已有公共题库不会自动扩容，见[题库维护](../development/puzzles.md)。
+PowerShell 可用 `Invoke-RestMethod http://127.0.0.1:8080/api/health`。应返回包含 `status=ok`、`service=xiangqidao`、`api_version=1` 和当前 `version` 的 JSON；首次启动会等待数据库健康，自动迁移并播种空公共题库。已有公共题库不会自动扩容，见[题库维护](../development/puzzles.md)。
 
 构建默认使用 DaoCloud 镜像源、阿里 pip 源、npmmirror。海外可在 `.env` 设置：
 

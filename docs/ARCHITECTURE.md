@@ -24,10 +24,10 @@ frontend/src/
 backend/app/
 ├─ core/                配置、数据库、ORM、安全、限流与日志
 ├─ modules/             每项业务的 API 与服务，题库导入器也归入 puzzles
-├─ engine/              标准象棋/揭棋引擎、安装器和流式 API 契约
+├─ engine/              标准象棋/揭棋引擎进程、profile 和流式 API 契约
 ├─ integrations/        LLM、云库等外部服务适配
 ├─ shared/              象棋通用规则、杀棋校验、ELO 等稳定领域能力
-├─ api.py               统一路由注册表
+├─ routes.py            统一路由注册表
 └─ main.py              FastAPI 装配入口
 
 src-tauri/
@@ -36,7 +36,7 @@ src-tauri/
 └─ gen/android/         Tauri 生成的 Android 工程，不放业务逻辑
 ```
 
-依赖保持单向：`app/` → `features/` → `domain/`/`shared/` → `platform/`；后端 `modules/*/api.py` → 模块服务/仓储 → `core/models.py`。功能代码不得反向依赖应用外壳，前端页面不得自行调用 `fetch`。PC 与 Android 只在外壳和平台适配层分叉，训练、对弈、复盘等业务逻辑继续共享。
+依赖保持单向：`app/` → `features/` → `domain/`/`shared/` → `platform/`；后端 `modules/*/router.py` → 模块服务/仓储 → `core/models.py`。功能代码不得反向依赖应用外壳，前端页面不得自行调用 `fetch`。PC 与 Android 只在外壳和平台适配层分叉，训练、对弈、复盘等业务逻辑继续共享。
 
 ## 引擎选择
 
@@ -61,7 +61,7 @@ src-tauri/
 
 ## 会员与安全
 
-PC 安装包包含统一前端代码，包括 AI 相关组件，但不包含大模型密钥。登录后客户端读取权益并显示 `ai_analysis`、`ai_training`、`cloud_engine` 等入口；FastAPI 在实际接口上再次校验有效期，不能通过修改前端绕过。
+PC 安装包包含统一前端代码，包括 AI 相关组件，但不包含大模型密钥。登录后客户端读取权益并显示 `ai_analysis`、`ai_training`、`cloud_engine` 等入口；FastAPI 在实际 AI 请求中按当前会员状态选择额度上限，并通过服务端账本校验，不以前端显示为依据。
 
 训练积分仅用于训练奖励与外观兑换；AI 使用独立额度。免费 / Pro 的自然月上限由管理员策略决定，Pro 不再无限放行。所有训练相关模型请求通过 `modules/ai_usage` 先预留再调用，成功结算，失败按原单价与原月份退款。管理员可开通、续期或取消会员，以及手工调整补充额度；当前未接入支付。
 

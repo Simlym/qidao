@@ -12,7 +12,7 @@ Licensed under the MIT License. The full license text is available in the upstre
 repository and permits use, modification, and distribution provided that the copyright
 and permission notice are retained.
 
-A bundled copy is stored at `frontend/src/assets/jieqi/LICENSE`.
+A bundled copy is stored at [JieqiBox LICENSE](frontend/src/domain/xiangqi/jieqi/assets/LICENSE).
 
 
 ## Fairy-Stockfish（可选下载）

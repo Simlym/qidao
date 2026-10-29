@@ -27,7 +27,9 @@ local-engines/
 - 原生平台建议命名为 `windows-x64-bmi2`、`linux-arm64` 等。
 - WASM 构建目标建议使用 `browser`、`browser-threads` 等。
 
-## 当前文件
+## 本地目录示例（仓库不附带文件）
+
+以下为开发时使用过的本地布局，不代表克隆仓库后已有这些文件。请按实际取得的版本与平台准备；客户端引导安装使用应用数据目录，见[引擎安装说明](../docs/engines/README.md)。
 
 ```text
 xiangqi/native/pikafish/2026-01-02/
@@ -43,6 +45,6 @@ jieqi/native/pikafish/jieqi-old-23b9466/android-arm64/
 jieqi/wasm/                                          # 预留
 ```
 
-`pikafish.nnue` 说明：同一引擎版本的网络文件跨平台通用（纯数据，与 CPU 架构无关），2026-01-02 各平台目录内的 nnue 为同一官方文件的硬链接，内容一致；但**跨棋种、跨引擎代际不通用**（象棋 2026 版网络与揭棋 2022 版网络互不兼容，引擎校验架构不符会拒绝启动），两条目录链的 nnue 不可混用。
+`pikafish.nnue` 说明：同一引擎版本的网络文件跨平台通用（纯数据，与 CPU 架构无关），不同平台可在确认上游兼容性后共用相同权重；但**跨棋种、跨引擎代际不通用**（象棋 2026 版网络与揭棋 2022 版网络互不兼容，引擎校验架构不符会拒绝启动），两条目录链的 nnue 不可混用。
 
-`legacy` 表示版本来源暂未确认，不代表推荐使用。当前目录中的旧版 Pikafish 浏览器产物已补充兼容 Worker 和清单，可以按 `docs/engines/package-spec.md` 导入；新增的 Web/Android 引擎包也必须遵守该规范。
+`legacy` 表示版本来源暂未确认，不代表推荐使用。本地旧版浏览器产物也需补齐兼容 Worker 和清单后，按 `docs/engines/package-spec.md` 导入；新增的 Web/Android 引擎包也必须遵守该规范。
