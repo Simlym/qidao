@@ -1,13 +1,28 @@
 {
   "schemaVersion": 1,
-  "notice": "本目录仅提供上游项目信息，不托管或代理任何引擎文件。引擎程序与权重可能采用不同许可。",
+  "notice": "提供上游项目信息；Windows 默认引导安装的固定版本与校验值见 install-catalog.json。项目不托管或代理引擎文件。",
   "engines": [
+    {
+      "id": "fairy-stockfish",
+      "name": "Fairy-Stockfish（默认 Windows 安装选项）",
+      "variant": "xiangqi",
+      "protocol": "uci",
+      "runtimes": [
+        "native"
+      ],
+      "projectUrl": "https://github.com/fairy-stockfish/Fairy-Stockfish",
+      "engineLicense": "GPL-3.0",
+      "installCatalog": "install-catalog.json",
+      "note": "使用 largeboard 构建、ucicyclone 坐标及传统评估，不下载 NNUE。"
+    },
     {
       "id": "official-pikafish",
       "name": "Pikafish",
       "variant": "xiangqi",
       "protocol": "uci",
-      "runtimes": ["native"],
+      "runtimes": [
+        "native"
+      ],
       "projectUrl": "https://github.com/official-pikafish/Pikafish",
       "releasesUrl": "https://github.com/official-pikafish/Pikafish/releases",
       "engineLicense": "GPL-3.0",
@@ -18,7 +33,9 @@
       "name": "Pikafish 揭棋分支源码",
       "variant": "jieqi",
       "protocol": "uci",
-      "runtimes": ["native"],
+      "runtimes": [
+        "native"
+      ],
       "projectUrl": "https://github.com/official-pikafish/Pikafish/branches",
       "engineLicense": "GPL-3.0",
       "note": "仅提供源码分支入口；导入前必须自行编译并验证扩展 FEN 兼容性。"

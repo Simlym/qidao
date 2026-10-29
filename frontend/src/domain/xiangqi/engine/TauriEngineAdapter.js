@@ -1,6 +1,6 @@
-import { EngineAdapter } from "./EngineAdapter";
-import { runtime, supportsNativeEngine } from "../../../platform/runtime";
-import { abortError, analysisResult, goCommand, parseUciInfo, redPerspective } from "./uci";
+import { EngineAdapter } from "./EngineAdapter.js";
+import { runtime, supportsNativeEngine } from "../../../platform/runtime.js";
+import { abortError, analysisResult, goCommand, parseUciInfo, redPerspective } from "./uci.js";
 
 const profileKey = (variant) => `xq.nativeEngine.${variant}`;
 const INIT_TIMEOUT = 10000;
@@ -29,6 +29,7 @@ export class TauriEngineAdapter extends EngineAdapter {
     this.queue = Promise.resolve();
     this.lastError = null;
     this.diagnostics = [];
+    this.uciOptions = new Set();
     this.log = [];
   }
 
@@ -78,8 +79,11 @@ export class TauriEngineAdapter extends EngineAdapter {
     if (!profile?.path) throw new Error("尚未配置桌面原生引擎");
     const { invoke, listen } = await this.modules();
     this.diagnostics = [];
+    this.uciOptions = new Set();
     this.unlisten ||= await listen("engine-output", ({ payload }) => {
       for (const line of String(payload).split(/\r?\n/).filter(Boolean)) {
+        const option = line.match(/^option name (.+?) type /i);
+        if (option) this.uciOptions.add(option[1].toLowerCase());
         this.rememberLog("recv", line);
         this.rememberDiagnostic(line);
         for (const listener of this.listeners) listener(line);
@@ -93,7 +97,17 @@ export class TauriEngineAdapter extends EngineAdapter {
     });
     await invoke("spawn_engine", { path: profile.path, args: profile.args || [] });
     await this.waitFor("uciok", () => invoke("send_to_engine", { command: "uci" }), INIT_TIMEOUT);
-    const supports = (name) => this.diagnostics.some((line) => line.toLowerCase().startsWith(`option name ${name.toLowerCase()} type `));
+    const supports = (name) => this.uciOptions.has(name.toLowerCase());
+    if (profile.uciVariant && supports("UCI_Variant")) {
+      await invoke("send_to_engine", { command: `setoption name UCI_Variant value ${profile.uciVariant}` });
+    }
+    // Fairy-Stockfish 的普通 UCI 使用 1..10；ucicyclone 保留 UCI 命令并改用本项目的 0..9 坐标。
+    if (profile.uciProtocol && supports("Protocol")) {
+      await invoke("send_to_engine", { command: `setoption name Protocol value ${profile.uciProtocol}` });
+    }
+    if (profile.useNnue === false && supports("Use NNUE")) {
+      await invoke("send_to_engine", { command: "setoption name Use NNUE value false" });
+    }
     if (supports("Threads")) await invoke("send_to_engine", { command: `setoption name Threads value ${profile.threads}` });
     if (supports("Hash")) await invoke("send_to_engine", { command: `setoption name Hash value ${profile.hashMb}` });
     if (supports("MultiPV")) await invoke("send_to_engine", { command: "setoption name MultiPV value 1" });
@@ -197,7 +211,7 @@ export class TauriEngineAdapter extends EngineAdapter {
         this.listeners.add(onLine);
         signal?.addEventListener("abort", onAbort, { once: true });
         const multiPv = Math.max(1, Math.min(10, Number(options.multiPv) || 1));
-        Promise.resolve(this.diagnostics.some((line) => line.toLowerCase().startsWith("option name multipv type "))
+        Promise.resolve(this.uciOptions.has("multipv")
           ? send(`setoption name MultiPV value ${multiPv}`) : null)
           .then(() => options.showWdl ? send("setoption name UCI_ShowWDL value true") : null)
           .then(() => send(`position fen ${fen}`))
@@ -237,4 +251,8 @@ export function getNativeEngineProfile(variant = "xiangqi") {
   } catch {
     return null;
   }
+}
+
+export function removeNativeEngineProfile(variant = "xiangqi") {
+  localStorage.removeItem(profileKey(variant));
 }

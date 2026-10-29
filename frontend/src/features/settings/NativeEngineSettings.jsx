@@ -1,7 +1,10 @@
 import React from "react";
+import NativeEngineInstaller from "./NativeEngineInstaller";
+import { activateNativeEngine } from "../../domain/xiangqi/engine/activateNativeEngine";
 import {
   getNativeEngineProfile,
   saveNativeEngineProfile,
+  removeNativeEngineProfile,
 } from "../../domain/xiangqi/engine/TauriEngineAdapter";
 import { runtime, supportsNativeEngine } from "../../platform/runtime";
 
@@ -15,6 +18,7 @@ export default function NativeEngineSettings({
   const [path, setPath] = React.useState(() => initial?.path || "");
   const [threads, setThreads] = React.useState(() => initial?.threads || 2);
   const [hashMb, setHashMb] = React.useState(() => initial?.hashMb || 256);
+  const [installing, setInstalling] = React.useState(false);
   const [checking, setChecking] = React.useState(false);
   const [statuses, setStatuses] = React.useState(null);
   const [platform, setPlatform] = React.useState(null);
@@ -54,6 +58,25 @@ export default function NativeEngineSettings({
     }
   }
 
+  async function activateProfile(profile) {
+    await activateNativeEngine(profile, {
+      manager,
+      readProfile: () => getNativeEngineProfile(variant),
+      writeProfile: (value) => saveNativeEngineProfile(value, variant),
+      removeProfile: () => removeNativeEngineProfile(variant),
+    });
+  }
+
+  async function activateInstallation(result) {
+    await activateProfile({
+      path: result.enginePath, args: [], threads, hashMb,
+      uciVariant: result.receipt.uciVariant, uciProtocol: result.receipt.uciProtocol, useNnue: result.receipt.useNnue,
+    });
+    setPath(result.enginePath);
+    setStatuses({ program: { ok: true, text: `已安装并启用：${result.enginePath}` }, nnue: null });
+    onReady?.(true, "native");
+  }
+
   async function saveAndCheck() {
     const normalized = path.trim();
     if (!normalized) {
@@ -64,9 +87,10 @@ export default function NativeEngineSettings({
     try {
       const inspected = await inspectPath(normalized);
       if (!inspected.enginePath) return;
-      saveNativeEngineProfile({ path: inspected.enginePath, nnuePath: inspected.nnuePath || null, args: [], threads, hashMb }, variant);
-      // 强制关闭旧进程，确保检测的是用户刚刚选中的程序，而不是上一次已启动的实例。
-      await manager.dispose();
+      const previous = getNativeEngineProfile(variant);
+      // 同一路径保存参数时保留多棋种引擎的 UCI 选项；换手动引擎时不继承。
+      await activateProfile({ ...(previous?.path === inspected.enginePath ? previous : {}),
+        path: inspected.enginePath, nnuePath: inspected.nnuePath || null, args: [], threads, hashMb });
       const kinds = await manager.availableKinds();
       const ready = kinds.includes("native");
       const detail = manager.errorFor?.("native");
@@ -91,7 +115,7 @@ export default function NativeEngineSettings({
     <div className="native-engine-settings">
       <strong>PC 本地分析引擎</strong>
       <p className="muted">
-        选择用户自行下载的{label}程序或所在目录。象棋道只通过 UCI 协议调用，不提供引擎文件。
+        可手动选择{label}程序或所在目录；Windows 标准象棋也可使用下方引导安装。
         {variant === "jieqi" && " 必须使用支持揭棋暗子局面的专用引擎，不能复用普通标准象棋引擎。"}
       </p>
       {platform && <p className="muted" style={{ fontSize: 12 }}>
@@ -99,8 +123,9 @@ export default function NativeEngineSettings({
         {platform.features?.length ? ` · ${platform.features.join(" / ")}` : ""}
       </p>}
       <p className="muted" style={{ fontSize: 12 }}>
-        请根据上述平台信息自行选择引擎来源。项目不代理下载、不指定推荐引擎；程序与权重许可需分别确认。
+        手动导入时，请根据上述平台信息选择引擎；程序与权重的许可需分别确认。
       </p>
+      {variant === "xiangqi" && platform?.os === "windows" && <NativeEngineInstaller externalBusy={checking} onActivate={activateInstallation} onBusyChange={setInstalling} />}
       <div className="native-engine-input">
         <input
           value={path}
@@ -108,15 +133,15 @@ export default function NativeEngineSettings({
           placeholder="尚未选择程序"
           spellCheck={false}
         />
-        <button type="button" onClick={() => choosePath(false)} disabled={checking}>选择程序</button>
-        <button type="button" onClick={() => choosePath(true)} disabled={checking}>选择目录</button>
-        <button onClick={saveAndCheck} disabled={checking}>
+        <button type="button" onClick={() => choosePath(false)} disabled={checking || installing}>选择程序</button>
+        <button type="button" onClick={() => choosePath(true)} disabled={checking || installing}>选择目录</button>
+        <button onClick={saveAndCheck} disabled={checking || installing}>
           {checking ? "检测中…" : "保存并检测"}
         </button>
       </div>
       <div className="native-engine-limits">
-        <label>线程 <input type="number" min="1" max="8" value={threads} onChange={(event) => setThreads(Number(event.target.value))} /></label>
-        <label>哈希内存(MB) <input type="number" min="32" max="2048" step="32" value={hashMb} onChange={(event) => setHashMb(Number(event.target.value))} /></label>
+        <label>线程 <input type="number" disabled={checking || installing} min="1" max="8" value={threads} onChange={(event) => setThreads(Number(event.target.value))} /></label>
+        <label>哈希内存(MB) <input type="number" disabled={checking || installing} min="32" max="2048" step="32" value={hashMb} onChange={(event) => setHashMb(Number(event.target.value))} /></label>
         <span className="muted">建议保留一半 CPU 给界面和系统</span>
       </div>
       {statuses && <div className="native-engine-statuses" aria-live="polite">

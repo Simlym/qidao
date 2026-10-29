@@ -100,7 +100,7 @@ npm run tauri build
 
 安装包在 `src-tauri/target/release/bundle/`。仅验证前端资源可运行 `npm run build:tauri`，产物在 `frontend/dist-tauri/`，不生成 Windows 安装包。
 
-服务器 `CORS_ORIGINS` 通常需包含 `http://tauri.localhost`。原生引擎仍由用户自行下载并在本机设置中选择，见[引擎说明](../engines/README.md)。
+服务器 `CORS_ORIGINS` 通常需包含 `http://tauri.localhost`。Windows x64 可在设置页从 GitHub 引导安装标准象棋引擎，也可手动导入。安装器通过固定清单限制来源、大小与 SHA-256；其他平台和揭棋暂保留手动导入，见[引擎说明](../engines/README.md)。
 
 ## Android
 

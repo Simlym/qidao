@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "engineId": "fairy-stockfish",
+  "name": "Fairy-Stockfish 14（象棋）",
+  "version": "fairy_sf_14",
+  "platform": "windows-x86_64",
+  "uciVariant": "xiangqi",
+  "useNnue": false,
+  "license": "GPL-3.0",
+  "sourceUrl": "https://github.com/fairy-stockfish/Fairy-Stockfish/tree/fairy_sf_14",
+  "licenseUrl": "https://github.com/fairy-stockfish/Fairy-Stockfish/blob/fairy_sf_14/Copying.txt",
+  "allowedHosts": [
+    "github.com",
+    "release-assets.githubusercontent.com",
+    "objects.githubusercontent.com"
+  ],
+  "artifacts": [
+    {
+      "id": "bmi2",
+      "fileName": "fairy-stockfish-largeboard_x86-64-bmi2.exe",
+      "url": "https://github.com/fairy-stockfish/Fairy-Stockfish/releases/download/fairy_sf_14/fairy-stockfish-largeboard_x86-64-bmi2.exe",
+      "size": 1868288,
+      "sha256": "c9a88647985e12120cff34324bf9200ba2f3ddb50f3b33c4c47f44e14c0af20c",
+      "requiresFeatures": [
+        "ssse3",
+        "sse4.1",
+        "popcnt",
+        "avx2",
+        "bmi2"
+      ]
+    },
+    {
+      "id": "modern",
+      "fileName": "fairy-stockfish-largeboard_x86-64-modern.exe",
+      "url": "https://github.com/fairy-stockfish/Fairy-Stockfish/releases/download/fairy_sf_14/fairy-stockfish-largeboard_x86-64-modern.exe",
+      "size": 1906688,
+      "sha256": "09e76dd58fe366c55acc53677599511b8a1ab2ff7724cb248c0bf060a2cfefeb",
+      "requiresFeatures": [
+        "ssse3",
+        "sse4.1",
+        "popcnt"
+      ]
+    },
+    {
+      "id": "generic",
+      "fileName": "fairy-stockfish-largeboard_x86-64.exe",
+      "url": "https://github.com/fairy-stockfish/Fairy-Stockfish/releases/download/fairy_sf_14/fairy-stockfish-largeboard_x86-64.exe",
+      "size": 1930240,
+      "sha256": "2fe12ff0fcad0295482cab7660e1fcc24259cebc4ef164839fb16c9f9cabfc99",
+      "requiresFeatures": []
+    }
+  ],
+  "uciProtocol": "ucicyclone"
+}

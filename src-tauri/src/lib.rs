@@ -1,3 +1,6 @@
+#[cfg(not(mobile))]
+mod engine_install;
+
 use std::{
     io::{BufRead, BufReader, Write},
     path::Path,
@@ -55,6 +58,12 @@ fn platform_info() -> PlatformInfo {
     let mut features = Vec::new();
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     {
+        if std::is_x86_feature_detected!("ssse3") {
+            features.push("ssse3");
+        }
+        if std::is_x86_feature_detected!("popcnt") {
+            features.push("popcnt");
+        }
         if std::is_x86_feature_detected!("sse4.1") {
             features.push("sse4.1");
         }
@@ -251,16 +260,33 @@ fn kill_engine(state: tauri::State<'_, Mutex<EngineProcess>>) -> Result<(), Stri
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .manage(Mutex::new(EngineProcess::default()))
+        .manage(Mutex::new(EngineProcess::default()));
+    #[cfg(mobile)]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        spawn_engine,
+        send_to_engine,
+        kill_engine,
+        inspect_engine_path,
+        platform_info
+    ]);
+    #[cfg(not(mobile))]
+    let builder = builder
+        .manage(std::sync::Arc::new(engine_install::InstallState::default()))
         .invoke_handler(tauri::generate_handler![
             spawn_engine,
             send_to_engine,
             kill_engine,
             inspect_engine_path,
-            platform_info
-        ])
+            platform_info,
+            engine_install::native_engine_install_info,
+            engine_install::install_native_engine,
+            engine_install::cancel_native_engine_install,
+            engine_install::verify_native_engine_installation,
+            engine_install::open_engine_install_link,
+        ]);
+    builder
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
                 window.set_title("象棋道")?;

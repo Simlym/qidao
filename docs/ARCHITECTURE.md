@@ -74,3 +74,9 @@ PC 安装包包含统一前端代码，包括 AI 相关组件，但不包含大�
 `shared/api/server.js` 解析构建时默认 API 地址与当前设备自定义地址，每个页面生命周期固定一个连接。高级设置通过不带凭据的 `/health` 检查 `service=xiangqidao` 和 `api_version=1`，成功后保存地址、中止普通/流式请求并重载页面；恢复默认无需网络。多标签通过 storage 事件同步重载。
 
 `shared/api/session.js` 按规范化的完整 API 地址隔离 token 和游客 ID，包含路径前缀；旧单实例凭据只迁移到构建默认实例。页面内用户、权益、棋谱和分析状态随重载重置，本地引擎与设备偏好保留。复习提醒按服务器隔离；API 禁用 cookie、重定向和浏览器缓存，Service Worker 跳过 API、带身份头或 no-store 请求，并清理旧壳缓存，避免离线返回其他身份的数据。
+
+## 原生引擎引导安装
+
+Windows x64 的安装桥接位于 `src-tauri/src/engine_install.rs`，下载、校验、版本目录与独立 UCI 试算位于 `src-tauri/engine-installer/`。安装清单从 `docs/engines/install-catalog.json` 编译嵌入；只有清单内的适配构建可安装，网络操作在阻塞工作线程执行。安装任务互斥，支持取消，文件在暂存目录校验及试算通过后原子移入版本目录。非桌面客户端不编译安装器依赖。
+
+默认 Fairy-Stockfish 使用 `xiangqi` 变体、`ucicyclone` 坐标及传统评估。前端通过 `platform/nativeEngineInstaller.js` 访问 IPC，不直接下载可执行文件。启用配置失败会关闭失败进程并恢复旧 profile；已安装版本不被覆盖，可核验后回退。业务后端与会员不参与设备引擎安装。

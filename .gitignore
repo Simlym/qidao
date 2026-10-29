@@ -9,7 +9,7 @@ backend/data/*.db
 # 部署文档中的备份包含用户数据和密钥
 backups/
 
-# 引擎下载/安装产物（由管理后台一键安装，不入库）
+# 引擎下载/安装产物（本地测试文件不入库）
 backend/data/engine/
 local-engines/*
 !local-engines/README.md
@@ -37,3 +37,6 @@ scripts/setup/
 # misc
 .DS_Store
 .claude/
+
+# 独立原生安装器测试产物
+src-tauri/engine-installer/target/
