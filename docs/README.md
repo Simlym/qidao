@@ -12,7 +12,7 @@
 
 - [客户端配置、构建与本地开发](development/build-clients.md)：各端默认服务地址、运行时切换、打包与验证。
 - [多端架构](ARCHITECTURE.md)：技术栈、代码分层、引擎选择、账号隔离和额度账本。
-- [题库维护](development/puzzles.md)：种子题库、导入、生成、审计和数据来源。
+- [题库导入与管理](development/puzzles.md)：GitHub／文件预览导入、批次审核、发布与下架、来源追踪、转换与审计。
 - [浏览器引擎包规范](engines/package-spec.md)：兼容引擎包的文件与协议要求。
 
 ## 进度与声明

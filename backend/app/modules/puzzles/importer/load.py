@@ -37,6 +37,8 @@ def import_items(
     added = skipped = bad = 0
     if mate_check:
         from app.shared.xiangqi.validation import is_mate_in_one
+    # 只在公共题库去重，私人错题不能阻止公共题导入；同一文件内也立即记录。
+    seen = set(db.execute(select(Puzzle.fen, Puzzle.solution).where(Puzzle.user_id == "default")).all())
     for item in data:
         fen = item["fen"]
         solution = item["solution"]  # list[str] 或逗号串
@@ -45,11 +47,7 @@ def import_items(
         branches = [b for b in solution.split("|") if b.strip()]
         first_move = branches[0].split(",")[0].strip()
 
-        # 去重：相同 fen+solution 视为同题
-        exists = db.scalar(
-            select(Puzzle).where(Puzzle.fen == fen, Puzzle.solution == solution)
-        )
-        if exists:
+        if (fen, solution) in seen:
             skipped += 1
             continue
 
@@ -87,6 +85,7 @@ def import_items(
                 tags=item.get("tags", ""),
             )
         )
+        seen.add((fen, solution))
         added += 1
     return added, skipped, bad
 

@@ -2,9 +2,10 @@
 
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.modules.credits import service as credits
 from app.modules.auth.service import require_admin
@@ -15,7 +16,7 @@ from app.core.models import (
     AIQuotaAccount, AIQuotaMonth, AIOperation, AIQuotaAdjustment, LLMCallLog,
     User, UserStat,
 )
-from app.modules.puzzles.content import solution_lines
+from app.modules.puzzles.validation import validate_item
 from app.modules.admin.schemas import (
     AdminCreditLogRow, AdminCredits, AdminLog, AdminPuzzle, AdminPuzzleList,
     AdminUser, CreditAdjustBody, LlmSettings, LlmSettingsUpdate,
@@ -45,6 +46,7 @@ def _admin_puzzle(p) -> "AdminPuzzle":
         kind=getattr(p, "kind", "杀法") or "杀法", category=p.category,
         difficulty=p.difficulty, steps=getattr(p, "steps", 1) or 1,
         source=p.source, verified=p.verified, tags=p.tags or "",
+        status=p.status, import_batch_id=p.import_batch_id, user_id=p.user_id,
     )
 
 
@@ -195,16 +197,22 @@ def adjust_credits(username: str, body: CreditAdjustBody, request: Request,
 
 
 @router.get("/puzzles", response_model=AdminPuzzleList)
-def list_puzzles(limit: int = 20, offset: int = 0, category: str = "",
-                 difficulty: int = 0, q: str = "", db: Session = Depends(get_db)):
-    query = select(Puzzle)
+def list_puzzles(limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0), category: str = "",
+                 difficulty: int = 0, q: str = "", kind: str = "", source: str = "",
+                 status: str = "", verified: str = "", batch_id: str = "", db: Session = Depends(get_db)):
+    query = select(Puzzle).where(Puzzle.user_id == "default")
+    for column, value in ((Puzzle.kind, kind), (Puzzle.source, source), (Puzzle.status, status), (Puzzle.import_batch_id, batch_id)):
+        if value:
+            query = query.where(column == value)
+    if verified in ("true", "false"):
+        query = query.where(Puzzle.verified.is_(verified == "true"))
     if category:
         query = query.where(Puzzle.category == category)
     if difficulty:
         query = query.where(Puzzle.difficulty == difficulty)
     if q:
         like = f"%{q}%"
-        conds = [Puzzle.solution.like(like), Puzzle.fen.like(like), Puzzle.category.like(like), Puzzle.tags.like(like)]
+        conds = [Puzzle.solution.like(like), Puzzle.fen.like(like), Puzzle.category.like(like), Puzzle.tags.like(like), Puzzle.source.like(like)]
         if q.isdigit():
             conds.append(Puzzle.id == int(q))
         query = query.where(or_(*conds))
@@ -214,7 +222,7 @@ def list_puzzles(limit: int = 20, offset: int = 0, category: str = "",
         query.order_by(Puzzle.id.desc()).offset(offset).limit(limit)
     ).all()
     categories = db.scalars(
-        select(Puzzle.category).distinct().order_by(Puzzle.category)
+        select(Puzzle.category).where(Puzzle.user_id == "default").distinct().order_by(Puzzle.category)
     ).all()
     return AdminPuzzleList(
         total=total,
@@ -225,30 +233,21 @@ def list_puzzles(limit: int = 20, offset: int = 0, category: str = "",
 
 @router.post("/puzzles", response_model=AdminPuzzle)
 def create_puzzle(body: NewPuzzle, db: Session = Depends(get_db)):
-    branches = solution_lines(body.solution.replace(" ", ","))
-    solution = "|".join(",".join(branch) for branch in branches)
-    if not branches:
-        raise HTTPException(400, "正解不能为空")
-
-    verified = False
-    if body.mate_check and all(len(branch) == 1 for branch in branches):
-        from app.shared.xiangqi.validation import is_mate_in_one
-
-        full = body.fen if len(body.fen.split()) > 1 else body.fen + " " + body.side_to_move
-        for branch in branches:
-            ok, why = is_mate_in_one(full, branch[0])
-            if not ok:
-                raise HTTPException(400, f"校验未通过：{why}")
-        verified = True
-
-    p = Puzzle(
-        fen=body.fen, solution=solution, side_to_move=body.side_to_move,
-        kind=body.kind, category=body.category, difficulty=body.difficulty,
-        steps=max((len(branch) + 1) // 2 for branch in branches), source=body.source,
-        verified=verified, tags=body.tags,
-    )
+    from app.modules.puzzles.management import public_positions
+    from app.modules.puzzles.validation import position_key
+    try:
+        item = validate_item(body.model_dump(), mate_check=body.mate_check)
+    except ValueError as exc:
+        raise HTTPException(400, f"校验未通过：{exc}") from exc
+    if position_key(item["fen"]) in public_positions(db):
+        raise HTTPException(409, "公共题库已有相同局面，请编辑原题或核对不同题解")
+    p = Puzzle(**item, status="draft")
     db.add(p)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(409, "相同局面已存在，请刷新题库") from exc
     db.refresh(p)
     return _admin_puzzle(p)
 
@@ -345,9 +344,10 @@ def delete_puzzle(puzzle_id: int, request: Request, db: Session = Depends(get_db
     p = db.get(Puzzle, puzzle_id)
     if not p:
         raise HTTPException(404, "题目不存在")
-    db.query(Review).filter(Review.puzzle_id == puzzle_id).delete()
-    db.query(Attempt).filter(Attempt.puzzle_id == puzzle_id).delete()
-    db.delete(p)
+    if p.user_id != "default":
+        raise HTTPException(400, "公共题库管理不能删除用户的私人错题")
+    # 保留作答、会话和复盘引用；旧客户端的删除入口也改为下架。
+    p.status = "archived"
     db.commit()
     admin_action(request, admin.username, "delete_puzzle", str(puzzle_id), db=db)
     return {"ok": True}

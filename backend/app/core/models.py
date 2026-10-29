@@ -36,6 +36,27 @@ class User(Base):
     last_login: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # 最近登录（UTC）
 
 
+class PuzzleImportBatch(Base):
+    """导入预览快照与来源记录；确认时只使用服务端保存的快照。"""
+
+    __tablename__ = "puzzle_import_batches"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    actor: Mapped[str] = mapped_column(String(40))
+    source_url: Mapped[str] = mapped_column(String(1000), default="")
+    source_revision: Mapped[str] = mapped_column(String(40), default="")
+    license: Mapped[str] = mapped_column(String(100))
+    attribution: Mapped[str] = mapped_column(String(500))
+    content_sha256: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default="preview")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    imported_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    report_json: Mapped[str] = mapped_column(Text, default="{}")
+    items_json: Mapped[str] = mapped_column(Text, default="[]")
+    added_count: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class Puzzle(Base):
     """战术题。
 
@@ -69,6 +90,11 @@ class Puzzle(Base):
     ai_explanation: Mapped[str] = mapped_column(Text, default="")
     # 逗号分隔的教学标签（如“子力协调,开放线,先手”），用于跨模式掌握度画像。
     tags: Mapped[str] = mapped_column(Text, default="")
+    # 旧题默认已发布；新批量导入题先进入待审核，不删除已有训练历史。
+    status: Mapped[str] = mapped_column(String(16), default="published", server_default="published", index=True)
+    import_batch_id: Mapped[str | None] = mapped_column(ForeignKey("puzzle_import_batches.id"), nullable=True, index=True)
+    # 仅管理导入写入规范局面键；历史重复题保留，不强制改写用户记录。
+    content_key: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
 
 
 class Review(Base):

@@ -110,16 +110,6 @@
     "source": "generated"
   },
   {
-    "fen": "7R1/1R6b/5k3/c8/9/7R1/9/9/9/4K4 w",
-    "solution": [
-      "h9h7"
-    ],
-    "side_to_move": "w",
-    "category": "实用残杀",
-    "difficulty": 3,
-    "source": "generated"
-  },
-  {
     "fen": "8n/3k5/9/9/9/9/9/7R1/9/4K4 w",
     "solution": [
       "h2d2"
@@ -233,16 +223,6 @@
     "fen": "5k3/9/9/9/2a1R1b2/9/9/R8/9/3K5 w",
     "solution": [
       "a2f2"
-    ],
-    "side_to_move": "w",
-    "category": "实用残杀",
-    "difficulty": 3,
-    "source": "generated"
-  },
-  {
-    "fen": "3k5/1R7/1R7/9/9/9/R8/9/4K4/9 w",
-    "solution": [
-      "b7d7"
     ],
     "side_to_move": "w",
     "category": "实用残杀",
@@ -380,16 +360,6 @@
     "source": "generated"
   },
   {
-    "fen": "9/3k5/9/5R3/9/8R/9/9/2R6/4K4 w",
-    "solution": [
-      "f6d6"
-    ],
-    "side_to_move": "w",
-    "category": "实用残杀",
-    "difficulty": 3,
-    "source": "generated"
-  },
-  {
     "fen": "9/2P2k3/9/7R1/9/9/9/9/P8/4K4 w",
     "solution": [
       "h6f6"
@@ -407,16 +377,6 @@
     "side_to_move": "w",
     "category": "实用残杀",
     "difficulty": 3,
-    "source": "generated"
-  },
-  {
-    "fen": "4k4/9/9/7n1/6R2/9/3R5/9/9/5K2R w",
-    "solution": [
-      "g5e5"
-    ],
-    "side_to_move": "w",
-    "category": "实用残杀",
-    "difficulty": 4,
     "source": "generated"
   },
   {
@@ -473,16 +433,6 @@
     "fen": "7C1/6b2/3kb4/3N5/9/9/3R5/4K4/9/9 w",
     "solution": [
       "d6e4"
-    ],
-    "side_to_move": "w",
-    "category": "实用残杀",
-    "difficulty": 3,
-    "source": "generated"
-  },
-  {
-    "fen": "9/5k3/R8/9/9/8R/9/4K4/2R6/9 w",
-    "solution": [
-      "i4f4"
     ],
     "side_to_move": "w",
     "category": "实用残杀",

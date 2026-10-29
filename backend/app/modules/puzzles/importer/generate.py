@@ -81,8 +81,11 @@ def _random_position(rng: random.Random) -> list[list[str | None]] | None:
 
     all_cells = [(r, c) for r in range(ROWS) for c in range(9)]
     # 1-3 个红方攻子
+    remaining = {"R": 2, "C": 2, "N": 2, "P": 5}
     for _ in range(rng.randint(1, 3)):
-        place(rng.choice(RED_ATTACKERS), all_cells)
+        piece = rng.choice([p for p in RED_ATTACKERS if remaining[p] > 0])
+        if place(piece, all_cells):
+            remaining[piece] -= 1
     # 0-2 个黑方守子（多在黑半场，增加将死难度）
     for _ in range(rng.randint(0, 2)):
         place(rng.choice(BLACK_DEFENDERS), [(r, c) for (r, c) in all_cells if r <= 4])

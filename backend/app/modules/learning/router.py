@@ -55,7 +55,7 @@ def _summary(rows) -> dict:
 
 @router.get("/curriculum")
 def curriculum(db: Session = Depends(get_db), user: str = Depends(current_user_id)):
-    visible = db.scalars(select(Puzzle).where((Puzzle.user_id == "default") | (Puzzle.user_id == user))).all()
+    visible = db.scalars(select(Puzzle).where(Puzzle.status == "published", (Puzzle.user_id == "default") | (Puzzle.user_id == user))).all()
     grouped = defaultdict(list)
     for puzzle in visible:
         grouped[puzzle.kind or "杀法"].append(puzzle)
@@ -123,7 +123,7 @@ def _pack_out(pack: LearningPack) -> PackOut:
 @router.post("/assessment/start", response_model=PackOut)
 def start_assessment(db: Session = Depends(get_db), user: str = Depends(current_user_id)):
     baseline = _summary(_attempt_rows(db, user)[-20:])
-    puzzles = db.scalars(select(Puzzle).where(Puzzle.user_id == "default").order_by(Puzzle.kind, Puzzle.difficulty, Puzzle.id)).all()
+    puzzles = db.scalars(select(Puzzle).where(Puzzle.user_id == "default", Puzzle.status == "published").order_by(Puzzle.kind, Puzzle.difficulty, Puzzle.id)).all()
     by_kind = defaultdict(list)
     for puzzle in puzzles:
         by_kind[puzzle.kind or "杀法"].append(puzzle)

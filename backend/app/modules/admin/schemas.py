@@ -33,6 +33,9 @@ class AdminPuzzle(BaseModel):
     source: str
     verified: bool
     tags: str
+    status: str = "published"
+    import_batch_id: str | None = None
+    user_id: str = "default"
 
 
 class MembershipUpdate(BaseModel):

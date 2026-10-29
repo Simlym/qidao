@@ -23,7 +23,7 @@ PUBLIC_OWNER = "default"
 def _visible_to(user: str):
     """题目可见性条件：公共题库 + 该用户的私有题（如实战漏着题）。"""
     owners = [PUBLIC_OWNER] if user == PUBLIC_OWNER else [PUBLIC_OWNER, user]
-    return Puzzle.user_id.in_(owners)
+    return Puzzle.user_id.in_(owners) & (Puzzle.status == "published")
 
 
 def get_puzzle(db: Session, puzzle_id: int) -> Puzzle | None:
@@ -40,8 +40,8 @@ def get_visible_puzzle(db: Session, puzzle_id: int, user: str) -> Puzzle | None:
 def count_due(db: Session, user: str, today: date) -> int:
     return db.scalar(
         select(func.count())
-        .select_from(Review)
-        .where(Review.user_id == user, Review.next_review <= today)
+        .select_from(Review).join(Puzzle, Puzzle.id == Review.puzzle_id)
+        .where(Review.user_id == user, Review.next_review <= today, _visible_to(user))
     ) or 0
 
 
@@ -52,7 +52,7 @@ def first_due_puzzle(
     stmt = (
         select(Puzzle)
         .join(Review, Review.puzzle_id == Puzzle.id)
-        .where(Review.user_id == user, Review.next_review <= today)
+        .where(Review.user_id == user, Review.next_review <= today, _visible_to(user))
         .order_by(Review.next_review)
         .limit(1)
     )
@@ -105,7 +105,7 @@ def pick_pending_private_puzzle(db: Session, user: str) -> Puzzle | None:
     learned = select(Review.puzzle_id).where(Review.user_id == user)
     return db.scalar(
         select(Puzzle)
-        .where(Puzzle.user_id == user, Puzzle.id.not_in(learned))
+        .where(Puzzle.user_id == user, Puzzle.id.not_in(learned), Puzzle.status == "published")
         .order_by(Puzzle.id.desc())
         .limit(1)
     )
@@ -117,7 +117,7 @@ def count_pending_private_puzzles(db: Session, user: str) -> int:
     learned = select(Review.puzzle_id).where(Review.user_id == user)
     return db.scalar(
         select(func.count()).select_from(Puzzle)
-        .where(Puzzle.user_id == user, Puzzle.id.not_in(learned))
+        .where(Puzzle.user_id == user, Puzzle.id.not_in(learned), Puzzle.status == "published")
     ) or 0
 
 
@@ -233,7 +233,8 @@ def review_due_counts(db: Session, user: str) -> list[tuple]:
     """各到期日的复习数 (next_review, count)，用于复习日程预测。"""
     return db.execute(
         select(Review.next_review, func.count())
-        .where(Review.user_id == user)
+        .join(Puzzle, Puzzle.id == Review.puzzle_id)
+        .where(Review.user_id == user, _visible_to(user))
         .group_by(Review.next_review)
     ).all()
 
@@ -249,7 +250,8 @@ def count_puzzles(db: Session, user: str = PUBLIC_OWNER) -> int:
 
 def count_reviews(db: Session, user: str) -> int:
     return db.scalar(
-        select(func.count()).select_from(Review).where(Review.user_id == user)
+        select(func.count()).select_from(Review).join(Puzzle, Puzzle.id == Review.puzzle_id)
+        .where(Review.user_id == user, _visible_to(user))
     ) or 0
 
 
@@ -300,7 +302,7 @@ def public_puzzles_ordered(db: Session) -> list[Puzzle]:
     return list(
         db.scalars(
             select(Puzzle)
-            .where(Puzzle.user_id == PUBLIC_OWNER)
+            .where(Puzzle.user_id == PUBLIC_OWNER, Puzzle.status == "published")
             .order_by(Puzzle.difficulty, Puzzle.id)
         )
     )

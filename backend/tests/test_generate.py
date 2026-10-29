@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.modules.puzzles.importer.generate import generate
 from app.shared.xiangqi.validation import is_mate_in_one
+from app.modules.puzzles.validation import validate_item
 
 
 def test_generated_puzzles_are_valid_mates():
@@ -18,6 +19,17 @@ def test_generated_puzzles_are_valid_mates():
         ok, why = is_mate_in_one(p["fen"], p["solution"][0])
         assert ok, f"非一步杀: {p['fen']} {p['solution']} -> {why}"
         assert 1 <= p["difficulty"] <= 5
+        assert validate_item(p)["verified"] is True
+
+
+def test_generator_never_places_more_than_two_rooks():
+    from app.modules.puzzles.importer.generate import _random_position
+    from random import Random
+    rng = Random(1234)
+    for _ in range(500):
+        board = _random_position(rng)
+        if board:
+            assert sum(cell == "R" for row in board for cell in row) <= 2
 
 
 def test_generate_is_deterministic_with_seed():

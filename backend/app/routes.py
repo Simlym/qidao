@@ -12,6 +12,7 @@ from .modules.credits import router as credits
 from .modules.games import analysis_router as analysis, router as games
 from .modules.learning import router as learning
 from .modules.play import router as play
+from .modules.puzzles import router as puzzle_library
 from .modules.stats import router as stats
 from .modules.today import router as today
 from .modules.training import router as training
@@ -22,6 +23,7 @@ API_ROUTERS = (
     account.router,
     ai_usage.router,
     admin.router,
+    puzzle_library.router,
     engine_admin.router,
     training.router,
     today.router,

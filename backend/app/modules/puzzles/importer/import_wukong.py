@@ -30,7 +30,7 @@ from .solver import classify, solve_mate
 
 SOURCE_URL = (
     "https://raw.githubusercontent.com/maksimKorzh/wukong-xiangqi/"
-    "main/apps/puzzle_solver/gui/game/puzzles.js"
+    "9ef8db735e78ec640a64d50240698087b44c5294/apps/puzzle_solver/gui/game/puzzles.js"
 )
 
 # title「Mate in N moves」→ 搜索深度；"?" 用较大上限尝试
