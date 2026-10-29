@@ -11,8 +11,8 @@ export default function DesktopShell({
     <>
       <aside className="desktop-sidebar">
         <div className="desktop-brand">
-          <span className="desktop-brand-mark">象</span>
-          <span><strong>象棋道</strong><small>XIANGQI DAO</small></span>
+          <span className="desktop-brand-mark">棋</span>
+          <span><strong>棋岛</strong><small>QI DAO</small></span>
         </div>
         <span className="desktop-nav-caption">主要功能</span>
         {navigation}

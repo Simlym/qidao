@@ -1,4 +1,4 @@
-"""象棋道 — 后端入口。"""
+"""棋岛 QiDao — 后端入口。"""
 
 import os
 
@@ -17,7 +17,7 @@ _IS_PROD = os.environ.get("APP_ENV", "").lower() in ("prod", "production")
 
 # 生产环境关闭交互式文档，减少攻击面；开发保留 /docs 方便调试。
 app = FastAPI(
-    title="象棋道 Xiangqidao",
+    title="棋岛 QiDao",
     version="0.1.0",
     docs_url=None if _IS_PROD else "/docs",
     redoc_url=None if _IS_PROD else "/redoc",

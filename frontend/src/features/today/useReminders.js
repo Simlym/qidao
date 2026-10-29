@@ -28,7 +28,7 @@ function notify(due, streak) {
     ? `今天有 ${due} 道题到期，连续打卡 ${streak} 天，别断哦！`
     : `今天有 ${due} 道题到期复习，来练几道吧。`;
   try {
-    new Notification("象棋道 · 复习提醒", { body, tag: "xq-due" });
+    new Notification("棋岛 · 复习提醒", { body, tag: "xq-due" });
   } catch {
     /* 某些浏览器要求由 SW 触发，忽略 */
   }

@@ -6,9 +6,9 @@ export default function WebShell({ user, navigation, secondaryNavigation, remind
   return (
     <>
       <header className="web-header">
-        <div className="web-brand" aria-label="象棋道首页">
-          <span className="web-brand-mark" aria-hidden>象</span>
-          <span className="web-brand-copy"><h1>象棋道</h1><small>XIANGQI DAO</small></span>
+        <div className="web-brand" aria-label="棋岛首页">
+          <span className="web-brand-mark" aria-hidden>棋</span>
+          <span className="web-brand-copy"><h1>棋岛</h1><small>QI DAO</small></span>
         </div>
         {navigation}
         <div className="user-box">

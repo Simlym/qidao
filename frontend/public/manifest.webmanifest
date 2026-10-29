@@ -1,7 +1,7 @@
 {
-  "name": "象棋道 Xiangqidao",
-  "short_name": "象棋道",
-  "description": "循序渐进的中国象棋战术训练：战术题 + 间隔重复 + 闯关 + ELO 评分。",
+  "name": "棋岛 QiDao",
+  "short_name": "棋岛",
+  "description": "中国象棋与揭棋对弈、训练和分析：人机对弈、战术题库、棋谱复盘与局面研究。",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f4ece0",

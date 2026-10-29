@@ -47,7 +47,7 @@ export default function ServerSettings() {
     <div className="settings-group server-settings">
       <div className="settings-heading">
         <h2>服务器（高级）</h2>
-        <p>默认使用客户端配置的服务，高级用户可以连接自己部署的象棋道后端。</p>
+        <p>默认使用客户端配置的服务，高级用户可以连接自己部署的棋岛后端。</p>
       </div>
       <dl className="server-addresses">
         <dt>当前服务器</dt><dd>{API_BASE_URL}</dd>

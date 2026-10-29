@@ -84,7 +84,7 @@ export async function probeServer(value, { signal, allowHttp = allowHttpServer, 
     const info = await response.json();
     controller.signal.throwIfAborted();
     if (info.status !== "ok" || info.service !== "xiangqidao") {
-      throw new Error("该地址未返回象棋道服务信息；请检查 /api 路径或升级后端。");
+      throw new Error("该地址未返回棋岛服务信息；请检查 /api 路径或升级后端。");
     }
     if (info.api_version !== API_VERSION) throw new Error("服务器 API 版本与客户端不兼容，请更新客户端或后端。");
     return { base, version: info.version || "未知版本" };

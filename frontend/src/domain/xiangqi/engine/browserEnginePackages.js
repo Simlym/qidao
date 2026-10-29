@@ -39,7 +39,7 @@ export async function importBrowserEnginePackage(fileList, variant = "xiangqi") 
 
   const paths = new Map(files.map((file) => [safeRelativePath(file), file]));
   const manifestFile = paths.get("engine-manifest.json");
-  if (!manifestFile) throw new Error("缺少 engine-manifest.json，请使用符合象棋道规范的 WASM 引擎包");
+  if (!manifestFile) throw new Error("缺少 engine-manifest.json，请使用符合棋岛规范的 WASM 引擎包");
   let manifest;
   try {
     manifest = JSON.parse(await manifestFile.text());

@@ -86,7 +86,7 @@ export default function BrowserEngineSettings({ manager, variant = "xiangqi" }) 
         </span>
         <div>
           <h3>本地 WASM 引擎包</h3>
-          <p>选择符合象棋道规范的 WASM UCI 引擎目录。引擎仅保存在当前设备，不会上传。</p>
+          <p>选择符合棋岛规范的 WASM UCI 引擎目录。引擎仅保存在当前设备，不会上传。</p>
         </div>
       </div>
       <div className="engine-package-note">

@@ -289,10 +289,10 @@ pub fn run() {
     builder
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
-                window.set_title("象棋道")?;
+                window.set_title("棋岛 QiDao")?;
             }
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("启动象棋道失败");
+        .expect("启动棋岛 QiDao失败");
 }
