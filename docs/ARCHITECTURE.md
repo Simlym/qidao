@@ -1,5 +1,17 @@
 # 象棋道多端架构
 
+## 技术栈
+
+| 部分 | 实现 |
+| --- | --- |
+| Web / PWA | React 18、Vite |
+| PC 与 Android 客户端 | Tauri 2，共用 React 界面 |
+| 后端 API | FastAPI、SQLAlchemy、Alembic |
+| 数据库 | 本地默认 SQLite，Compose 默认 PostgreSQL |
+| 训练调度 | SM-2 间隔重复与题目 / 用户 ELO |
+| 棋类能力 | 标准象棋与揭棋规则层、原生 / WASM 引擎、云库与内置搜索降级 |
+| AI | 可选的服务端大模型集成 |
+
 ## 边界
 
 - `frontend/` 是 Web、PC、Android 共用的 React 前端，不维护三份业务界面。

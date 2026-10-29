@@ -1,6 +1,6 @@
 # 客户端配置、构建与本地开发
 
-所有命令注明了执行目录。Web、Windows、Android 共用 `frontend/`；Tauri 工程位于仓库根目录 `src-tauri/`。普通用户使用方式见 [README](../../README.md)，服务器部署见[后端部署](../deployment/backend.md)。
+所有命令注明了执行目录。Web、Windows、Android 共用 `frontend/`；Tauri 工程位于仓库根目录 `src-tauri/`。项目介绍见 [README](../../README.md)，普通用户操作见[使用指南](../USER_GUIDE.md)，服务器部署见[后端部署](../deployment/backend.md)。
 
 ## 地址配置规则
 
