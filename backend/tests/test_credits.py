@@ -4,7 +4,7 @@
 """
 import os
 import sys
-from datetime import date, timedelta
+from datetime import timedelta
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -88,7 +88,7 @@ def test_checkin_idempotent_and_streak():
 
         # 模拟昨天已签到 → 今日连签 streak=2，含递增奖励
         acc = db.get(CreditAccount, "alice")
-        acc.last_checkin = date.today() - timedelta(days=1)
+        acc.last_checkin = credits._today() - timedelta(days=1)
         acc.checkin_streak = 1
         db.commit()
         r3 = credits.checkin(db, "alice")

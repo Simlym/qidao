@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+Canonical repository guidance for Codex, Claude Code, and human contributors. See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow.
 
 ## Project
 
@@ -41,7 +41,7 @@ Two independent apps: `backend/app` (FastAPI) and `frontend/src` (React 18, no r
 
 ### Backend layering
 
-`modules/*/router.py` (HTTP) → module services / `modules/puzzles/repository.py` → `core/models.py` → `core/database.py`; routers are registered in order by `app/routes.py`, and Pydantic request/response models live in each module's `schemas.py` (never inline in routers). `engine/` owns engine processes and protocol, while `integrations/` owns external services. Keep business APIs decoupled from raw ORM where a repository helper exists.
+`modules/*/router.py` (HTTP) → module services / `modules/puzzles/repository.py` → `app/models/` (compatibility exports in `core/models.py`) → `core/database.py`; routers are registered in order by `app/routes.py`, and Pydantic request/response models live in each module's `schemas.py` (never inline in routers). `engine/` owns engine processes and protocol, while `integrations/` owns external services. Keep business APIs decoupled from raw ORM where a repository helper exists.
 
 **Migrations use Alembic.** `backend/migrations/` (config in `backend/alembic.ini`) is the migration framework; app startup calls `migrations.upgrade_database()` via `database.init_db()`. Schema changes go in a new revision under `migrations/versions/` — do NOT add them to `database.py:_ensure_columns()`. That function (plus `_migrate_reviews_unique`) is legacy-only: it runs once from `_bootstrap_legacy_database()` when Alembic takes over a pre-Alembic database (existing tables but no `alembic_version` table), which is then stamped to baseline `202608310001`. Empty databases are built by the baseline revision.
 
@@ -67,3 +67,11 @@ Backend config uses generic, unprefixed env vars — `HOST`/`PORT`, `DATABASE_UR
 - `src/shared/api/` separates session storage, HTTP transport, resource endpoints, and the engine streaming protocol; feature pages must not call `fetch` directly.
 - `vite.config.js` sets COOP/COEP headers because the optional multi-threaded WASM engine needs `SharedArrayBuffer`; production deployments need the same headers.
 - The app is a PWA (installable, local notifications for due reviews via `features/today/useReminders.js`).
+
+### Module ownership and change safety
+
+- New features belong to their business area (`frontend/src/features/<name>/`, `backend/app/modules/<name>/`) rather than a catch-all `shared/` or `admin/`.
+- Backend `router.py` is the user API; `admin_router.py` hosts that same domain's administrator API. Keep `schemas.py` for request/response contracts, and use `service.py` / `repository.py` only where the complexity justifies them.
+- The ORM definitions belong to `backend/app/models/` and use the existing shared `Base`; `app.core.models` re-exports them for existing import paths. Do not change Alembic tables as part of a file move.
+- Split complex view controllers into focused hooks and leaf components; preserve interactions, including cancellation of outstanding UCI analysis when the board changes.
+- Run `uv run python -m pytest tests` (backend), `npm run test:core`, `npm run test:config`, and `npm run build` (frontend) before PR merge.
