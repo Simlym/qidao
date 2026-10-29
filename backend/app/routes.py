@@ -12,7 +12,7 @@ from .modules.credits import router as credits
 from .modules.games import analysis_router as analysis, router as games
 from .modules.learning import router as learning
 from .modules.play import router as play
-from .modules.puzzles import router as puzzle_library
+from .modules.puzzles import admin_router as puzzle_library
 from .modules.puzzles import feedback_router as puzzle_feedback
 from .modules.stats import router as stats
 from .modules.today import router as today

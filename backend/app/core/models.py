@@ -1,456 +1,60 @@
-"""数据模型。user_id 以用户名字符串标识，匿名场景回退 'default'。"""
+"""向后兼容的 ORM 导出入口。实体定义已归入 app.models。
 
-from datetime import date, datetime
+历史代码继续使用 `from app.core.models import Puzzle`；
+新代码优先使用 `from app.models import Puzzle`。
+这只是代码移动，不修改数据表、主键或 Alembic revision。
+"""
 
-from sqlalchemy import (
-    Boolean,
-    CheckConstraint,
-    false,
-    Date,
-    DateTime,
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-)
-from sqlalchemy.orm import Mapped, mapped_column
-
-# 持久化配置集中在 database 模块；此处再导出以保持既有导入路径可用
 from .database import Base, SessionLocal, engine, init_db  # noqa: F401
-
-
-class User(Base):
-    """用户。role: 'user' 普通用户 / 'admin' 管理员。"""
-
-    __tablename__ = "users"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    username: Mapped[str] = mapped_column(String(40), unique=True, index=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(200), nullable=False)
-    role: Mapped[str] = mapped_column(String(10), default="user")
-    plan: Mapped[str] = mapped_column(String(12), default="free")
-    membership_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    last_login: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # 最近登录（UTC）
-
-
-class PuzzleImportBatch(Base):
-    """导入预览快照与来源记录；确认时只使用服务端保存的快照。"""
-
-    __tablename__ = "puzzle_import_batches"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    name: Mapped[str] = mapped_column(String(100))
-    actor: Mapped[str] = mapped_column(String(40))
-    source_url: Mapped[str] = mapped_column(String(1000), default="")
-    source_revision: Mapped[str] = mapped_column(String(40), default="")
-    license: Mapped[str] = mapped_column(String(100))
-    attribution: Mapped[str] = mapped_column(String(500))
-    content_sha256: Mapped[str] = mapped_column(String(64))
-    status: Mapped[str] = mapped_column(String(16), default="preview")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    imported_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    report_json: Mapped[str] = mapped_column(Text, default="{}")
-    items_json: Mapped[str] = mapped_column(Text, default="[]")
-    added_count: Mapped[int] = mapped_column(Integer, default=0)
-
-
-class Puzzle(Base):
-    """战术题。
-
-    solution 为正解着法序列，UCI 坐标制，逗号分隔，如 'h2e2,a9a8,...'。
-    多步题按「己方/对方交替」排列：偶数位（0,2,4…）是玩家要走的着法，
-    奇数位是对方的应着——做题时由系统自动走出，玩家只需输入己方着法。
-    一步杀题即长度为 1 的特例。
-    """
-
-    __tablename__ = "puzzles"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    variant: Mapped[str] = mapped_column(String(12), default="xiangqi", index=True)
-    fen: Mapped[str] = mapped_column(String(120), nullable=False)
-    solution: Mapped[str] = mapped_column(Text, nullable=False)
-    side_to_move: Mapped[str] = mapped_column(String(1), default="w")  # w=红 b=黑
-    # 两级分类：kind 为大类（杀法/开局/中局/残局），category 为具体战术名目
-    # （卧槽马/双车错/对面笑…）。弱点专项与雷达图按 category，题库浏览/筛选按 kind。
-    kind: Mapped[str] = mapped_column(String(10), default="杀法", index=True)
-    category: Mapped[str] = mapped_column(String(40), default="未分类")  # 具体战术名目
-    difficulty: Mapped[int] = mapped_column(Integer, default=3)         # 1-5
-    steps: Mapped[int] = mapped_column(Integer, default=1)              # 解题回合数（mate-in-N 的 N）
-    # 题目 ELO：随作答动态收敛到「真实难度」；空表示尚未初始化（按难度回填）
-    rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    source: Mapped[str] = mapped_column(String(80), default="")
-    verified: Mapped[bool] = mapped_column(Boolean, default=False)      # 基础规则或离线引擎校验；人工审核另存
-    # 归属：'default' 表示公共题库（所有人可练）；其他值为某用户的私有题
-    # （如实战漏着自动生成题），仅本人可见。
-    user_id: Mapped[str] = mapped_column(String(40), default="default", index=True)
-    # LLM 生成的解题讲解缓存：同一道题只调用一次大模型，之后直接复用
-    ai_explanation: Mapped[str] = mapped_column(Text, default="")
-    # 逗号分隔的教学标签（如“子力协调,开放线,先手”），用于跨模式掌握度画像。
-    tags: Mapped[str] = mapped_column(Text, default="")
-    # 旧题默认已发布；新批量导入题先进入待审核，不删除已有训练历史。
-    status: Mapped[str] = mapped_column(String(16), default="published", server_default="published", index=True)
-    import_batch_id: Mapped[str | None] = mapped_column(ForeignKey("puzzle_import_batches.id"), nullable=True, index=True)
-    # 仅管理导入写入规范局面键；历史重复题保留，不强制改写用户记录。
-    content_key: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
-    revision_of_id: Mapped[int | None] = mapped_column(ForeignKey("puzzles.id", name="fk_puzzle_revision_of"), nullable=True, unique=True)
-    revision_root_id: Mapped[int | None] = mapped_column(ForeignKey("puzzles.id", name="fk_puzzle_revision_root"), nullable=True, index=True)
-    revision_number: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
-    revision_note: Mapped[str] = mapped_column(String(500), default="", server_default="")
-    revision_actor: Mapped[str] = mapped_column(String(40), default="", server_default="")
-    revision_created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    review_status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending", index=True)
-
-
-class PuzzleQualityReview(Base):
-    """人工审核证据绑定题目快照，不能冒充引擎证明。"""
-
-    __tablename__ = "puzzle_quality_reviews"
-    __table_args__ = (UniqueConstraint("puzzle_id", "request_key", name="uq_puzzle_quality_request"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    puzzle_id: Mapped[int] = mapped_column(ForeignKey("puzzles.id"), index=True)
-    actor: Mapped[str] = mapped_column(String(40))
-    verdict: Mapped[str] = mapped_column(String(20))
-    note: Mapped[str] = mapped_column(String(1000))
-    content_sha256: Mapped[str] = mapped_column(String(64))
-    request_key: Mapped[str] = mapped_column(String(80))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-
-class PuzzleReport(Base):
-    """用户反馈与处理结果；删除账号后匿名保留题目质量记录。"""
-
-    __tablename__ = "puzzle_reports"
-    __table_args__ = (UniqueConstraint("user_id", "request_key", name="uq_puzzle_report_request"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    puzzle_id: Mapped[int] = mapped_column(ForeignKey("puzzles.id"), index=True)
-    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.username", ondelete="SET NULL"), nullable=True, index=True)
-    category: Mapped[str] = mapped_column(String(30))
-    description: Mapped[str] = mapped_column(String(1000))
-    proposed_solution: Mapped[str] = mapped_column(String(2000), default="")
-    request_key: Mapped[str] = mapped_column(String(80))
-    request_sha256: Mapped[str] = mapped_column(String(64))
-    open_key: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
-    status: Mapped[str] = mapped_column(String(16), default="open", index=True)
-    resolution_note: Mapped[str] = mapped_column(String(1000), default="")
-    resolved_by: Mapped[str] = mapped_column(String(40), default="")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-
-
-class Review(Base):
-    """SM-2 复习状态（每用户每题一行）。"""
-
-    __tablename__ = "reviews"
-    __table_args__ = (UniqueConstraint("puzzle_id", "user_id", name="uq_reviews_puzzle_user"),)
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    puzzle_id: Mapped[int] = mapped_column(ForeignKey("puzzles.id"))
-    user_id: Mapped[str] = mapped_column(String(40), default="default", index=True)
-
-    repetitions: Mapped[int] = mapped_column(Integer, default=0)
-    interval: Mapped[int] = mapped_column(Integer, default=0)
-    ease_factor: Mapped[float] = mapped_column(Float, default=2.5)
-    next_review: Mapped[date] = mapped_column(Date, default=date.today, index=True)
-    created_at: Mapped[date] = mapped_column(Date, default=date.today, index=True)  # 首次学习日，用于每日新题上限
-
-
-class Attempt(Base):
-    """每次作答记录，用于统计与弱点分析。"""
-
-    __tablename__ = "attempts"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    puzzle_id: Mapped[int] = mapped_column(ForeignKey("puzzles.id"), index=True)
-    user_id: Mapped[str] = mapped_column(String(40), default="default", index=True)
-    ts: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    correct: Mapped[bool] = mapped_column(Boolean)
-    time_spent_ms: Mapped[int] = mapped_column(Integer, default=0)
-    wrong_move: Mapped[str] = mapped_column(String(10), default="")
-    had_retry: Mapped[bool] = mapped_column(Boolean, default=False)  # 是否中途重试，用于首答正确率
-    # training / review / challenge / blunder / assessment:<pack_id>
-    context: Mapped[str] = mapped_column(String(80), default="training", index=True)
-
-
-class PuzzleSession(Base):
-    """一次可信解题会话。
-
-    正确步骤、重试次数与是否完成均由服务端推进，最终结算不再相信客户端传入的
-    correct / had_retry。训练与闯关共用该模型，通过 context 区分来源。
-    """
-
-    __tablename__ = "puzzle_sessions"
-
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
-    puzzle_id: Mapped[int] = mapped_column(ForeignKey("puzzles.id"), index=True)
-    context: Mapped[str] = mapped_column(String(80), default="training")
-    # 多变着题当前采用的分支；-1 表示尚未由玩家首着确定。
-    line_index: Mapped[int] = mapped_column(Integer, default=-1)
-    step: Mapped[int] = mapped_column(Integer, default=0)
-    wrong_count: Mapped[int] = mapped_column(Integer, default=0)
-    completed: Mapped[bool] = mapped_column(Boolean, default=False)
-    settled: Mapped[bool] = mapped_column(Boolean, default=False)
-    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
-
-
-class Game(Base):
-    """棋局复盘记录。"""
-
-    __tablename__ = "games"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    variant: Mapped[str] = mapped_column(String(12), default="xiangqi", index=True)
-    user_id: Mapped[str] = mapped_column(String(40), default="default", index=True)  # 棋局归属，匿名回退 default
-    initial_fen: Mapped[str] = mapped_column(Text, default="")
-    positions_json: Mapped[str] = mapped_column(Text, default="")
-    played_on: Mapped[str] = mapped_column(String(20), nullable=True)
-    red_player: Mapped[str] = mapped_column(String(80), default="")
-    black_player: Mapped[str] = mapped_column(String(80), default="")
-    result: Mapped[str] = mapped_column(String(10), default="未知")
-    moves: Mapped[str] = mapped_column(Text, default="")
-    opening: Mapped[str] = mapped_column(String(80), default="")
-    source: Mapped[str] = mapped_column(String(80), default="")
-    notes: Mapped[str] = mapped_column(Text, default="")
-    report: Mapped[str] = mapped_column(Text, default="")  # LLM 综合复盘报告（整局总评）
-
-
-class GameAnalysis(Base):
-    """棋局逐步引擎分析结果。"""
-
-    __tablename__ = "game_analysis"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    game_id: Mapped[int] = mapped_column(ForeignKey("games.id"), index=True)
-    move_index: Mapped[int] = mapped_column(Integer)          # 0-based，第几步
-    fen_before: Mapped[str] = mapped_column(Text)              # 走这步前的局面
-    move_played: Mapped[str] = mapped_column(String(10))       # 实际走法 UCI
-    best_move: Mapped[str] = mapped_column(String(10), default="")  # 引擎最优
-    score_cp: Mapped[int | None] = mapped_column(Integer, nullable=True)   # 走这步前评分（当前方视角）
-    score_mate: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    eval_drop: Mapped[int] = mapped_column(Integer, default=0)  # 失分（正=失误）
-    is_blunder: Mapped[bool] = mapped_column(Boolean, default=False)  # eval_drop > 200
-    is_mistake: Mapped[bool] = mapped_column(Boolean, default=False)  # eval_drop > 80
-    explanation: Mapped[str] = mapped_column(Text, default="")        # LLM 解释
-    puzzle_id: Mapped[int | None] = mapped_column(ForeignKey("puzzles.id"), nullable=True)
-
-
-class CoachPlan(Base):
-    """AI 教练训练计划：基于用户画像（评分/弱点/近期对局失误）生成，按时间保留历史。
-
-    画像与建议由规则引擎确定性产出（profile_json / recommendations_json），
-    plan_text 为 LLM 教练叙述——未配置大模型时为空，计划仍可用（纯数据版）。
-    """
-
-    __tablename__ = "coach_plans"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(40), default="default", index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
-    trigger: Mapped[str] = mapped_column(String(40), default="manual")  # manual / game:<id>
-    profile_json: Mapped[str] = mapped_column(Text, default="")           # 生成时的画像快照
-    recommendations_json: Mapped[str] = mapped_column(Text, default="")   # 结构化训练建议
-    progress_json: Mapped[str] = mapped_column(Text, default="")          # 与历史基线的进步对比
-    plan_text: Mapped[str] = mapped_column(Text, default="")              # LLM 教学叙述
-
-
-class UserStat(Base):
-    """用户评分档案（每用户一行，按 user_id 字符串归属，含匿名 default）。
-
-    与 User 表解耦：匿名访客也能有评分，且评分逻辑不依赖账号体系。
-    """
-
-    __tablename__ = "user_stats"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(40), unique=True, index=True, nullable=False)
-    rating: Mapped[int] = mapped_column(Integer, default=1200)   # 当前 ELO
-    peak: Mapped[int] = mapped_column(Integer, default=1200)     # 历史最高
-    solved: Mapped[int] = mapped_column(Integer, default=0)      # 已结算评分的题数
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-
-class LearningPack(Base):
-    """阶段测评或单局关键问题组成的可追踪训练包。"""
-
-    __tablename__ = "learning_packs"
-
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
-    pack_type: Mapped[str] = mapped_column(String(20), index=True)  # assessment / game_review
-    title: Mapped[str] = mapped_column(String(100), default="")
-    source_game_id: Mapped[int | None] = mapped_column(ForeignKey("games.id"), nullable=True)
-    puzzle_ids_json: Mapped[str] = mapped_column(Text, default="[]")
-    baseline_json: Mapped[str] = mapped_column(Text, default="{}")
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
-
-
-class SecurityLog(Base):
-    """安全审计日志：登录失败与管理员敏感操作，落库供后台查看。
-
-    刻意只记录「谁、何时、从哪、做了什么」，绝不写入密码、token、API key 等敏感值。
-    """
-
-    __tablename__ = "security_logs"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    ts: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
-    level: Mapped[str] = mapped_column(String(10), default="info")   # info / warning
-    event: Mapped[str] = mapped_column(String(40), index=True)       # login_failed / admin_action
-    ip: Mapped[str] = mapped_column(String(45), default="-")
-    actor: Mapped[str] = mapped_column(String(40), default="")       # 操作者 / 尝试登录的用户名
-    action: Mapped[str] = mapped_column(String(40), default="")      # admin_action 的具体动作
-    target: Mapped[str] = mapped_column(String(120), default="")
-
-
-class CreditAccount(Base):
-    """用户训练积分账户，独立于 AI 使用额度。
-
-    积分用于外观等训练奖励；签到、对弈与做题赚取，不兑换模型调用。
-    访客不参与训练积分结算；模型调用必须经过独立 AI 额度账本。
-    """
-
-    __tablename__ = "credit_accounts"
-
-    user_id: Mapped[str] = mapped_column(String(40), primary_key=True)
-    balance: Mapped[int] = mapped_column(Integer, default=0)
-    total_earned: Mapped[int] = mapped_column(Integer, default=0)  # 累计获取（不含初始赠送外的统计口径）
-    last_checkin: Mapped[date | None] = mapped_column(Date, nullable=True)  # 最近签到日
-    checkin_streak: Mapped[int] = mapped_column(Integer, default=0)  # 连续签到天数
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-
-class CreditLog(Base):
-    """积分流水（append-only）：用于审计与「每日上限」统计，防止刷分。
-
-    kind 形如 'earn:checkin' / 'earn:game' / 'spend:coach_plan' / 'refund:puzzle_explain'。
-    amount 正为入账、负为扣减；balance_after 记录变动后余额，便于对账。
-    """
-
-    __tablename__ = "credit_logs"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(40), index=True)
-    ts: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
-    day: Mapped[date] = mapped_column(Date, default=date.today, index=True)  # 本地日期，按日聚合算上限
-    kind: Mapped[str] = mapped_column(String(40), index=True)
-    amount: Mapped[int] = mapped_column(Integer, default=0)
-    balance_after: Mapped[int] = mapped_column(Integer, default=0)
-    ref: Mapped[str] = mapped_column(String(80), default="")  # 关联对象，如 puzzle:123 / game:45
-
-
-class CosmeticPurchase(Base):
-    """用户已解锁的外观资源。
-
-    付费外观买断后永久保留；免费外观不入库。唯一约束同时避免
-    重复购买和并发请求重复扣费。
-    """
-
-    __tablename__ = "cosmetic_purchases"
-    __table_args__ = (UniqueConstraint("user_id", "asset_key", name="uq_cosmetic_user_asset"),)
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(40), index=True, nullable=False)
-    asset_key: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
-    price_paid: Mapped[int] = mapped_column(Integer, default=0)
-    purchased_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-
-class AppSetting(Base):
-    """运行时全局配置（键值对），供管理员在后台修改而无需重启或改环境变量。
-
-    用于 AI 复盘的协议、服务地址、模型、开关与密钥；DB 中的值优先于环境变量。
-    """
-
-    __tablename__ = "app_settings"
-
-    key: Mapped[str] = mapped_column(String(64), primary_key=True)
-    value: Mapped[str] = mapped_column(Text, default="")
-
-
-class LLMCallLog(Base):
-    """LLM 调用流水（append-only）：审计每一次大模型调用的 token 与费用。
-
-    LLM 是按量计费的额外开销，必须可逐笔追溯：何时、什么事项、谁触发、用了哪个模型、
-    各类 token 用量、折算费用（USD）、耗时与成败。供后台「LLM 用量」页查询与按月对账。
-    """
-
-    __tablename__ = "llm_call_logs"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    ts: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
-    feature: Mapped[str] = mapped_column(String(40), index=True)   # explain_mistake / coach_move / ...
-    user_id: Mapped[str] = mapped_column(String(40), default="", index=True)  # 触发者，空串=系统/未知
-    model: Mapped[str] = mapped_column(String(40), default="")
-    # token 用量：prompt 再细分缓存命中/未命中（部分服务对缓存 token 单独计价）
-    prompt_tokens: Mapped[int] = mapped_column(Integer, default=0)
-    cached_tokens: Mapped[int] = mapped_column(Integer, default=0)   # prompt 中命中缓存的部分
-    completion_tokens: Mapped[int] = mapped_column(Integer, default=0)
-    reasoning_tokens: Mapped[int] = mapped_column(Integer, default=0)  # thinking 思考 token（计入 completion）
-    total_tokens: Mapped[int] = mapped_column(Integer, default=0)
-    cost_usd: Mapped[float] = mapped_column(Float, default=0.0)      # 按内置价格表折算的美元费用
-    duration_ms: Mapped[int] = mapped_column(Integer, default=0)    # 端到端耗时（毫秒）
-    success: Mapped[bool] = mapped_column(Boolean, default=True)
-    error: Mapped[str] = mapped_column(String(200), default="")     # 失败原因（成功为空）
-    ref: Mapped[str] = mapped_column(String(80), default="")        # 关联对象，如 game:45 / puzzle:123
-
-    operation_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
-    cost_known: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
-
-
-class AIQuotaAccount(Base):
-    """补充额度与每用户的数据库写锁；不与训练积分兑换。"""
-    __tablename__ = "ai_quota_accounts"
-    __table_args__ = (CheckConstraint("extra_balance >= 0", name="ck_ai_extra_nonnegative"),)
-    user_id: Mapped[str] = mapped_column(String(40), ForeignKey("users.username", ondelete="CASCADE"), primary_key=True)
-    extra_balance: Mapped[int] = mapped_column(Integer, default=0)
-    revision: Mapped[int] = mapped_column(Integer, default=0)
-
-
-class AIQuotaMonth(Base):
-    """自然月使用量包含处理中预留；退款总是冲回原月份。"""
-    __tablename__ = "ai_quota_months"
-    __table_args__ = (CheckConstraint("used_units >= 0", name="ck_ai_month_nonnegative"),)
-    user_id: Mapped[str] = mapped_column(String(40), ForeignKey("users.username", ondelete="CASCADE"), primary_key=True)
-    period: Mapped[str] = mapped_column(String(7), primary_key=True)
-    used_units: Mapped[int] = mapped_column(Integer, default=0)
-
-
-class AIOperation(Base):
-    """AI 请求预留/成功/退款流水；保存原单价及分摊，幂等结算。"""
-    __tablename__ = "ai_operations"
-    __table_args__ = (UniqueConstraint("user_id", "request_key", name="uq_ai_operation_request"),)
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(40), ForeignKey("users.username", ondelete="CASCADE"), index=True)
-    request_key: Mapped[str] = mapped_column(String(80))
-    action: Mapped[str] = mapped_column(String(40))
-    ref: Mapped[str] = mapped_column(String(80), default="")
-    period: Mapped[str] = mapped_column(String(7))
-    units: Mapped[int] = mapped_column(Integer)
-    monthly_units: Mapped[int] = mapped_column(Integer)
-    extra_units: Mapped[int] = mapped_column(Integer)
-    status: Mapped[str] = mapped_column(String(16), default="reserved", index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    result_text: Mapped[str] = mapped_column(Text, default="")
-    error_code: Mapped[str] = mapped_column(String(40), default="")
-
-
-class AIQuotaAdjustment(Base):
-    """管理员发放/扣回补充额度，独立审计并支持重试幂等。"""
-    __tablename__ = "ai_quota_adjustments"
-    __table_args__ = (UniqueConstraint("user_id", "request_key", name="uq_ai_adjustment_request"),)
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(40), ForeignKey("users.username", ondelete="CASCADE"), index=True)
-    request_key: Mapped[str] = mapped_column(String(80))
-    requested_delta: Mapped[int] = mapped_column(Integer)
-    actual_delta: Mapped[int] = mapped_column(Integer)
-    reason: Mapped[str] = mapped_column(String(80))
-    actor: Mapped[str] = mapped_column(String(40))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+from app.models import (
+    User,
+    PuzzleImportBatch,
+    Puzzle,
+    PuzzleQualityReview,
+    PuzzleReport,
+    Review,
+    Attempt,
+    PuzzleSession,
+    UserStat,
+    LearningPack,
+    Game,
+    GameAnalysis,
+    CoachPlan,
+    CreditAccount,
+    CreditLog,
+    CosmeticPurchase,
+    LLMCallLog,
+    AIQuotaAccount,
+    AIQuotaMonth,
+    AIOperation,
+    AIQuotaAdjustment,
+    SecurityLog,
+    AppSetting,
+)
+
+__all__ = [
+    "Base", "SessionLocal", "engine", "init_db",
+    "User",
+    "PuzzleImportBatch",
+    "Puzzle",
+    "PuzzleQualityReview",
+    "PuzzleReport",
+    "Review",
+    "Attempt",
+    "PuzzleSession",
+    "UserStat",
+    "LearningPack",
+    "Game",
+    "GameAnalysis",
+    "CoachPlan",
+    "CreditAccount",
+    "CreditLog",
+    "CosmeticPurchase",
+    "LLMCallLog",
+    "AIQuotaAccount",
+    "AIQuotaMonth",
+    "AIOperation",
+    "AIQuotaAdjustment",
+    "SecurityLog",
+    "AppSetting",
+]

@@ -34,8 +34,9 @@ frontend/src/
 └─ main.jsx             唯一前端入口
 
 backend/app/
-├─ core/                配置、数据库、ORM、安全、限流与日志
-├─ modules/             每项业务的 API 与服务，题库导入器也归入 puzzles
+├─ core/                配置、数据库连接、安全、限流与日志
+├─ models/              按领域拆分的 SQLAlchemy 模型（旧 core/models.py 保留兼容导出）
+├─ modules/             各业务的用户/管理员路由与服务，题库导入器归 puzzles
 ├─ engine/              标准象棋/揭棋引擎进程、profile 和流式 API 契约
 ├─ integrations/        LLM、云库等外部服务适配
 ├─ shared/              象棋通用规则、杀棋校验、ELO 等稳定领域能力
@@ -48,7 +49,7 @@ src-tauri/
 └─ gen/android/         Tauri 生成的 Android 工程，不放业务逻辑
 ```
 
-依赖保持单向：`app/` → `features/` → `domain/`/`shared/` → `platform/`；后端 `modules/*/router.py` → 模块服务/仓储 → `core/models.py`。功能代码不得反向依赖应用外壳，前端页面不得自行调用 `fetch`。PC 与 Android 只在外壳和平台适配层分叉，训练、对弈、复盘等业务逻辑继续共享。
+依赖保持单向：`app/` → `features/` → `domain/`/`shared/` → `platform/`；后端 `modules/*/{router,admin_router}.py` → 模块服务/仓储 → `models/` → `core/database.py`。功能代码不得反向依赖应用外壳，前端页面不得自行调用 `fetch`。PC 与 Android 只在外壳和平台适配层分叉，训练、对弈、复盘等业务逻辑继续共享。
 
 ## 引擎选择
 
@@ -104,3 +105,7 @@ Windows x64 的安装桥接位于 `src-tauri/src/engine_install.rs`，下载、�
 `modules/puzzles/quality.py` 负责版本族写锁、内容指纹、人工审核及发布事务；`feedback_router.py` 分隔用户自己的反馈与管理员处理队列。所有题解修订创建新题号，根节点关联版本族；发布新版时事务内下架旧版并交接局面唯一键，不移动旧作答、SM-2 或棋局引用。
 
 人工审核绑定题目内容指纹，修改教学信息或题解后清除当前通过状态，历史记录仍保留。反馈只向提交者及管理员展示；删除账号后匿名保留问题记录。管理员对外处理回复与内部审核依据分开保存。用户界面与操作约束见[题目质量管理](development/puzzle-quality.md)。
+
+## 贡献者导航
+
+改功能时先查 [贡献指南](../CONTRIBUTING.md)。前端 HTTP 接口按业务拆分在 `shared/api/resources/`，旧 `resources.js` 统一导出保持兼容；题库管理员接口位于 `modules/puzzles/admin_router.py`，旧 `router.py` 保留别名。普通用户 API 与管理员 API 不应因为 URL 前缀不同而拆散同一领域的核心规则。
