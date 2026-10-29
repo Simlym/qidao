@@ -1,5 +1,10 @@
 import React from "react";
 import Board from "../../shared/ui/Board";
+import { useWideWebLayout } from "../../shared/hooks/useWideWebLayout";
+import PlaySetup from "./components/PlaySetup";
+import MoveHistory from "./components/MoveHistory";
+import CapturedPieces from "./components/CapturedPieces";
+import ResultOverlay from "./components/ResultOverlay";
 import { applyMove, uciToChinese, INITIAL_FEN } from "../../domain/xiangqi/xiangqi";
 import {
   newPlayGame, playMove, getPositionState, importGame, analyzeGame, evalPosition,
@@ -14,8 +19,8 @@ import {
 } from "../../shared/sounds";
 import EngineAnalysisView from "../analysis/EngineAnalysisView";
 import {
-  LEVELS, PLAY_DEPTH, SIDES, capturedPieces, describeEval, fmtDuration,
-  fmtMoveTime, isCapture, moveLogItems, terminalResult,
+  LEVELS, PLAY_DEPTH, capturedPieces, describeEval, fmtDuration,
+  isCapture, terminalResult,
 } from "./model";
 
 // 当前为 Web：WASM 优先，失败后自动降级 FastAPI。
@@ -24,9 +29,7 @@ const positionEngine = createEngineManager({ remoteEvaluate: evalPosition, remot
 
 export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogin, onOpenSettings }) {
   const isDesktop = usesDesktopLayout(runtime);
-  const [wideWeb, setWideWeb] = React.useState(() =>
-    runtime === "web" && typeof window !== "undefined" && window.matchMedia("(min-width: 1100px)").matches
-  );
+  const wideWeb = useWideWebLayout(runtime);
   const [fen, setFen] = React.useState(null);
   const [legalMoves, setLegalMoves] = React.useState([]);
   const [lastMove, setLastMove] = React.useState(null);
@@ -74,15 +77,6 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   const evalSession = React.useRef(null);
   const logRef = React.useRef(null);                  // 棋谱滚动容器
   const keysRef = React.useRef({});                   // 键盘快捷键的最新处理函数
-
-  React.useEffect(() => {
-    if (runtime !== "web") return undefined;
-    const media = window.matchMedia("(min-width: 1100px)");
-    const update = () => setWideWeb(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
 
   // 新着法出现时棋谱自动滚到最底部，最新一着始终可见
   React.useEffect(() => {
@@ -485,63 +479,12 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   // 初始进入选择界面
   if (!fen) {
     return (
-      <div className="panel play-setup">
-        <h2>人机对弈</h2>
-        <p className="muted">
-          和引擎下一盘完整对局。
-          {engineInfo && (
-            <>
-              当前引擎：
-              <strong>{engineInfo.label}</strong>
-            </>
-          )}
-        </p>
-        <div className="play-setup-row">
-          <span className="play-setup-label">先后手</span>
-          <div className="seg">
-            {SIDES.map((s) => (
-              <button
-                key={s.key}
-                className={"seg-btn" + (humanSide === s.key ? " active" : "")}
-                onClick={() => setHumanSide(s.key)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="play-setup-row">
-          <span className="play-setup-label">难度</span>
-          <div className="seg">
-            {LEVELS.map((l) => (
-              <button
-                key={l.key}
-                className={"seg-btn" + (level === l.key ? " active" : "")}
-                onClick={() => setLevel(l.key)}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="engine-setup-summary">
-          <div>
-            <strong>当前引擎</strong>
-            <span>
-              {localReady
-                ? localRuntime === "native" ? "PC 原生 UCI 引擎 · 已就绪" : "本地 WASM UCI 引擎 · 已就绪"
-                : engineInfo?.label || "正在检测可用引擎…"}
-            </span>
-          </div>
-          {onOpenSettings && (
-            <button className="btn-newgame" onClick={onOpenSettings}>引擎设置</button>
-          )}
-        </div>
-        <button className="btn-start" onClick={() => start(humanSide, level)} disabled={thinking}>
-          {thinking ? "正在开局…" : "开始对弈"}
-        </button>
-        {startError && <div className="result bad" role="alert">{startError}</div>}
-      </div>
+      <PlaySetup
+        engineInfo={engineInfo} humanSide={humanSide} onHumanSideChange={setHumanSide}
+        level={level} onLevelChange={setLevel} localReady={localReady}
+        localRuntime={localRuntime} onOpenSettings={onOpenSettings}
+        onStart={start} thinking={thinking} startError={startError}
+      />
     );
   }
 
@@ -779,56 +722,16 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
             flipped={humanSide === "b"}
           />
 
-          {/* 被吃子展示：有吃子后出现，直观看出物质差 */}
-          {capt.red.length + capt.black.length > 0 && (
-            <div className="panel captured-bar">
-              <div className="captured-row">
-                <span className="captured-label">红方失子</span>
-                {capt.red.map((g, i) => (
-                  <span key={i} className="captured-piece red">{g}</span>
-                ))}
-              </div>
-              <div className="captured-row">
-                <span className="captured-label">黑方失子</span>
-                {capt.black.map((g, i) => (
-                  <span key={i} className="captured-piece black">{g}</span>
-                ))}
-                {Math.abs(capt.diff) >= 1 && (
-                  <span className={"captured-diff" + (capt.diff > 0 ? " red" : "")}>
-                    {capt.diff > 0 ? "红方" : "黑方"}子力 +{Math.abs(capt.diff).toFixed(1).replace(/\.0$/, "")}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+          <CapturedPieces capt={capt} />
 
-          {/* 对局结束：结果面板直接覆盖在棋盘中央，可关闭查看终局 */}
-          {over && !overDismissed && (
-            <div className="play-over">
-              <div className="panel result ok" style={{ textAlign: "center" }}>
-                <button
-                  className="play-over-close"
-                  onClick={() => setOverDismissed(true)}
-                  title="关闭，查看终局棋盘"
-                >
-                  ×
-                </button>
-                <h3>{winnerText}</h3>
-                <p className="muted">
-                  共 {Math.ceil(moveLog.length / 2)} 回合
-                  {totalMs > 0 && ` · 用时 ${fmtDuration(totalMs)}`}
-                  <br />
-                  {saved ? "已存入「复盘」，正在自动分析本局得失。" : "本局未保存。"}
-                </p>
-                <div className="btn-row" style={{ justifyContent: "center" }}>
-                  {saved && savedGameId && onGoReview && (
-                    <button onClick={() => onGoReview(savedGameId)}>📋 去复盘本局</button>
-                  )}
-                  <button onClick={() => start(humanSide, level)}>再来一盘</button>
-                </div>
-              </div>
-            </div>
-          )}
+          <ResultOverlay
+            over={over} overDismissed={overDismissed} winnerText={winnerText}
+            moveLog={moveLog} totalMs={totalMs} saved={saved}
+            savedGameId={savedGameId} onGoReview={onGoReview}
+            onDismiss={() => setOverDismissed(true)}
+            onRestart={() => start(humanSide, level)}
+          />
+
         </div>
 
         {useSideLayout ? (
@@ -861,21 +764,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
             <div className="desktop-inspector-body">
               {inspectorTab === "moves" && (
                 moveLog.length > 0 ? (
-                  <ol className="move-log-list" ref={logRef}>
-                    {moveLogItems(moveLog).map((pair, i) => (
-                      <li key={i}>
-                        <span className="move-log-no">{i + 1}.</span>
-                        <span className={"move-log-cell" + (moveLog.length - 1 === i * 2 ? " latest" : "")}>
-                          {pair[0] || "…"}
-                          {timesLog[i * 2] != null && <i className="move-time">{fmtMoveTime(timesLog[i * 2])}</i>}
-                        </span>
-                        <span className={"move-log-cell" + (moveLog.length - 1 === i * 2 + 1 ? " latest" : "")}>
-                          {pair[1] || ""}
-                          {pair[1] && timesLog[i * 2 + 1] != null && <i className="move-time">{fmtMoveTime(timesLog[i * 2 + 1])}</i>}
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
+                  <MoveHistory moveLog={moveLog} timesLog={timesLog} logRef={logRef} />
                 ) : (
                   <div className="desktop-inspector-empty">对局刚刚开始<br />走子后将在这里记录棋谱</div>
                 )
@@ -1006,25 +895,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
                 {fenCopied ? "已复制" : "复制 FEN"}
               </button>
             </div>
-            <ol className="move-log-list" ref={logRef}>
-              {moveLogItems(moveLog).map((pair, i) => (
-                <li key={i}>
-                  <span className="move-log-no">{i + 1}.</span>
-                  <span className={"move-log-cell" + (moveLog.length - 1 === i * 2 ? " latest" : "")}>
-                    {pair[0] || "…"}
-                    {timesLog[i * 2] != null && (
-                      <i className="move-time">{fmtMoveTime(timesLog[i * 2])}</i>
-                    )}
-                  </span>
-                  <span className={"move-log-cell" + (moveLog.length - 1 === i * 2 + 1 ? " latest" : "")}>
-                    {pair[1] || ""}
-                    {pair[1] && timesLog[i * 2 + 1] != null && (
-                      <i className="move-time">{fmtMoveTime(timesLog[i * 2 + 1])}</i>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ol>
+            <MoveHistory moveLog={moveLog} timesLog={timesLog} logRef={logRef} />
           </div>
         )}
       </div>
