@@ -82,7 +82,7 @@ class Puzzle(Base):
     # 题目 ELO：随作答动态收敛到「真实难度」；空表示尚未初始化（按难度回填）
     rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
     source: Mapped[str] = mapped_column(String(80), default="")
-    verified: Mapped[bool] = mapped_column(Boolean, default=False)      # 是否经引擎校验
+    verified: Mapped[bool] = mapped_column(Boolean, default=False)      # 基础规则或离线引擎校验；人工审核另存
     # 归属：'default' 表示公共题库（所有人可练）；其他值为某用户的私有题
     # （如实战漏着自动生成题），仅本人可见。
     user_id: Mapped[str] = mapped_column(String(40), default="default", index=True)
@@ -95,6 +95,51 @@ class Puzzle(Base):
     import_batch_id: Mapped[str | None] = mapped_column(ForeignKey("puzzle_import_batches.id"), nullable=True, index=True)
     # 仅管理导入写入规范局面键；历史重复题保留，不强制改写用户记录。
     content_key: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
+    revision_of_id: Mapped[int | None] = mapped_column(ForeignKey("puzzles.id", name="fk_puzzle_revision_of"), nullable=True, unique=True)
+    revision_root_id: Mapped[int | None] = mapped_column(ForeignKey("puzzles.id", name="fk_puzzle_revision_root"), nullable=True, index=True)
+    revision_number: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    revision_note: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    revision_actor: Mapped[str] = mapped_column(String(40), default="", server_default="")
+    revision_created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    review_status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending", index=True)
+
+
+class PuzzleQualityReview(Base):
+    """人工审核证据绑定题目快照，不能冒充引擎证明。"""
+
+    __tablename__ = "puzzle_quality_reviews"
+    __table_args__ = (UniqueConstraint("puzzle_id", "request_key", name="uq_puzzle_quality_request"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    puzzle_id: Mapped[int] = mapped_column(ForeignKey("puzzles.id"), index=True)
+    actor: Mapped[str] = mapped_column(String(40))
+    verdict: Mapped[str] = mapped_column(String(20))
+    note: Mapped[str] = mapped_column(String(1000))
+    content_sha256: Mapped[str] = mapped_column(String(64))
+    request_key: Mapped[str] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class PuzzleReport(Base):
+    """用户反馈与处理结果；删除账号后匿名保留题目质量记录。"""
+
+    __tablename__ = "puzzle_reports"
+    __table_args__ = (UniqueConstraint("user_id", "request_key", name="uq_puzzle_report_request"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    puzzle_id: Mapped[int] = mapped_column(ForeignKey("puzzles.id"), index=True)
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.username", ondelete="SET NULL"), nullable=True, index=True)
+    category: Mapped[str] = mapped_column(String(30))
+    description: Mapped[str] = mapped_column(String(1000))
+    proposed_solution: Mapped[str] = mapped_column(String(2000), default="")
+    request_key: Mapped[str] = mapped_column(String(80))
+    request_sha256: Mapped[str] = mapped_column(String(64))
+    open_key: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
+    status: Mapped[str] = mapped_column(String(16), default="open", index=True)
+    resolution_note: Mapped[str] = mapped_column(String(1000), default="")
+    resolved_by: Mapped[str] = mapped_column(String(40), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class Review(Base):

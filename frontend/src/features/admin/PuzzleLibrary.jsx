@@ -1,8 +1,8 @@
 import React from "react";
-import Board from "../../shared/ui/Board";
+import PuzzleReview, { PuzzleReportQueue } from "./PuzzleReview";
 import {
   adminPuzzles, adminCreatePuzzle, adminPuzzleSources, adminPuzzleBatches,
-  adminPreviewPuzzles, adminConfirmPuzzles, adminSetPuzzleStatus, adminEditPuzzle, adminExportPuzzles,
+  adminPreviewPuzzles, adminConfirmPuzzles, adminSetPuzzleStatus, adminEditPuzzle, adminExportPuzzles, adminPuzzleDetail,
 } from "../../shared/api";
 
 const PAGE = 20;
@@ -27,6 +27,7 @@ export default function PuzzleLibrary() {
   const [selected, setSelected] = React.useState([]);
   const [batches, setBatches] = React.useState([]);
   const [batchOffset, setBatchOffset] = React.useState(0);
+  const [showReports, setShowReports] = React.useState(false);
   const [showImports, setShowImports] = React.useState(false);
   const [editor, setEditor] = React.useState(null);
   const [error, setError] = React.useState("");
@@ -58,6 +59,10 @@ export default function PuzzleLibrary() {
     catch (e) { setError(e.message); }
     finally { setBusy(false); }
   }
+  async function openVersion(id) {
+    try { setEditor(await adminPuzzleDetail(id)); }
+    catch (e) { setError(e.message); }
+  }
   const status = (value, batchId) => {
     const count = batchId ? "该批次的全部" : selected.length;
     if (!window.confirm(`将${count}题设为“${STATUS[value]}”？${value === "published" ? "发布后会进入用户训练。" : "原有作答记录将保留。"}`)) return;
@@ -65,12 +70,14 @@ export default function PuzzleLibrary() {
   };
   return <div className="panel puzzle-library">
     <div className="panel-head"><h3>公共题库（{data.total}）</h3><div className="puzzle-actions">
+      <button className="btn-import-submit" disabled={busy} onClick={() => setShowReports(v => !v)}>{showReports ? "收起反馈" : "问题反馈"}</button>
       <button className="btn-import-submit" disabled={busy} onClick={() => setShowImports(v => !v)}>{showImports ? "收起导入" : "导入与来源"}</button>
       <button className="btn-import-submit" disabled={busy} onClick={() => setEditor({ ...EMPTY })}>＋ 新增题目</button>
     </div></div>
     <p className="muted">导入题先审核再发布。下架会停止推荐并保留训练历史；用户私人错题由本人管理。</p>
     {error && <div className="import-error" role="alert">{error}</div>}
     {notice && <p className="puzzle-success" role="status">{notice}</p>}
+    {showReports && <PuzzleReportQueue onReview={openVersion} />}
     {showImports && <ImportPanel onImported={() => { refresh(); filter("status", "draft"); }} />}
     <div className="puzzle-filter">
       <input aria-label="搜索题目" className="import-input" placeholder="搜索 ID、分类、标签、来源或 FEN" value={filters.q} onChange={e => filter("q", e.target.value)} />
@@ -90,8 +97,8 @@ export default function PuzzleLibrary() {
       <th>ID / 大类</th><th>分类 / 难度</th><th>来源</th><th>校验 / 状态</th><th>操作</th>
     </tr></thead><tbody>{data.items.map(p => <tr key={p.id}>
       <td><input type="checkbox" aria-label={`选择题目 ${p.id}`} disabled={busy} checked={selected.includes(p.id)} onChange={e => setSelected(s => e.target.checked ? [...s, p.id] : s.filter(id => id !== p.id))} /></td>
-      <td>{p.id}<br />{p.kind}</td><td>{p.category}<br />{"★".repeat(p.difficulty)}</td><td>{p.source || "未标注"}</td>
-      <td>{p.verified ? "已校验" : "待进一步核验"}<br /><span className={`puzzle-status-${p.status}`}>{STATUS[p.status]}</span></td>
+      <td>{p.id} · v{p.revision_number || 1}<br />{p.kind}</td><td>{p.category}<br />{"★".repeat(p.difficulty)}</td><td>{p.source || "未标注"}</td>
+      <td>{p.verified ? "已校验" : "待进一步核验"}<br />{p.review_status === "approved" ? "人工已通过" : p.review_status === "needs_changes" ? "需修改" : "待人工审核"}<br /><span className={`puzzle-status-${p.status}`}>{STATUS[p.status]}</span></td>
       <td><button className="btn-link" disabled={busy} onClick={() => setEditor(p)}>查看 / 编辑</button></td>
     </tr>)}{!data.items.length && <tr><td colSpan={6}>没有匹配的题目</td></tr>}</tbody></table></div>
     <div className="puzzle-actions"><button className="btn-link" disabled={!offset || busy} onClick={() => setOffset(o => Math.max(0,o-PAGE))}>上一页</button><span>第 {Math.floor(offset/PAGE)+1} / {Math.max(1,Math.ceil(data.total/PAGE))} 页</span><button className="btn-link" disabled={offset+PAGE >= data.total || busy} onClick={() => setOffset(o => o+PAGE)}>下一页</button></div>
@@ -104,7 +111,7 @@ export default function PuzzleLibrary() {
       {!batches.length && <p className="muted">暂无导入批次</p>}
       <div className="puzzle-actions"><button className="btn-link" disabled={batchOffset === 0} onClick={() => setBatchOffset(v => Math.max(0,v-20))}>上一批</button><button className="btn-link" disabled={batches.length < 20} onClick={() => setBatchOffset(v => v+20)}>下一批</button></div>
     </details>
-    {editor && <PuzzleEditor puzzle={editor} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); refresh(); }} />}
+    {editor && <PuzzleEditor key={`${editor.id || "new"}:${editor.content_sha256}:${editor.review_status}:${editor.status}`} puzzle={editor} onUpdated={async () => { await openVersion(editor.id); refresh(); }} onOpenVersion={openVersion} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); refresh(); }} />}
   </div>;
 }
 
@@ -162,7 +169,7 @@ function ImportPanel({ onImported }) {
   </section>;
 }
 
-function PuzzleEditor({ puzzle, onClose, onSaved }) {
+function PuzzleEditor({ puzzle, onClose, onSaved, onUpdated, onOpenVersion }) {
   const [form, setForm] = React.useState(puzzle);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -179,8 +186,9 @@ function PuzzleEditor({ puzzle, onClose, onSaved }) {
   }
   return <div className="modal-overlay" onClick={() => !busy && onClose()}><div role="dialog" aria-label={editing ? "编辑题目" : "新增题目"} aria-modal="true" className="modal modal-wide puzzle-editor" onClick={e => e.stopPropagation()}>
     <div className="panel-head"><h3>{editing ? `题目 ${puzzle.id}` : "新增题目"}</h3><button aria-label="关闭题目编辑" className="modal-close" disabled={busy} onClick={onClose}>×</button></div>
-    {editing && <><div className="puzzle-board"><Board fen={puzzle.fen} disabled /></div><p className="puzzle-source">{puzzle.fen}<br />正解：{puzzle.solution}<br />来源：{puzzle.source || "未标注"} · {STATUS[puzzle.status]}</p></>}
+    {editing && <><p className="puzzle-source">{puzzle.fen}<br />正解：{puzzle.solution}<br />来源：{puzzle.source || "未标注"} · {STATUS[puzzle.status]}</p></>}
     <p className="muted">{editing ? "可调整分类、难度与标签。待审核且没有学习记录的题目还可修改局面与题解；已发布题目保留原题解。" : "每步走法均会校验，杀法题还须以将死结束。新增后进入待审核。"}</p>
+    <details open={!editing}><summary>{editing ? "编辑分类与待审核内容" : "录入题目"}</summary>
     <form className="admin-form" onSubmit={save}><fieldset disabled={busy}>
       {(!editing || puzzle.status === "draft") && <><label>FEN<input className="import-input" name="fen" maxLength={120} required value={form.fen} onChange={change} /></label><label>正解（逗号分隔，多分支用 |）<input className="import-input" name="solution" maxLength={2000} required value={form.solution} onChange={change} /></label><label>走子方<select aria-label="走子方" name="side_to_move" className="import-input" value={form.side_to_move} onChange={change}><option value="w">红方</option><option value="b">黑方</option></select></label></>}
       <label>大类<select aria-label="大类" className="import-input" name="kind" disabled={editing && puzzle.status !== "draft"} value={form.kind} onChange={change}>{["杀法","开局","中局","残局"].map(k => <option key={k}>{k}</option>)}</select></label>
@@ -189,6 +197,7 @@ function PuzzleEditor({ puzzle, onClose, onSaved }) {
       <label>标签<input className="import-input" name="tags" maxLength={1000} value={form.tags} onChange={change} /></label>
       {error && <div className="import-error" role="alert">{error}</div>}
       <button className="btn-import-submit" type="submit">{busy ? "保存中…" : editing ? "保存修改" : "添加到待审核"}</button>
-    </fieldset></form>
+    </fieldset></form></details>
+    {editing && <PuzzleReview puzzle={puzzle} onUpdated={onUpdated} onOpenVersion={onOpenVersion} />}
   </div></div>;
 }

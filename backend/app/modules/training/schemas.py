@@ -14,6 +14,7 @@ class PuzzleOut(BaseModel):
     difficulty: int
     total_steps: int
     session_id: str
+    can_report: bool = False
 
 
 class NextResponse(BaseModel):

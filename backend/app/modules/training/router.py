@@ -96,6 +96,7 @@ def _puzzle_out(db: Session, puzzle, user: str, context: str = "training") -> Pu
     session = create_session(db, user, puzzle, context)
     return PuzzleOut(
         id=puzzle.id,
+        can_report=puzzle.user_id == "default" and puzzle.variant == "xiangqi",
         fen=puzzle.fen,
         side_to_move=puzzle.side_to_move,
         kind=getattr(puzzle, "kind", "杀法") or "杀法",

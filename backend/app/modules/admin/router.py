@@ -14,7 +14,7 @@ from app.core.rate_limit import limiter
 from app.core.models import (
     Attempt, CreditAccount, CreditLog, Game, Puzzle, Review, SecurityLog,
     AIQuotaAccount, AIQuotaMonth, AIOperation, AIQuotaAdjustment, LLMCallLog,
-    User, UserStat,
+    User, UserStat, PuzzleReport,
 )
 from app.modules.puzzles.validation import validate_item
 from app.modules.admin.schemas import (
@@ -41,13 +41,8 @@ router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(re
 
 
 def _admin_puzzle(p) -> "AdminPuzzle":
-    return AdminPuzzle(
-        id=p.id, fen=p.fen, solution=p.solution, side_to_move=p.side_to_move,
-        kind=getattr(p, "kind", "杀法") or "杀法", category=p.category,
-        difficulty=p.difficulty, steps=getattr(p, "steps", 1) or 1,
-        source=p.source, verified=p.verified, tags=p.tags or "",
-        status=p.status, import_batch_id=p.import_batch_id, user_id=p.user_id,
-    )
+    from app.modules.puzzles.quality import puzzle_view
+    return AdminPuzzle(**puzzle_view(p))
 
 
 @router.get("/overview")
@@ -149,6 +144,7 @@ def delete_user(user_id: int, request: Request, db: Session = Depends(get_db),
     for model in (AIOperation, AIQuotaAdjustment, AIQuotaMonth, AIQuotaAccount):
         db.query(model).filter(model.user_id == user.username).delete()
     db.query(LLMCallLog).filter(LLMCallLog.user_id == user.username).update({"user_id": ""})
+    db.query(PuzzleReport).filter(PuzzleReport.user_id == user.username).update({"user_id": None, "open_key": None})
     db.delete(user)
     db.commit()
     admin_action(request, admin.username, "delete_user", user.username, db=db)

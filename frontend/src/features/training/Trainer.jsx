@@ -1,5 +1,6 @@
 import React from "react";
 import Board from "../../shared/ui/Board";
+import PuzzleFeedback from "./PuzzleFeedback";
 import { applyMove, uciToChinese } from "../../domain/xiangqi/xiangqi";
 import { getNext, getTrainingPuzzle, checkMove, submitRating, explainPuzzle, completeLearningPack } from "../../shared/api";
 
@@ -17,6 +18,7 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
   const [puzzle, setPuzzle]       = React.useState(null);
   const [dueCount, setDueCount]   = React.useState(0);
   const [phase, setPhase]         = React.useState("loading");
+  const [trainingError, setTrainingError] = React.useState("");
   const [newCapped, setNewCapped] = React.useState(false);
   // 弱点专项：非空时「下一题」继续在该类目内取题
   const [activeCategory, setActiveCategory] = React.useState(null);
@@ -62,6 +64,7 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
 
   const resetState = React.useCallback(() => {
     setPhase("loading");
+    setTrainingError("");
     setStep(0);
     setLastMove(null);
     setHadRetry(false);
@@ -98,8 +101,9 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
     try {
       const p = await getTrainingPuzzle(id, context);
       beginPuzzle(p);
-    } catch {
-      setPhase("empty");
+    } catch (e) {
+      setTrainingError(e.status === 404 ? "这道题已下架或已有新版本，请回到每日训练。" : e.message);
+      setPhase("unavailable");
     }
   }, [resetState, beginPuzzle]);
 
@@ -131,6 +135,17 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
     }
   }, [target, load, loadById, onTargetConsumed]);
 
+  async function trainingRequest(task) {
+    try { return await task(); }
+    catch (e) {
+      if ([404,410].includes(e.status)) {
+        setTrainingError("这道题或解题会话已不可用，可能已下架或发布新版，请重新取题。");
+        setPhase("unavailable");
+      } else setHint(e.message || "请求失败，请重试");
+      return null;
+    }
+  }
+
   async function onMove(move) {
     if (!puzzle || !["thinking"].includes(phase)) return;
     const prevFen = currentFen;  // 走子前局面，供答错时回滚乐观更新
@@ -140,9 +155,10 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
     // 乐观更新：玩家这一手立刻落到棋盘上，不必等校验/对方应着返回。
     setCurrentFen(fenAfterMine);
 
-    const res = await checkMove({
+    const res = await trainingRequest(() => checkMove({
       puzzle_id: puzzle.id, session_id: puzzle.session_id, step, move, attempt: wrongCount,
-    });
+    }));
+    if (!res) { setCurrentFen(prevFen); return; }
 
     if (!res.correct) {
       setCurrentFen(prevFen);  // 走错：把棋子还原回走子前
@@ -187,14 +203,15 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
   async function onGiveUp() {
     // 放弃：直接提交 again，拿到正解
     solveMs.current = Date.now() - startedAt.current;
-    const res = await submitRating({
+    const res = await trainingRequest(() => submitRating({
       puzzle_id: puzzle.id,
       session_id: puzzle.session_id,
       self_rating: "again",
       had_retry: true,
       correct: false,
       time_spent_ms: solveMs.current,
-    });
+    }));
+    if (!res) return;
     setSolution(res.solution);
     setNextReview(res.next_review);
     setRatingChange(res.rating || null);
@@ -204,14 +221,15 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
 
   async function onRate(rating) {
     solveMs.current = Date.now() - startedAt.current;
-    const res = await submitRating({
+    const res = await trainingRequest(() => submitRating({
       puzzle_id: puzzle.id,
       session_id: puzzle.session_id,
       self_rating: rating,
       had_retry: hadRetry,
       correct: true,
       time_spent_ms: solveMs.current,
-    });
+    }));
+    if (!res) return;
     setSolution(res.solution);
     setNextReview(res.next_review);
     setRatingChange(res.rating || null);
@@ -283,6 +301,7 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
 
   // ── 渲染 ──────────────────────────────────────────────────────
 
+  if (phase === "unavailable") return <div className="panel"><h2>暂时无法继续这道题</h2><p role="status">{trainingError}</p><button onClick={() => { setPack(null); setActiveCategory(null); load(); }}>返回每日训练</button></div>;
   if (phase === "loading") return <div className="panel">加载中…</div>;
   if (phase === "pack_done") return (
     <div className="panel learning-pack-result">
@@ -375,6 +394,8 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
           {stepMsg && <span className="step-msg">{stepMsg}</span>}
         </div>
       </div>
+
+      {puzzle.can_report && <PuzzleFeedback key={`${puzzle.id}:${user?.username || "guest"}`} puzzle={puzzle} user={user} onRequireLogin={onRequireLogin} />}
 
       {/* 棋盘（答题完成后，结果/自评面板直接覆盖在棋面下方，免去上下滑动） */}
       <div className="trainer-board-area">

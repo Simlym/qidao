@@ -12,8 +12,9 @@ from app.core.models import Puzzle, PuzzleImportBatch, User, Attempt, Review, Pu
 from app.core.rate_limit import limiter
 from app.core.security_log import admin_action
 from app.modules.auth.service import require_admin
-from . import management
-from .schemas import ImportPreview, ImportBatchOut, BatchMutation, PuzzleEdit
+from . import management, quality
+from .schemas import ImportPreview, ImportBatchOut, BatchMutation, PuzzleEdit, QualityReviewBody, QualityReviewOut, PuzzleRevisionBody
+from app.modules.admin.schemas import AdminPuzzle
 from .validation import validate_item, position_key
 
 router = APIRouter(prefix="/api/admin/puzzle-library", tags=["puzzle-library"], dependencies=[Depends(require_admin)])
@@ -71,24 +72,28 @@ def change_status(body: BatchMutation, request: Request, db: Session = Depends(g
         raise HTTPException(400, "请选择题目或指定一个批次")
     query = select(Puzzle).where(Puzzle.user_id == "default")
     query = query.where(Puzzle.import_batch_id == body.batch_id) if body.batch_id else query.where(Puzzle.id.in_(body.ids))
-    puzzles = db.scalars(query.order_by(Puzzle.id).with_for_update()).all()
+    puzzles = list(db.scalars(query.order_by(Puzzle.id)))
     if body.ids and {p.id for p in puzzles} != set(body.ids):
         raise HTTPException(400, "仅可操作公共题目，部分题目不存在或属于私人题库")
-    for puzzle in puzzles:
-        puzzle.status = body.status
-    db.commit()
+    try:
+        updated = quality.set_status(db,puzzles,body.status,batch=bool(body.batch_id))
+    except quality.QualityError as exc:
+        raise HTTPException(exc.status,str(exc)) from exc
     admin_action(request, admin.username, "puzzle_status", f"{body.status}:{body.batch_id or ','.join(map(str,body.ids))}"[:200], db=db)
-    return {"updated": len(puzzles)}
+    return {"updated": updated}
 
 
 @router.put("/puzzles/{puzzle_id}")
 def edit(puzzle_id: int, body: PuzzleEdit, request: Request, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
-    puzzle = db.scalar(select(Puzzle).where(Puzzle.id == puzzle_id, Puzzle.user_id == "default").with_for_update())
-    if not puzzle:
-        raise HTTPException(404, "公共题目不存在")
+    try:
+        puzzle, versions = quality.lock_family(db,puzzle_id)
+    except quality.QualityError as exc:
+        raise HTTPException(exc.status,str(exc)) from exc
     answer_changed = body.kind != puzzle.kind or any(value is not None and value != getattr(puzzle, key)
         for key, value in (("fen", body.fen), ("solution", body.solution), ("side_to_move", body.side_to_move)))
     if answer_changed:
+        if puzzle.id != versions[-1].id:
+            raise HTTPException(409, "旧版本已有后续修订，不能改写原题解")
         used = any(db.scalar(select(model.id).where(model.puzzle_id == puzzle.id).limit(1)) is not None
             for model in (Attempt, Review, PuzzleSession))
         if puzzle.status != "draft" or used:
@@ -99,16 +104,20 @@ def edit(puzzle_id: int, body: PuzzleEdit, request: Request, db: Session = Depen
             item = validate_item(values)
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
-        other = db.scalars(select(Puzzle).where(Puzzle.id != puzzle.id, Puzzle.user_id == "default")).all()
+        other = db.scalars(select(Puzzle).where(Puzzle.id.not_in([p.id for p in versions]), Puzzle.user_id == "default")).all()
         if any(position_key(p.fen, p.side_to_move) == position_key(item["fen"]) for p in other):
             raise HTTPException(409, "公共题库已有相同局面")
         for key, value in item.items():
+            if key == "content_key" and puzzle.revision_of_id:
+                value = None
             setattr(puzzle, key, value)
         puzzle.ai_explanation = ""
+        puzzle.review_status = "pending"
     if not body.category.strip():
         raise HTTPException(400, "分类不能为空")
     if (puzzle.category, puzzle.difficulty, puzzle.tags) != (body.category.strip(), body.difficulty, body.tags.strip()):
         puzzle.ai_explanation = ""
+        puzzle.review_status = "pending"
     puzzle.category, puzzle.difficulty, puzzle.tags = body.category.strip(), body.difficulty, body.tags.strip()
     try:
         db.commit()
@@ -117,6 +126,55 @@ def edit(puzzle_id: int, body: PuzzleEdit, request: Request, db: Session = Depen
         raise HTTPException(409, "相同局面已由其他管理员写入，请刷新") from exc
     admin_action(request, admin.username, "edit_puzzle", str(puzzle.id), db=db)
     return {"ok": True}
+
+
+@router.get("/puzzles/{puzzle_id}", response_model=AdminPuzzle)
+def puzzle_detail(puzzle_id: int, db: Session = Depends(get_db)):
+    try:
+        return quality.puzzle_view(quality.public_puzzle(db,puzzle_id))
+    except quality.QualityError as exc:
+        raise HTTPException(exc.status,str(exc)) from exc
+
+
+@router.get("/puzzles/{puzzle_id}/versions", response_model=list[AdminPuzzle])
+def versions(puzzle_id: int, db: Session = Depends(get_db)):
+    try:
+        puzzle = quality.public_puzzle(db,puzzle_id)
+        return [quality.puzzle_view(p) for p in quality.family(db,puzzle)]
+    except quality.QualityError as exc:
+        raise HTTPException(exc.status,str(exc)) from exc
+
+
+@router.post("/puzzles/{puzzle_id}/revisions", response_model=AdminPuzzle)
+def revise(puzzle_id: int, body: PuzzleRevisionBody, request: Request, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    try:
+        revision = quality.create_revision(db,puzzle_id,body,admin.username)
+        admin_action(request,admin.username,"revise_puzzle",f"{puzzle_id}:{revision.id}",db=db)
+        return quality.puzzle_view(revision)
+    except quality.QualityError as exc:
+        raise HTTPException(exc.status,str(exc)) from exc
+
+
+@router.get("/puzzles/{puzzle_id}/reviews", response_model=list[QualityReviewOut])
+def quality_reviews(puzzle_id: int, db: Session = Depends(get_db)):
+    try:
+        puzzle = quality.public_puzzle(db,puzzle_id)
+    except quality.QualityError as exc:
+        raise HTTPException(exc.status,str(exc)) from exc
+    from app.core.models import PuzzleQualityReview
+    rows = db.scalars(select(PuzzleQualityReview).where(PuzzleQualityReview.puzzle_id == puzzle.id)
+        .order_by(PuzzleQualityReview.created_at.desc(),PuzzleQualityReview.id).limit(50))
+    return [quality.review_view(r,quality.fingerprint(puzzle)) for r in rows]
+
+
+@router.post("/puzzles/{puzzle_id}/reviews", response_model=QualityReviewOut)
+def review_puzzle(puzzle_id: int, body: QualityReviewBody, request: Request, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    try:
+        row = quality.record_review(db,puzzle_id,body,admin.username,quality.request_key(request))
+        admin_action(request,admin.username,"review_puzzle",f"{puzzle_id}:{body.verdict}",db=db)
+        return quality.review_view(row,quality.fingerprint(quality.public_puzzle(db,puzzle_id)))
+    except quality.QualityError as exc:
+        raise HTTPException(exc.status,str(exc)) from exc
 
 
 @router.get("/export")

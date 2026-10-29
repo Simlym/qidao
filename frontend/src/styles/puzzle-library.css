@@ -23,3 +23,10 @@
   .puzzle-library .puzzle-filter > input { grid-column: 1/-1; }
   .puzzle-import { padding: 10px; }
 }
+.puzzle-feedback { padding: 10px 16px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; }
+.puzzle-feedback fieldset { display: grid; gap: 10px; border: 0; min-width: 0; padding: 0; }
+.puzzle-feedback label { display: grid; gap: 6px; }
+.puzzle-feedback .import-input { width: 100%; min-width: 0; box-sizing: border-box; }
+.puzzle-feedback textarea, .puzzle-review textarea { min-height: 70px; resize: vertical; }
+.puzzle-review { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 20px; }
+.puzzle-feedback .puzzle-batch { overflow-wrap: anywhere; }

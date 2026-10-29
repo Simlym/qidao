@@ -36,6 +36,14 @@ class AdminPuzzle(BaseModel):
     status: str = "published"
     import_batch_id: str | None = None
     user_id: str = "default"
+    revision_of_id: int | None = None
+    revision_root_id: int | None = None
+    revision_number: int = 1
+    revision_note: str = ""
+    revision_actor: str = ""
+    revision_created_at: str | None = None
+    review_status: str = "pending"
+    content_sha256: str = ""
 
 
 class MembershipUpdate(BaseModel):

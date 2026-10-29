@@ -1,5 +1,6 @@
 import React from "react";
 import AiUsage from "../account/AiUsage";
+import MyPuzzleReports from "../account/MyPuzzleReports";
 import ServerSettings from "./ServerSettings";
 import NativeEngineSettings from "./NativeEngineSettings";
 import BrowserEngineSettings from "./BrowserEngineSettings";
@@ -15,6 +16,7 @@ const jieqiEngine = createEngineManager({ variant: "jieqi", remoteEvaluate: eval
 const SECTIONS = [
   { key: "general", label: "通用", icon: "sliders" },
   { key: "account", label: "账户与 AI 额度", icon: "sliders" },
+  { key: "puzzle-feedback", label: "我的题目反馈", icon: "sliders" },
   { key: "server", label: "服务器（高级）", icon: "sliders" },
   { key: "appearance", label: "棋盘与外观", icon: "palette" },
   { key: "xiangqi", label: "标准象棋引擎", icon: "cpu" },
@@ -205,6 +207,7 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
         )}
 
         {section === "account" && <AiUsage user={user} credits={credits} onRequireLogin={onRequireLogin} />}
+        {section === "puzzle-feedback" && <MyPuzzleReports key={user?.username || "guest"} user={user} onRequireLogin={onRequireLogin} />}
 
         {section === "server" && <ServerSettings />}
 
