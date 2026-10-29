@@ -1,4 +1,5 @@
 import React from "react";
+import ServerSettings from "./ServerSettings";
 import NativeEngineSettings from "./NativeEngineSettings";
 import BrowserEngineSettings from "./BrowserEngineSettings";
 import { createEngineManager } from "../../domain/xiangqi/engine/createEngineManager";
@@ -12,6 +13,7 @@ const xiangqiEngine = createEngineManager({ remoteEvaluate: evalPosition });
 const jieqiEngine = createEngineManager({ variant: "jieqi", remoteEvaluate: evalJieqiPosition });
 const SECTIONS = [
   { key: "general", label: "通用", icon: "sliders" },
+  { key: "server", label: "服务器（高级）", icon: "sliders" },
   { key: "appearance", label: "棋盘与外观", icon: "palette" },
   { key: "xiangqi", label: "标准象棋引擎", icon: "cpu" },
   { key: "jieqi", label: "揭棋引擎", icon: "spark" },
@@ -188,6 +190,7 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
       <section className="settings-content">
         {section === "general" && (
           <div className="settings-group">
+            <div className="settings-row"><div><strong>当前服务器</strong><p>查看地址或连接自建服务。</p></div><button onClick={() => setSection("server")}>服务器设置</button></div>
             <div className="settings-heading"><h2>通用设置</h2><p>这些偏好会保存在当前设备上。</p></div>
             <div className="settings-row">
               <div><strong>对弈音效</strong><p>走子、吃子和对局结果提示音。</p></div>
@@ -198,6 +201,8 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
             </div>
           </div>
         )}
+
+        {section === "server" && <ServerSettings />}
 
         {section === "appearance" && (
           <div className="settings-group cosmetic-store">

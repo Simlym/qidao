@@ -2,7 +2,7 @@ import React from "react";
 import { runtime, RUNTIME } from "../../platform/runtime";
 
 // Web 与 Android 共享响应式外壳；Android 的能力差异由 platform/runtime 和适配器处理。
-export default function WebShell({ user, navigation, secondaryNavigation, reminderBanner, account, children, onNavigate }) {
+export default function WebShell({ user, navigation, secondaryNavigation, reminderBanner, serverIndicator, account, children, onNavigate }) {
   return (
     <>
       <header className="web-header">
@@ -19,6 +19,7 @@ export default function WebShell({ user, navigation, secondaryNavigation, remind
           {account}
         </div>
       </header>
+      <div className="web-server-bar">{serverIndicator}</div>
       {reminderBanner}
       {secondaryNavigation}
       <main>{children}</main>

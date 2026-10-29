@@ -3,3 +3,4 @@ export * from "./client.js";
 export * from "./session.js";
 export * from "./resources.js";
 export * from "./engine.js";
+export { DEFAULT_API_BASE_URL, probeServer, saveServerAddress, reloadForServerChange } from "./server.js";

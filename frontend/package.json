@@ -9,7 +9,7 @@
     "build": "vite build",
     "build:tauri": "vite build --mode tauri --outDir dist-tauri",
     "build:android": "vite build --mode android --outDir dist-tauri",
-    "test:core": "node --test src/**/*.test.js",
+    "test:core": "node scripts/test-core.mjs",
     "preview": "vite preview",
     "tauri": "cd .. && node frontend/node_modules/@tauri-apps/cli/tauri.js",
     "dev:tauri": "vite --mode tauri",

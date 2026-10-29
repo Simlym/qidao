@@ -89,11 +89,13 @@ chess.example.com {
 curl --fail https://chess.example.com/api/health
 ```
 
-浏览器访问 `https://chess.example.com`。桌面 / Android 的构建配置填写：
+浏览器访问 `https://chess.example.com`。客户端可在“设置 → 服务器（高级）”填入 `https://chess.example.com/api`。需要作为安装包的默认地址时，构建配置填写：
 
 ```dotenv
 VITE_API_BASE_URL=https://chess.example.com/api
 ```
+
+客户端连接检测还会读取 `/api/health` 的 `service` 和 `api_version`；旧后端请更新至支持该协议的版本。健康检查不要求登录，也不返回任何用户数据。
 
 `CORS_ORIGINS` 填写来源（协议、主机、端口），不带 `/api`。Web 为网站域名，Windows 通常为 `http://tauri.localhost`，Android 通常为 `https://tauri.localhost`，以实际 Origin 为准。留空会允许所有来源；CORS 不替代登录授权。修改后执行 `docker compose up -d backend` 重建服务配置。
 
@@ -208,7 +210,7 @@ docker compose exec -T database sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USE
 | 现象 | 检查项 |
 | --- | --- |
 | 容器不健康 / 502 | `docker compose ps`、`docker compose logs --tail=100 backend database`；密钥、数据库连接、迁移与种子导入错误 |
-| Web 正常但客户端连不上 | 构建时地址是否为实际 HTTPS `/api`、证书是否受信任、CORS 是否包含该端 Origin；修改构建配置后需重新打包 |
+| Web 正常但客户端连不上 | 当前服务器地址是否为实际 HTTPS `/api`、证书是否受信任、CORS 是否包含该端 Origin、后端是否支持连接检测协议；可从高级设置切换或恢复默认 |
 | `/docs` 返回 404 | 生产模式的预期行为；健康检查使用 `/api/health` |
 | 迁移后看不到旧数据 | 是否换了项目名、目录或数据库连接；不要急于删除卷 |
 | 修改 LLM 环境变量未生效 | 管理后台数据库设置优先于环境变量 |

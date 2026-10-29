@@ -68,4 +68,4 @@ def _setup_logging() -> None:
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "service": "xiangqidao", "api_version": 1, "version": app.version}

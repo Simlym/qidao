@@ -1,12 +1,13 @@
 import React from "react";
 import { getOverview } from "../../shared/api";
+import { serverStorageKey } from "../../shared/api/session.js";
 
 // 到期复习提醒（MVP：本地通知 + 顶部横幅）。
 // 真正的服务端推送（Web Push / 微信模板消息）属于后续步骤，这里先用浏览器
 // 本地 Notification 把「今天有题到期、别断打卡」这件事推到用户眼前。
 
-const DISMISS_KEY = "xq_reminder_dismissed"; // 值为 ISO 日期，当天内不再打扰
-const NOTIFIED_KEY = "xq_reminder_notified"; // 值为 ISO 日期，当天只弹一次系统通知
+const DISMISS_KEY = serverStorageKey("reminder_dismissed"); // 值为 ISO 日期，当天内不再打扰
+const NOTIFIED_KEY = serverStorageKey("reminder_notified"); // 值为 ISO 日期，当天只弹一次系统通知
 
 function today() {
   return new Date().toISOString().slice(0, 10);

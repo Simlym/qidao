@@ -1,3 +1,4 @@
+import { withApiConnection } from "./server.js";
 import { API_BASE_URL, authHeaders, readableErrorDetail, request } from "./client.js";
 
 export const newPlayGame = (payload) => request("/play/new", { method: "POST", body: payload });
@@ -25,57 +26,60 @@ export function normalizeEngineResult(result) {
 }
 
 async function streamEngine(path, fen, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: "POST",
-    headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(enginePayload(fen, options)),
-    signal: options.signal,
-  });
-  if (!response.ok) {
-    let message = "流式分析启动失败";
-    try { message = readableErrorDetail((await response.json()).detail); } catch { /* 使用通用提示 */ }
-    throw new Error(message);
-  }
-  if (!response.body) throw new Error("当前环境不支持流式响应");
+  return withApiConnection(async (signal) => {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(enginePayload(fen, options)),
+      signal, credentials: "omit", redirect: "error", cache: "no-store",
+    });
+    if (!response.ok) {
+      let message = "流式分析启动失败";
+      try { message = readableErrorDetail((await response.json()).detail); } catch { /* 使用通用提示 */ }
+      throw new Error(message);
+    }
+    if (!response.body) throw new Error("当前环境不支持流式响应");
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  const linesByPv = new Map();
-  let buffer = "";
-  let finalResult = null;
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    const linesByPv = new Map();
+    let buffer = "";
+    let finalResult = null;
 
-  const consume = (raw) => {
-    if (!raw.trim()) return;
-    const event = JSON.parse(raw);
-    if (event.type === "error") throw new Error(event.data?.message || "引擎分析失败");
-    const value = normalizeEngineResult(event.data || {});
-    if (event.type === "info") {
-      for (const line of value.lines || []) linesByPv.set(line.multipv || 1, line);
-      const lines = [...linesByPv.values()].sort((a, b) => (a.multipv || 1) - (b.multipv || 1));
-      const best = lines[0];
-      options.onUpdate?.({
-        ...value,
-        cp: best?.score?.type === "cp" ? best.score.value : value.cp,
-        mate: best?.score?.type === "mate" ? best.score.value : value.mate,
-        bestMove: best?.pv?.[0] || value.bestMove,
-        pv: best?.pv || value.pv,
-        wdl: best?.wdl || value.wdl,
-        lines,
-      });
-    } else if (event.type === "complete") finalResult = value;
-  };
+    const consume = (raw) => {
+      if (!raw.trim()) return;
+      const event = JSON.parse(raw);
+      if (event.type === "error") throw new Error(event.data?.message || "引擎分析失败");
+      const value = normalizeEngineResult(event.data || {});
+      if (signal.aborted) throw new DOMException("连接已切换", "AbortError");
+      if (event.type === "info") {
+        for (const line of value.lines || []) linesByPv.set(line.multipv || 1, line);
+        const lines = [...linesByPv.values()].sort((a, b) => (a.multipv || 1) - (b.multipv || 1));
+        const best = lines[0];
+        options.onUpdate?.({
+          ...value,
+          cp: best?.score?.type === "cp" ? best.score.value : value.cp,
+          mate: best?.score?.type === "mate" ? best.score.value : value.mate,
+          bestMove: best?.pv?.[0] || value.bestMove,
+          pv: best?.pv || value.pv,
+          wdl: best?.wdl || value.wdl,
+          lines,
+        });
+      } else if (event.type === "complete") finalResult = value;
+    };
 
-  while (true) {
-    const { value, done } = await reader.read();
-    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-    const rows = buffer.split("\n");
-    buffer = rows.pop() || "";
-    for (const row of rows) consume(row);
-    if (done) break;
-  }
-  if (buffer) consume(buffer);
-  if (!finalResult) throw new Error("流式分析未返回最终结果");
-  return finalResult;
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const rows = buffer.split("\n");
+      buffer = rows.pop() || "";
+      for (const row of rows) consume(row);
+      if (done) break;
+    }
+    if (buffer) consume(buffer);
+    if (!finalResult) throw new Error("流式分析未返回最终结果");
+    return finalResult;
+  }, options.signal);
 }
 
 export const evalPosition = async (fen, options = {}) => normalizeEngineResult(await request("/play/eval", { method: "POST", body: enginePayload(fen, options), signal: options.signal }));
