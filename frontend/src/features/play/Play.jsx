@@ -5,11 +5,8 @@ import PlaySetup from "./components/PlaySetup";
 import MoveHistory from "./components/MoveHistory";
 import CapturedPieces from "./components/CapturedPieces";
 import ResultOverlay from "./components/ResultOverlay";
-import { applyMove, uciToChinese, INITIAL_FEN } from "../../domain/xiangqi/xiangqi";
-import {
-  newPlayGame, playMove, getPositionState, importGame, analyzeGame, evalPosition,
-  getPlayEngine, getBookMoves, getHint, coachHintMove, streamEvalPosition,
-} from "../../shared/api";
+import { uciToChinese } from "../../domain/xiangqi/xiangqi";
+import { evalPosition, getBookMoves, getHint, coachHintMove, streamEvalPosition } from "../../shared/api";
 import { createEngineManager } from "../../domain/xiangqi/engine/createEngineManager";
 import { runtime, usesDesktopLayout } from "../../platform/runtime";
 import {
@@ -18,10 +15,8 @@ import {
   soundThemeLabel,
 } from "../../shared/sounds";
 import EngineAnalysisView from "../analysis/EngineAnalysisView";
-import {
-  LEVELS, PLAY_DEPTH, capturedPieces, describeEval, fmtDuration,
-  isCapture, terminalResult,
-} from "./model";
+import { LEVELS, capturedPieces, describeEval, fmtDuration } from "./model";
+import { usePlayGame } from "./hooks/usePlayGame";
 
 // 当前为 Web：WASM 优先，失败后自动降级 FastAPI。
 // Tauri 接入后只在工厂中增加原生适配器，页面无需出现平台分支。
@@ -30,49 +25,32 @@ const positionEngine = createEngineManager({ remoteEvaluate: evalPosition, remot
 export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogin, onOpenSettings }) {
   const isDesktop = usesDesktopLayout(runtime);
   const wideWeb = useWideWebLayout(runtime);
-  const [fen, setFen] = React.useState(null);
-  const [legalMoves, setLegalMoves] = React.useState([]);
-  const [lastMove, setLastMove] = React.useState(null);
-  const [yourTurn, setYourTurn] = React.useState(true);
-  const [thinking, setThinking] = React.useState(false);
-  const [over, setOver] = React.useState(null); // null | {winner, status}
-  const [level, setLevel] = React.useState("medium");
-  const [humanSide, setHumanSide] = React.useState("w");
-  const [status, setStatus] = React.useState("ongoing");
-  const [saved, setSaved] = React.useState(false);   // 对局是否已存入复盘
-  const [savedGameId, setSavedGameId] = React.useState(null); // 存盘后的棋局 id
-  const [canUndo, setCanUndo] = React.useState(false);
-  const [showEval, setShowEval] = React.useState(false); // 是否显示优劣势评估条
-  const [evalData, setEvalData] = React.useState(null);  // 红方视角 {cp, mate}
+  const {
+    fen, legalMoves, lastMove, yourTurn, thinking, over,
+    level, setLevel, humanSide, setHumanSide, status, saved, savedGameId, canUndo,
+    engineInfo, startError, moveError, localReady, localRuntime,
+    moveLog, timesLog, overDismissed, setOverDismissed,
+    start, restart, onMove, undo,
+  } = usePlayGame({ engine: positionEngine, onCreditsChanged });
+  const [showEval, setShowEval] = React.useState(false);
+  const [evalData, setEvalData] = React.useState(null);
   const [evalLoading, setEvalLoading] = React.useState(false);
   const [analysisMode, setAnalysisMode] = React.useState("movetime");
   const [analysisTime, setAnalysisTime] = React.useState(1000);
   const [analysisDepth, setAnalysisDepth] = React.useState(18);
   const [analysisMultiPv, setAnalysisMultiPv] = React.useState(1);
   const [analysisSearchMoves, setAnalysisSearchMoves] = React.useState([]);
-  const [engineInfo, setEngineInfo] = React.useState(null); // {engine,label,available}
-  const [startError, setStartError] = React.useState("");   // 开局接口失败时展示给用户
-  const [moveError, setMoveError] = React.useState("");
-  const [localReady, setLocalReady] = React.useState(false); // 浏览器本地引擎是否就绪
-  const [localRuntime, setLocalRuntime] = React.useState(null); // native | wasm | null
-  const [showBook, setShowBook] = React.useState(false);  // 云库参考面板开关
-  const [bookData, setBookData] = React.useState(null);   // {available, moves}
+  const [showBook, setShowBook] = React.useState(false);
+  const [bookData, setBookData] = React.useState(null);
   const [bookLoading, setBookLoading] = React.useState(false);
-  const [hint, setHint] = React.useState(null);           // {move, text, source}
+  const [hint, setHint] = React.useState(null);
   const [hintLoading, setHintLoading] = React.useState(false);
-  const [coach, setCoach] = React.useState(null);          // AI 详解 {text} | {disabled: true}
+  const [coach, setCoach] = React.useState(null);
   const [coachLoading, setCoachLoading] = React.useState(false);
-  const [moveLog, setMoveLog] = React.useState([]);        // moves.current 的可渲染副本
   const [fenCopied, setFenCopied] = React.useState(false);
-  const [muted, setMuted] = React.useState(soundMuted);     // 音效开关（持久化）
-  const [soundKey, setSoundKey] = React.useState(soundTheme); // 音效主题（持久化）
-  const [overDismissed, setOverDismissed] = React.useState(false); // 结果浮层被关闭，露出终局棋盘
-  const [timesLog, setTimesLog] = React.useState([]);       // 每步用时（ms），与 moveLog 对齐
-  const [inspectorTab, setInspectorTab] = React.useState("moves"); // PC 右侧栏：棋谱 | 分析
-  const moves = React.useRef([]);                     // 累计着法（红黑交替）
-  const moveTimes = React.useRef([]);                 // 每步用时（ms），与 moves 对齐
-  const turnStart = React.useRef(0);                  // 本方思考开始时刻
-  const history = React.useRef([]);                   // 悔棋快照栈
+  const [muted, setMuted] = React.useState(soundMuted);
+  const [soundKey, setSoundKey] = React.useState(soundTheme);
+  const [inspectorTab, setInspectorTab] = React.useState("moves");
   const evalReqId = React.useRef(0);                  // 评分请求序号，丢弃过期响应
   const evalSession = React.useRef(null);
   const logRef = React.useRef(null);                  // 棋谱滚动容器
@@ -98,19 +76,6 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  // 启动时探测当前实际使用的用户 UCI 引擎或内置搜索，用于界面提示；
-  // 同时探测浏览器本地引擎（public/engine/ 下有产物即启用，评分不再占用服务器）
-  React.useEffect(() => {
-    getPlayEngine().then(setEngineInfo).catch(() => {});
-    positionEngine.availableKinds()
-      .then((kinds) => {
-        const kind = kinds.includes("native") ? "native" : kinds.includes("wasm") ? "wasm" : null;
-        setLocalRuntime(kind);
-        setLocalReady(Boolean(kind));
-      })
-      .catch(() => {});
   }, []);
 
   React.useEffect(() => {
@@ -226,233 +191,6 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
       setFenCopied(true);
       setTimeout(() => setFenCopied(false), 1500);
     } catch { /* 剪贴板不可用时静默 */ }
-  }
-
-  function restart() {
-    if (
-      !over &&
-      moves.current.length > 0 &&
-      !window.confirm("对局尚未结束，确定放弃本局重新开始吗？")
-    ) return;
-    setFen(null);
-  }
-
-  async function start(side, lvl) {
-    setThinking(true);
-    setStartError("");
-    setMoveError("");
-    setOver(null);
-    setOverDismissed(false);
-    setLastMove(null);
-    setSaved(false);
-    setSavedGameId(null);
-    setCanUndo(false);
-    setEvalData(null);
-    moves.current = [];
-    moveTimes.current = [];
-    history.current = [];
-    const t0 = Date.now();
-    try {
-      let d;
-      if (side === "b" && localRuntime) {
-        try {
-          const initialState = await getPositionState(INITIAL_FEN);
-          const analysis = await positionEngine.evaluate(
-            INITIAL_FEN,
-            { depth: PLAY_DEPTH[lvl] },
-            { onlyKinds: [localRuntime] },
-          );
-          if (!analysis.bestMove || !initialState.legal_moves.includes(analysis.bestMove)) {
-            throw new Error("本地引擎返回了不合法着法");
-          }
-          const nextFen = applyMove(INITIAL_FEN, analysis.bestMove);
-          const nextState = await getPositionState(nextFen);
-          d = {
-            fen: nextFen,
-            engine_move: analysis.bestMove,
-            status: nextState.status,
-            legal_moves: nextState.legal_moves,
-          };
-        } catch {
-          d = await newPlayGame({ human_side: side, level: lvl });
-        }
-      } else {
-        d = await newPlayGame({ human_side: side, level: lvl });
-      }
-      setFen(d.fen);
-      setLegalMoves(d.legal_moves || []);
-      setLastMove(d.engine_move || null);
-      if (d.engine_move) {
-        moves.current.push(d.engine_move);  // 人执黑时引擎先手
-        moveTimes.current.push(Date.now() - t0);
-        playSound("move");
-      }
-      setMoveLog([...moves.current]);
-      setTimesLog([...moveTimes.current]);
-      setStatus(d.status);
-      setYourTurn(true);
-      turnStart.current = Date.now();
-    } catch (error) {
-      setFen(null);
-      setStartError(`无法开始对弈：${error?.message || "请检查后端服务后重试"}`);
-    } finally {
-      setThinking(false);
-    }
-  }
-
-  // 对局结束：存入复盘棋谱并自动触发分析，形成「对弈→复盘→分析」闭环
-  async function recordGame(winner) {
-    if (saved || moves.current.length === 0) return;
-    const result =
-      winner === "draw"
-        ? "和棋"
-        : (winner === "human") === (humanSide === "w")
-        ? "红胜"
-        : "黑胜";
-    const me = humanSide === "w" ? "red_player" : "black_player";
-    const foe = humanSide === "w" ? "black_player" : "red_player";
-    const lvlLabel = LEVELS.find((l) => l.key === level)?.label || level;
-    try {
-      const res = await importGame({
-        moves: moves.current.join(" "),
-        result,
-        source: "人机对弈",
-        [me]: "我",
-        [foe]: `引擎·${lvlLabel}`,
-        played_on: new Date().toISOString().slice(0, 10),
-      });
-      setSaved(true);
-      setSavedGameId(res.id);
-      onCreditsChanged?.(); // 对弈奖励可能已入账
-      // 自动触发后台分析，去复盘时分析多半已就绪
-      analyzeGame(res.id).catch(() => {});
-    } catch {
-      /* 存盘失败不影响对弈本身 */
-    }
-  }
-
-  async function onMove(move) {
-    if (!yourTurn || thinking || over) return;
-    setMoveError("");
-    const humanMs = Date.now() - turnStart.current; // 本步思考用时
-    // 走子前快照当前“轮到你”的局面，供悔棋 / 出错还原（连人带机回退一个回合）
-    const snap = {
-      fen, legalMoves, lastMove, status, movesLen: moves.current.length,
-    };
-    history.current.push(snap);
-    setYourTurn(false);
-    setThinking(true);
-    // 乐观更新：玩家这一手立刻落到棋盘上，不必等引擎思考完才有反馈。
-    // 注意：传给后端的仍是走子前的 fen（闭包捕获的旧值），由后端校验并应着。
-    setFen(applyMove(fen, move));
-    setLastMove(move);
-    setLegalMoves([]); // 轮到引擎，先清空己方落点提示
-    playSound(isCapture(fen, move) ? "capture" : "move");
-    try {
-      const t0 = Date.now();
-      let d;
-      if (localRuntime) {
-        try {
-          const afterHumanFen = applyMove(fen, move);
-          const afterHuman = await getPositionState(afterHumanFen);
-          const humanResult = terminalResult(afterHuman.status, "human");
-          if (humanResult.game_over) {
-            d = {
-              fen: afterHumanFen,
-              engine_move: null,
-              status: afterHuman.status,
-              legal_moves: [],
-              your_turn: false,
-              ...humanResult,
-            };
-          } else {
-            const analysis = await positionEngine.evaluate(
-              afterHumanFen,
-              { depth: PLAY_DEPTH[level] },
-              { onlyKinds: [localRuntime] },
-            );
-            if (!analysis.bestMove || !afterHuman.legal_moves.includes(analysis.bestMove)) {
-              throw new Error("本地引擎返回了不合法着法");
-            }
-            const afterEngineFen = applyMove(afterHumanFen, analysis.bestMove);
-            const afterEngine = await getPositionState(afterEngineFen);
-            const engineResult = terminalResult(afterEngine.status, "engine");
-            d = {
-              fen: afterEngineFen,
-              engine_move: analysis.bestMove,
-              status: afterEngine.status,
-              legal_moves: engineResult.game_over ? [] : afterEngine.legal_moves,
-              your_turn: true,
-              ...engineResult,
-            };
-          }
-        } catch {
-          // 本地进程、WASM 或规则校验任一失败，都用原始局面整步回退服务器。
-          setLocalReady(false);
-          setLocalRuntime(null);
-          d = await playMove({ fen, move, level });
-        }
-      } else {
-        d = await playMove({ fen, move, level });
-      }
-      moves.current.push(move);                          // 记录人走的着法
-      moveTimes.current.push(humanMs);
-      if (d.engine_move) {
-        moves.current.push(d.engine_move); // 记录引擎应着
-        moveTimes.current.push(Date.now() - t0);
-        // 引擎应着是否吃子要看玩家走完后的中间局面
-        playSound(isCapture(applyMove(fen, move), d.engine_move) ? "capture" : "move");
-      }
-      setMoveLog([...moves.current]);
-      setTimesLog([...moveTimes.current]);
-      setFen(d.fen);
-      setLastMove(d.engine_move || move);
-      setStatus(d.status);
-      if (d.game_over) {
-        setOver({ winner: d.winner, status: d.status });
-        setOverDismissed(false);
-        setLegalMoves([]);
-        const verdict =
-          d.winner === "human" ? "win" : d.winner === "draw" ? "draw" : "lose";
-        setTimeout(() => playSound(verdict), 300); // 错开落子声
-        recordGame(d.winner);
-      } else {
-        if (d.status === "check") setTimeout(() => playSound("check"), 250);
-        setLegalMoves(d.legal_moves || []);
-        setYourTurn(true);
-        turnStart.current = Date.now();
-      }
-      setCanUndo(true);
-    } catch (error) {
-      // 理论上前端已限制为合法着法，兜底回滚乐观更新
-      setMoveError(`走棋失败：${error?.message || "请检查网络后重试"}`);
-      history.current.pop();
-      setFen(snap.fen);
-      setLegalMoves(snap.legalMoves);
-      setLastMove(snap.lastMove);
-      setStatus(snap.status);
-      setYourTurn(true);
-    } finally {
-      setThinking(false);
-    }
-  }
-
-  function undo() {
-    if (thinking || history.current.length === 0) return;
-    const snap = history.current.pop();
-    moves.current = moves.current.slice(0, snap.movesLen);
-    moveTimes.current = moveTimes.current.slice(0, snap.movesLen);
-    setMoveLog([...moves.current]);
-    setTimesLog([...moveTimes.current]);
-    setFen(snap.fen);
-    setLegalMoves(snap.legalMoves);
-    setLastMove(snap.lastMove);
-    setStatus(snap.status);
-    setOver(null);
-    setSaved(false);
-    setYourTurn(true);
-    setCanUndo(history.current.length > 0);
-    turnStart.current = Date.now();
   }
 
   // 快捷键经 ref 调用，始终拿到本次渲染的最新闭包
