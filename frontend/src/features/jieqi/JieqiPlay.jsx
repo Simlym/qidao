@@ -19,7 +19,7 @@ import { evalJieqiPosition, importGame, streamJieqiPosition } from "../../shared
 import { runtime, usesDesktopLayout } from "../../platform/runtime";
 import { jieqiPieceImage } from "../../domain/xiangqi/jieqi/pieceImages";
 import EngineAnalysisView from "../analysis/EngineAnalysisView";
-import { analysisPreferences } from "../../shared/preferences/analysisPreferences";
+import { useJieqiAnalysis } from "./hooks/useJieqiAnalysis";
 import { ChineseMoveList, HiddenPool, JieqiWinChances } from "./JieqiPanels";
 import { LEVELS, describeJieqiEval, winnerFor } from "./model";
 const jieqiEngine = createEngineManager({ variant: "jieqi", remoteEvaluate: evalJieqiPosition, remoteStream: streamJieqiPosition });
@@ -27,7 +27,6 @@ const jieqiEngine = createEngineManager({ variant: "jieqi", remoteEvaluate: eval
 export default function JieqiPlay({ onOpenSettings }) {
   const isDesktop = usesDesktopLayout(runtime);
   const wideWeb = useWideWebLayout(runtime);
-  const initialAnalysis = React.useMemo(() => analysisPreferences("jieqi"), []);
   const [fen, setFen] = React.useState(null);
   const [gameMode, setGameMode] = React.useState("human-ai");
   const [humanSide, setHumanSide] = React.useState("w");
@@ -42,24 +41,20 @@ export default function JieqiPlay({ onOpenSettings }) {
   const [saved, setSaved] = React.useState(false);
   const [inspectorTab, setInspectorTab] = React.useState("moves");
   const [pendingFlip, setPendingFlip] = React.useState(null);
-  const [analysisEnabled, setAnalysisEnabled] = React.useState(true);
-  const [analysisData, setAnalysisData] = React.useState(null);
-  const [analysisPosition, setAnalysisPosition] = React.useState(null);
-  const [analysisLoading, setAnalysisLoading] = React.useState(false);
-  const [analysisError, setAnalysisError] = React.useState("");
-  const [analysisMode, setAnalysisMode] = React.useState(initialAnalysis.mode);
-  const [analysisTime, setAnalysisTime] = React.useState(initialAnalysis.time);
-  const [analysisDepth, setAnalysisDepth] = React.useState(initialAnalysis.depth);
-  const [analysisMultiPv, setAnalysisMultiPv] = React.useState(initialAnalysis.multiPv);
-  const [analysisSearchMoves, setAnalysisSearchMoves] = React.useState([]);
+  const {
+    analysisEnabled, analysisData, setAnalysisData, analysisPosition, setAnalysisPosition,
+    analysisLoading, analysisError, setAnalysisError,
+    analysisMode, setAnalysisMode, analysisTime, setAnalysisTime,
+    analysisDepth, setAnalysisDepth, analysisMultiPv, setAnalysisMultiPv,
+    analysisSearchMoves, setAnalysisSearchMoves,
+    analyzeFreePosition, invalidateAnalysis, resetAnalysis, toggleAnalysis,
+  } = useJieqiAnalysis({ engine: jieqiEngine, fen, gameMode, pendingFlip, winner, runtimeKind });
   const [showHint, setShowHint] = React.useState(true);
   const [boardFlipped, setBoardFlipped] = React.useState(false);
   const [boardScale, setBoardScale] = React.useState(1);
   const positionsRef = React.useRef([]);
   const movesRef = React.useRef([]);
   const initialPlyRef = React.useRef(0);
-  const analysisReqId = React.useRef(0);
-  const analysisSession = React.useRef(null);
   const turnReqId = React.useRef(0);
   const desktopMoveLogRef = React.useRef(null);
 
@@ -69,94 +64,12 @@ export default function JieqiPlay({ onOpenSettings }) {
     });
   }, []);
 
-  React.useEffect(() => {
-    // 单线程 WASM 在计算期间不能接收 stop；云端也不保留长连接无限搜索。
-    // 两者都安全降级为深度分析，只有桌面原生引擎开放无限分析。
-    if (runtimeKind !== "native" && analysisMode === "infinite") setAnalysisMode("depth");
-  }, [runtimeKind, analysisMode]);
-
   const depth = LEVELS.find((item) => item.key === level)?.depth || 10;
-
-  async function analyzeFreePosition(position) {
-    analysisSession.current?.stop();
-    const requestId = ++analysisReqId.current;
-    setAnalysisLoading(true);
-    setAnalysisError("");
-    const positionLegalMoves = new Set(legalJieqiMoves(position));
-    const options = {
-      mode: analysisMode,
-      value: analysisMode === "depth" ? analysisDepth : analysisTime,
-      depth: analysisDepth,
-      multiPv: analysisMultiPv,
-      showWdl: true,
-      searchMoves: analysisSearchMoves,
-      onUpdate(update) {
-        if (requestId !== analysisReqId.current) return;
-        const rawBestMove = update.bestMove;
-        const baseMove = rawBestMove?.slice(0, 4);
-        setAnalysisData({
-          ...update,
-          bestMove: positionLegalMoves.has(baseMove) ? baseMove : null,
-          rawBestMove,
-        });
-        setAnalysisPosition(position);
-      },
-    };
-    const session = jieqiEngine.startAnalysis(position, options);
-    analysisSession.current = session;
-    try {
-      const result = await session.result;
-      const baseMove = result.bestMove?.slice(0, 4);
-      if (!baseMove || !legalJieqiMoves(position).includes(baseMove)) {
-        throw new Error("揭棋引擎没有返回可用的推荐着法");
-      }
-      if (requestId === analysisReqId.current) {
-        setAnalysisData({ ...result, bestMove: baseMove, rawBestMove: result.bestMove });
-        setAnalysisPosition(position);
-      }
-    } catch (reason) {
-      if (requestId === analysisReqId.current && reason?.name !== "AbortError") {
-        setAnalysisData(null);
-        setAnalysisPosition(null);
-        setAnalysisError(reason.message || "揭棋分析引擎不可用");
-      }
-    } finally {
-      if (requestId === analysisReqId.current) {
-        setAnalysisLoading(false);
-        if (analysisSession.current === session) analysisSession.current = null;
-      }
-    }
-  }
-
-  React.useEffect(() => {
-    if (gameMode !== "free" || !fen || !analysisEnabled || pendingFlip || winner) return;
-    analyzeFreePosition(fen);
-    return () => analysisSession.current?.stop();
-  }, [gameMode, fen, analysisEnabled, pendingFlip, winner, analysisMode, analysisTime, analysisDepth, analysisMultiPv, analysisSearchMoves]);
-
-  React.useEffect(() => {
-    setAnalysisSearchMoves((moves) => moves.length ? [] : moves);
-  }, [fen]);
 
   React.useEffect(() => {
     const log = desktopMoveLogRef.current;
     if (log) log.scrollTop = log.scrollHeight;
   }, [moves.length]);
-
-  function toggleAnalysis() {
-    if (analysisEnabled) {
-      analysisReqId.current++;
-      analysisSession.current?.stop();
-      analysisSession.current = null;
-      setAnalysisEnabled(false);
-      setAnalysisLoading(false);
-      setAnalysisData(null);
-      setAnalysisPosition(null);
-      setAnalysisError("");
-    } else {
-      setAnalysisEnabled(true);
-    }
-  }
 
   async function engineTurn(position, side) {
     const engineSide = parseJieqiFen(position).side;
@@ -182,9 +95,7 @@ export default function JieqiPlay({ onOpenSettings }) {
     setMoves([]);
     setSaved(false);
     setPendingFlip(null);
-    setAnalysisData(null);
-    setAnalysisPosition(null);
-    setAnalysisError("");
+    resetAnalysis();
     setShowHint(true);
     setBoardFlipped(gameMode === "human-ai" && humanSide === "b");
     movesRef.current = [];
@@ -370,7 +281,7 @@ export default function JieqiPlay({ onOpenSettings }) {
       ) targetPly--;
     }
 
-    analysisReqId.current++;
+    invalidateAnalysis();
     turnReqId.current++;
     const restoredFen = positionsRef.current[targetPly];
     movesRef.current = movesRef.current.slice(0, targetPly);
