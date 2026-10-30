@@ -5,7 +5,7 @@
   "identifier": "com.xiangqidao.desktop",
   "build": {
     "beforeDevCommand": "npm run dev:tauri",
-    "devUrl": "http://localhost:5173",
+    "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build:tauri",
     "frontendDist": "../frontend/dist-tauri"
   },

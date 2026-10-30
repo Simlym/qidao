@@ -17,6 +17,8 @@
 
 底层前端命令分别是 `dev:tauri` / `build:tauri`（Vite `tauri` mode）与 `dev:android` / `build:android`（`android` mode）。Web 发布使用默认 `production` mode。
 
+Web 开发服务使用 `5173` 端口，Windows / Android 调试使用独立的 `1420` 端口，可与 Web 开发同时运行。若提示端口已占用，请先在之前启动对应开发服务的终端按 `Ctrl+C`，再重新启动；Tauri 的开发页面地址与 Vite 端口必须一致。
+
 Vite 优先级从高到低：命令进程已有环境变量 → `.env.[mode].local` → `.env.[mode]` → `.env.local` → `.env`。因此 `.env.production.local` 不会应用于 `tauri` / `android`；通用 `.env.local` 会影响所有 mode，建议只放真正共用的配置。所有这些文件均在 `frontend/` 目录；本地覆盖文件已加入 Git 忽略。
 
 Windows / Android 发布必须为完整 HTTPS 地址，以 `/api` 结尾，不含账号、查询参数或片段，且不得指向 localhost / 回环地址。调试允许 HTTP；Windows 调试可使用 localhost，Android 的 localhost 指向手机自身。末尾斜杠和首尾空格会自动去除。

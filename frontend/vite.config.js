@@ -20,6 +20,8 @@ export default defineConfig(({ mode, command }) => {
   const tauriDevHost = process.env.TAURI_DEV_HOST;
   const apiBase = (env.VITE_API_BASE_URL || "").trim().replace(/\/+$/, "");
   const packagedClient = mode === "tauri" || mode === "android";
+  // 原生客户端使用独立端口，允许与 Web 开发服务同时运行。
+  const devPort = packagedClient ? 1420 : 5173;
   const label = mode === "android" ? "Android" : "PC";
   const configFile = mode === "android" ? ".env.android.local" : ".env.tauri.local";
   const release = command === "build";
@@ -43,12 +45,12 @@ export default defineConfig(({ mode, command }) => {
       "import.meta.env.VITE_API_BASE_URL": JSON.stringify(apiBase),
     },
     server: {
-      port: 5173,
+      port: devPort,
       strictPort: true,
       host: tauriDevHost || undefined,
       // Tauri 移动端从模拟器/真机连回开发电脑，HMR 不能使用设备自身的 localhost。
       hmr: tauriDevHost
-        ? { protocol: "ws", host: tauriDevHost, port: 5173 }
+        ? { protocol: "ws", host: tauriDevHost, port: devPort }
         : undefined,
       // 多线程 WASM 引擎依赖 SharedArrayBuffer，需要跨源隔离响应头；
       // 单线程引擎构建不受影响。生产部署时需在 Web 服务器上配置同样的头。
