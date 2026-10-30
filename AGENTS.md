@@ -65,6 +65,10 @@ Backend config uses generic, unprefixed env vars — `HOST`/`PORT`, `DATABASE_UR
 - One feature directory per user-facing capability under `src/features/`; cross-feature jumps are orchestrated in `src/app/App.jsx`.
 - `src/app/shells/` owns platform layout: `DesktopShell` for PC and the responsive `WebShell` for Web/Android. Keep authentication and page orchestration in `App.jsx`, not in a shell.
 - `src/shared/api/` separates session storage, HTTP transport, resource endpoints, and the engine streaming protocol; feature pages must not call `fetch` directly.
+- **对弈页面**：`features/play/Play.jsx` 只负责编排与展示，`hooks/usePlayGame.js` 管理开局/走棋/悔棋/存盘，`hooks/usePlayAnalysis.js` 管理评分会话，`hooks/usePlayAssistance.js` 管理云库与提示。`features/play/gameEngine.js` 是可单测的本地/服务端回合决策。
+- **揭棋分析**：`features/jieqi/hooks/useJieqiAnalysis.js` 管理自由翻子评分会话；`analysisResult.js` 校验和规范化引擎着法。严禁将揭棋的真实隐藏身份直接传给限知引擎。
+- **异步生命周期**：任何开局、走棋或局面分析请求都必须校验代次/会话身份；重开、悔棋、切换局面、卸载时终止可停止的搜索并丢弃过期结果。不要将过期请求的结果写入新局面。
+- **前端回归测试**：从 `frontend/` 执行 `npm run test:core`（包含引擎降级、请求代次、揭棋结果规范化等）以及 `npm run build`。
 - `vite.config.js` sets COOP/COEP headers because the optional multi-threaded WASM engine needs `SharedArrayBuffer`; production deployments need the same headers.
 - The app is a PWA (installable, local notifications for due reviews via `features/today/useReminders.js`).
 

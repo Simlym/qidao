@@ -51,6 +51,14 @@ src-tauri/
 
 依赖保持单向：`app/` → `features/` → `domain/`/`shared/` → `platform/`；后端 `modules/*/{router,admin_router}.py` → 模块服务/仓储 → `models/` → `core/database.py`。功能代码不得反向依赖应用外壳，前端页面不得自行调用 `fetch`。PC 与 Android 只在外壳和平台适配层分叉，训练、对弈、复盘等业务逻辑继续共享。
 
+## 对弈业务状态与异步边界
+
+- `features/play/Play.jsx` 保留棋盘、设置面板和分析 UI 的编排；`hooks/usePlayGame.js` 管理标准象棋开局、走棋、悔棋、终局自动存盘和本地引擎失败降级。`gameEngine.js` 提供不依赖 React 的开局/回合计算，可使用模拟 API 进行回归测试。
+- `hooks/usePlayAnalysis.js` 负责评分会话、搜索参数与停止旧分析；`hooks/usePlayAssistance.js` 独立管理云库、提示、AI 详解和过期请求丢弃。
+- `features/jieqi/hooks/useJieqiAnalysis.js` 负责揭棋自由翻子评分，推荐着法先经 `analysisResult.js` 校验为当前局面真实合法着法；揭棋对局与棋谱仍由 `JieqiPlay.jsx` 管理。
+- 页面离开、重开或悔棋会使旧的异步结果失效；若底层引擎支持停止，则同步调用 stop。服务端存盘/搜索请求可能已经发出，取消页面显示并不等于取消服务端操作。
+- 相关测试分别位于 `features/play/*.test.js` 和 `features/jieqi/*.test.js`，随 `npm run test:core` 在 CI 中执行。
+
 ## 引擎选择
 
 客户端按以下顺序选择可用能力：
