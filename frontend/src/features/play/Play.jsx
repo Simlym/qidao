@@ -6,7 +6,7 @@ import MoveHistory from "./components/MoveHistory";
 import CapturedPieces from "./components/CapturedPieces";
 import ResultOverlay from "./components/ResultOverlay";
 import { uciToChinese } from "../../domain/xiangqi/xiangqi";
-import { evalPosition, getBookMoves, getHint, coachHintMove, streamEvalPosition } from "../../shared/api";
+import { evalPosition, streamEvalPosition } from "../../shared/api";
 import { createEngineManager } from "../../domain/xiangqi/engine/createEngineManager";
 import { runtime, usesDesktopLayout } from "../../platform/runtime";
 import {
@@ -17,6 +17,8 @@ import {
 import EngineAnalysisView from "../analysis/EngineAnalysisView";
 import { LEVELS, capturedPieces, describeEval, fmtDuration } from "./model";
 import { usePlayGame } from "./hooks/usePlayGame";
+import { usePlayAnalysis } from "./hooks/usePlayAnalysis";
+import { usePlayAssistance } from "./hooks/usePlayAssistance";
 
 // 当前为 Web：WASM 优先，失败后自动降级 FastAPI。
 // Tauri 接入后只在工厂中增加原生适配器，页面无需出现平台分支。
@@ -32,27 +34,26 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
     moveLog, timesLog, overDismissed, setOverDismissed,
     start, restart, onMove, undo,
   } = usePlayGame({ engine: positionEngine, onCreditsChanged });
-  const [showEval, setShowEval] = React.useState(false);
-  const [evalData, setEvalData] = React.useState(null);
-  const [evalLoading, setEvalLoading] = React.useState(false);
-  const [analysisMode, setAnalysisMode] = React.useState("movetime");
-  const [analysisTime, setAnalysisTime] = React.useState(1000);
-  const [analysisDepth, setAnalysisDepth] = React.useState(18);
-  const [analysisMultiPv, setAnalysisMultiPv] = React.useState(1);
-  const [analysisSearchMoves, setAnalysisSearchMoves] = React.useState([]);
-  const [showBook, setShowBook] = React.useState(false);
-  const [bookData, setBookData] = React.useState(null);
-  const [bookLoading, setBookLoading] = React.useState(false);
-  const [hint, setHint] = React.useState(null);
-  const [hintLoading, setHintLoading] = React.useState(false);
-  const [coach, setCoach] = React.useState(null);
-  const [coachLoading, setCoachLoading] = React.useState(false);
+  const {
+    showEval, setShowEval, evalData, evalLoading,
+    analysisMode, setAnalysisMode, analysisTime, setAnalysisTime,
+    analysisDepth, setAnalysisDepth, analysisMultiPv, setAnalysisMultiPv,
+    analysisSearchMoves, setAnalysisSearchMoves,
+  } = usePlayAnalysis({
+    engine: positionEngine, fen, thinking, localRuntime, localReady,
+  });
+  const [inspectorTab, setInspectorTab] = React.useState("moves");
+  const {
+    showBook, setShowBook, bookData, bookLoading,
+    hint, hintLoading, coach, coachLoading, requestHint, requestCoach,
+  } = usePlayAssistance({
+    fen, thinking, over, yourTurn, localReady, localRuntime, engine: positionEngine,
+    isDesktop, user, onRequireLogin, onCreditsChanged,
+    onShowAnalysis: () => setInspectorTab("analysis"),
+  });
   const [fenCopied, setFenCopied] = React.useState(false);
   const [muted, setMuted] = React.useState(soundMuted);
   const [soundKey, setSoundKey] = React.useState(soundTheme);
-  const [inspectorTab, setInspectorTab] = React.useState("moves");
-  const evalReqId = React.useRef(0);                  // 评分请求序号，丢弃过期响应
-  const evalSession = React.useRef(null);
   const logRef = React.useRef(null);                  // 棋谱滚动容器
   const keysRef = React.useRef({});                   // 键盘快捷键的最新处理函数
 
@@ -77,112 +78,6 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
-
-  React.useEffect(() => {
-    // 单线程 WASM 在计算期间不能接收 stop，避免进入无法中止的无限搜索。
-    if (localRuntime === "wasm" && analysisMode === "infinite") setAnalysisMode("depth");
-  }, [localRuntime, analysisMode]);
-
-  // 开启评分后，每当局面稳定（轮到你/对局结束、引擎不在思考）就拉取一次评估。
-  // 优先用浏览器本地引擎（失败自动降级到服务器）。用序号防止旧请求覆盖新局面。
-  React.useEffect(() => {
-    if (!showEval || !fen || thinking) return;
-    const id = ++evalReqId.current;
-    setEvalLoading(true);
-    evalSession.current?.stop();
-    const session = positionEngine.startAnalysis(fen, {
-      mode: analysisMode,
-      value: analysisMode === "depth" ? analysisDepth : analysisTime,
-      depth: analysisDepth,
-      multiPv: analysisMultiPv,
-      showWdl: true,
-      searchMoves: analysisSearchMoves,
-      onUpdate: (data) => { if (id === evalReqId.current) setEvalData(data); },
-    });
-    evalSession.current = session;
-    session.result
-      .then((d) => { if (id === evalReqId.current) setEvalData(d); })
-      .catch((error) => { if (id === evalReqId.current && error?.name !== "AbortError") setEvalData(null); })
-      .finally(() => { if (id === evalReqId.current) setEvalLoading(false); });
-    return () => {
-      evalReqId.current++;
-      session.stop();
-      if (evalSession.current === session) evalSession.current = null;
-    };
-  }, [showEval, fen, thinking, localReady, analysisMode, analysisTime, analysisDepth, analysisMultiPv, analysisSearchMoves]);
-
-  React.useEffect(() => {
-    setAnalysisSearchMoves((moves) => moves.length ? [] : moves);
-  }, [fen]);
-
-  // 云库参考：轮到自己时查询当前局面的库着法（含评分/胜率）
-  React.useEffect(() => {
-    if (!showBook || !fen || thinking || over) return;
-    let alive = true;
-    setBookLoading(true);
-    getBookMoves(fen)
-      .then((d) => { if (alive) setBookData(d); })
-      .catch(() => { if (alive) setBookData(null); })
-      .finally(() => { if (alive) setBookLoading(false); });
-    return () => { alive = false; };
-  }, [showBook, fen, thinking, over]);
-
-  // 局面一变，旧提示与 AI 详解即作废
-  React.useEffect(() => { setHint(null); setCoach(null); }, [fen]);
-
-  // 提示：本地引擎 → 服务器（云库命中则秒回）
-  async function requestHint() {
-    if (!yourTurn || thinking || over || hintLoading || !fen) return;
-    setHintLoading(true);
-    try {
-      let move = null;
-      let source = "";
-      if (localReady) {
-        try {
-          // 提示只尝试当前本地运行时；失败后走 getHint，以保留服务端云库优先策略。
-          const r = await positionEngine.evaluate(
-            fen,
-            { depth: 14 },
-            { onlyKinds: [localRuntime] },
-          );
-          move = r.bestMove;
-          source = "本地引擎";
-        } catch { /* 降级到服务器 */ }
-      }
-      if (!move) {
-        const r = await getHint(fen);
-        move = r.move;
-        source = r.source === "book" ? "云库" : "服务器引擎";
-      }
-      setHint(move ? { move, text: uciToChinese(fen, move), source } : null);
-      if (move && isDesktop) setInspectorTab("analysis");
-    } catch {
-      setHint(null);
-    } finally {
-      setHintLoading(false);
-    }
-  }
-
-  // AI 教练详解推荐着法的意图（需登录并消耗 AI 额度；未配置 AI 时按钮隐藏）
-  async function requestCoach() {
-    if (!hint?.move || coachLoading || !fen) return;
-    if (!user) {
-      onRequireLogin?.();
-      return;
-    }
-    setCoachLoading(true);
-    try {
-      const r = await coachHintMove(fen, hint.move);
-      setCoach(r.enabled ? { text: r.text || "（AI 暂时没有返回点评）" }
-        : r.ai_status === "refunded" ? { error: "AI 点评生成失败，额度已退回，请稍后重试。" } : { disabled: true });
-    } catch (e) {
-      if (e.status === 401) onRequireLogin?.();
-      setCoach({ error: e.message || "AI 详解失败" });
-    } finally {
-      onCreditsChanged?.();
-      setCoachLoading(false);
-    }
-  }
 
   async function copyFen() {
     if (!fen) return;
