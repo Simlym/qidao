@@ -59,10 +59,17 @@ export default function JieqiPlay({ onOpenSettings }) {
   const desktopMoveLogRef = React.useRef(null);
 
   React.useEffect(() => {
-    jieqiEngine.availableKinds().then((kinds) => {
-      setRuntimeKind(kinds.includes("native") ? "native" : kinds.includes("wasm") ? "wasm" : "remote");
-    });
+    let active = true;
+    jieqiEngine.availableKinds()
+      .then((kinds) => {
+        if (active) setRuntimeKind(kinds.includes("native") ? "native" : kinds.includes("wasm") ? "wasm" : "remote");
+      })
+      .catch(() => { if (active) setRuntimeKind("remote"); });
+    return () => { active = false; };
   }, []);
+
+  // 离开揭棋页面后不允许已在运行的引擎请求继续更新旧组件。
+  React.useEffect(() => () => { turnReqId.current++; }, []);
 
   const depth = LEVELS.find((item) => item.key === level)?.depth || 10;
 
@@ -118,14 +125,16 @@ export default function JieqiPlay({ onOpenSettings }) {
       setFen(position);
       setLegalMoves(legalJieqiMoves(position));
     } catch (reason) {
+      if (requestId !== turnReqId.current) return;
       setError(reason.message || "揭棋引擎不可用");
       setFen(null);
     } finally {
-      setThinking(false);
+      if (requestId === turnReqId.current) setThinking(false);
     }
   }
 
   async function saveGame(finalWinner) {
+    const requestId = turnReqId.current;
     if (!movesRef.current.length) return;
     const redWon = gameMode === "free"
       ? finalWinner === "w"
@@ -143,9 +152,9 @@ export default function JieqiPlay({ onOpenSettings }) {
         black_player: gameMode === "free" ? "黑方" : humanSide === "b" ? "我" : "揭棋引擎",
         played_on: new Date().toISOString().slice(0, 10),
       });
-      setSaved(true);
+      if (requestId === turnReqId.current) setSaved(true);
     } catch {
-      setSaved(false);
+      if (requestId === turnReqId.current) setSaved(false);
     }
   }
 
