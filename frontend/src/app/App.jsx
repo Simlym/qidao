@@ -247,7 +247,7 @@ export default function App() {
   );
 
   const serverIndicator = (
-    <button className="server-indicator" title={`当前服务器：${API_BASE_URL}`} onClick={() => setTab("settings")}>
+    <button className="btn-link server-indicator" title={`当前服务器：${API_BASE_URL}`} onClick={() => setTab("settings")}>
       {API_BASE_URL === DEFAULT_API_BASE_URL ? "默认服务" : "自建服务"} · {new URL(API_BASE_URL).host}
     </button>
   );
