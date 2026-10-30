@@ -3,8 +3,8 @@ import test from "node:test";
 import { applyMove, INITIAL_FEN } from "../../domain/xiangqi/xiangqi.js";
 import { createPlayRound, resolvePlayTurn } from "./gameEngine.js";
 
-const HUMAN = "a6a5";
-const ENGINE = "a3a4";
+const HUMAN = "a3a4";
+const ENGINE = "a6a5";
 const afterHuman = applyMove(INITIAL_FEN, HUMAN);
 
 test("执红开局走服务端接口", async () => {
@@ -20,7 +20,7 @@ test("执红开局走服务端接口", async () => {
 });
 
 test("执黑开局本地引擎先手，着法经过合法性检查", async () => {
-  const first = "a3a4";
+  const first = HUMAN;
   const api = {
     getPositionState: async (fen) => fen === INITIAL_FEN
       ? { legal_moves: [first] } : { status: "ongoing", legal_moves: [HUMAN] },

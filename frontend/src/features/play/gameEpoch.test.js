@@ -23,4 +23,7 @@ test("重开与组件卸载都禁止旧异步结果写回", async () => {
   const next = guard.begin();
   guard.dispose();
   assert.equal(guard.isCurrent(next), false);
+  const remounted = guard.begin();
+  assert.equal(guard.isCurrent(remounted), true);
+  assert.equal(guard.isCurrent(next), false);
 });

@@ -3,7 +3,7 @@ export function createGameEpoch() {
   let generation = 0;
   let disposed = false;
   return {
-    begin() { return ++generation; },
+    begin() { disposed = false; return ++generation; },
     invalidate() { generation += 1; },
     isCurrent(ticket) { return !disposed && ticket === generation; },
     dispose() { disposed = true; generation += 1; },
