@@ -6,9 +6,10 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.modules.credits import service as credits
-from app.modules.auth.service import current_user_id
+from app.modules.auth.service import current_user_id, current_user
 from app.core.dependencies import get_db
 from app.core.models import Game
 from app.core.rate_limit import limiter
@@ -61,6 +62,14 @@ def import_game(
     db: Session = Depends(get_db),
     user: str = Depends(current_user_id),
 ):
+    # 离线补传必须确认登录身份，过期凭据不能降级写入游客空间。
+    if body.client_id:
+        if request is not None:
+            user = current_user(request.headers.get("authorization"), db).username
+        existing = db.query(Game).filter_by(user_id=user, client_id=body.client_id).first()
+        if existing:
+            return {"id": existing.id, "move_count": len(existing.moves.split()), "credits_awarded": 0}
+
     # Normalize separator
     raw = body.moves.replace(",", " ").split()
     move_list = [m.strip() for m in raw if m.strip()]
@@ -72,6 +81,7 @@ def import_game(
         raise HTTPException(status_code=400, detail="揭棋棋谱必须携带每一步局面")
 
     game = Game(
+        client_id=body.client_id,
         variant=body.variant,
         user_id=user,
         initial_fen=body.initial_fen or (INITIAL_FEN if body.variant == "xiangqi" else ""),
@@ -86,11 +96,32 @@ def import_game(
         notes=body.notes or "",
     )
     db.add(game)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = db.query(Game).filter_by(user_id=user, client_id=body.client_id).first() if body.client_id else None
+        if not existing:
+            raise
+        return {"id": existing.id, "move_count": len(existing.moves.split()), "credits_awarded": 0}
     db.refresh(game)
     # 完成一局有效对弈奖励积分（登录用户、达到最小手数、每日封顶，防刷）
     awarded = credits.award_game(db, user, len(move_list), f"game:{game.id}")
     return {"id": game.id, "move_count": len(move_list), "credits_awarded": awarded}
+
+
+@router.post("/sync")
+@limiter.limit("30/minute")
+def sync_game(
+    request: Request,
+    body: ImportRequest,
+    db: Session = Depends(get_db),
+    account=Depends(current_user),
+):
+    """离线客户端专用入口；旧服务器返回 404，不会忽略去重字段反复导入。"""
+    if not body.client_id:
+        raise HTTPException(422, "补传棋谱必须提供客户端标识")
+    return import_game.__wrapped__(request, body, db, user=account.username)
 
 
 @router.get("/{game_id}", response_model=GameDetail)

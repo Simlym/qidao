@@ -16,7 +16,8 @@ from app.core.dependencies import get_db
 from app.main import app
 from app.modules.credits import service as credits
 from app.modules.ai_usage import service as ai_usage
-from app.core.models import Attempt, Base, Puzzle, User
+from app.core.models import Attempt, Base, Puzzle, User, Review
+from app.modules.auth.service import make_token
 
 FEN = "9/9/5k1R1/9/9/9/9/9/7R1/4K4 w"
 SOLUTION = "h7f7"
@@ -32,6 +33,7 @@ def env():
     Session = sessionmaker(bind=engine, autoflush=False)
     Base.metadata.create_all(engine)
     with Session() as db:
+        db.add_all([User(username="learner-a", password_hash="unused"), User(username="learner-b", password_hash="unused")])
         db.add(Puzzle(
             fen=FEN, solution=SOLUTION, side_to_move="w", category="双车错",
             difficulty=1, source="test", user_id="default",
@@ -54,8 +56,12 @@ def _headers(guest):
     return {"X-Guest-ID": guest}
 
 
+def _training_headers(guest):
+    return {"Authorization": "Bearer " + make_token("learner-a" if guest == GUEST_A else "learner-b")}
+
+
 def _finish_first(client, guest=GUEST_A):
-    headers = _headers(guest)
+    headers = _training_headers(guest)
     puzzle = client.get("/api/training/next", headers=headers).json()["puzzle"]
     premature = client.post("/api/training/submit", headers=headers, json={
         "puzzle_id": puzzle["id"], "session_id": puzzle["session_id"],
@@ -75,18 +81,22 @@ def _finish_first(client, guest=GUEST_A):
     return puzzle
 
 
-def test_server_session_and_guest_isolation(env):
+def test_server_session_and_account_isolation(env):
     client, _ = env
     _finish_first(client)
-    a = client.get("/api/stats/overview", headers=_headers(GUEST_A)).json()
-    b = client.get("/api/stats/overview", headers=_headers(GUEST_B)).json()
+    a = client.get("/api/stats/overview", headers=_training_headers(GUEST_A)).json()
+    b = client.get("/api/stats/overview", headers=_training_headers(GUEST_B)).json()
     assert a["learned"] == 1 and a["first_try_accuracy"] == 1.0
     assert b["learned"] == 0 and b["first_try_accuracy"] == 0.0
 
 
 def test_register_claims_device_progress(env):
-    client, _ = env
-    _finish_first(client)
+    # 兼容升级前已存在的游客进度；新版本游客已不能开始题库训练。
+    client, Session = env
+    with Session() as db:
+        db.add(Review(puzzle_id=1, user_id=f"guest:{GUEST_A}"))
+        db.add(Attempt(puzzle_id=1, user_id=f"guest:{GUEST_A}", correct=True))
+        db.commit()
     auth = client.post("/api/auth/register", headers=_headers(GUEST_A), json={
         "username": "alice", "password": "password123",
     })
@@ -98,7 +108,7 @@ def test_register_claims_device_progress(env):
 
 def test_private_blunder_enters_today_and_is_picked_first(env):
     client, Session = env
-    owner = f"guest:{GUEST_A}"
+    owner = "learner-a"
     with Session() as db:
         private = Puzzle(
             fen=FEN, solution=SOLUTION, side_to_move="w", category="实战漏算",
@@ -107,10 +117,10 @@ def test_private_blunder_enters_today_and_is_picked_first(env):
         db.add(private)
         db.commit()
         private_id = private.id
-    today = client.get("/api/today", headers=_headers(GUEST_A)).json()
+    today = client.get("/api/today", headers=_training_headers(GUEST_A)).json()
     assert today["pending_blunders"] == 1
     assert any(a["type"] == "category" for a in today["actions"])
-    next_puzzle = client.get("/api/training/next", headers=_headers(GUEST_A)).json()["puzzle"]
+    next_puzzle = client.get("/api/training/next", headers=_training_headers(GUEST_A)).json()["puzzle"]
     assert next_puzzle["id"] == private_id
 
 

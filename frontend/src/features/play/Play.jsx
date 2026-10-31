@@ -1,6 +1,7 @@
 import React from "react";
 import Board from "../../shared/ui/Board";
 import { useWideWebLayout } from "../../shared/hooks/useWideWebLayout";
+import LocalGameLibrary from "./components/LocalGameLibrary";
 import PlaySetup from "./components/PlaySetup";
 import MoveHistory from "./components/MoveHistory";
 import CapturedPieces from "./components/CapturedPieces";
@@ -32,7 +33,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
     level, setLevel, humanSide, setHumanSide, status, saved, savedGameId, canUndo,
     engineInfo, startError, moveError, localReady, localRuntime,
     moveLog, timesLog, overDismissed, setOverDismissed,
-    start, restart, onMove, undo,
+    start, restart, onMove, undo, restore, localNotice,
   } = usePlayGame({ engine: positionEngine, onCreditsChanged });
   const {
     showEval, setShowEval, evalData, evalLoading,
@@ -112,12 +113,15 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   // 初始进入选择界面
   if (!fen) {
     return (
+      <>
       <PlaySetup
         engineInfo={engineInfo} humanSide={humanSide} onHumanSideChange={setHumanSide}
         level={level} onLevelChange={setLevel} localReady={localReady}
         localRuntime={localRuntime} onOpenSettings={onOpenSettings}
         onStart={start} thinking={thinking} startError={startError}
       />
+      <LocalGameLibrary onRestore={restore} />
+      </>
     );
   }
 
@@ -146,6 +150,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
 
   return (
     <div className="play">
+      {localNotice && <p role="status">{localNotice}</p>}
       {moveError && <div className="result bad" role="alert">{moveError}</div>}
       {/* 状态与操作分两行：状态文案变化（引擎思考中 ↔ 轮到你走）不再挤动按钮换行，棋盘不跳动 */}
       {!useSideLayout && <div className="panel play-status-bar">
@@ -357,7 +362,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
 
           <CapturedPieces capt={capt} />
 
-          <ResultOverlay
+          <ResultOverlay localNotice={localNotice}
             over={over} overDismissed={overDismissed} winnerText={winnerText}
             moveLog={moveLog} totalMs={totalMs} saved={saved}
             savedGameId={savedGameId} onGoReview={onGoReview}

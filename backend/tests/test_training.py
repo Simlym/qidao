@@ -11,7 +11,8 @@ from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.core.dependencies import get_db
-from app.core.models import Base, Puzzle, Attempt
+from app.core.models import Base, Puzzle, Attempt, User
+from app.modules.auth.service import make_token
 
 # 双车错局面：h7f7 与 h1f1 均为成立的一步杀
 MULTI_MATE_FEN = "9/9/5k1R1/9/9/9/9/9/7R1/4K4 w"
@@ -30,6 +31,7 @@ def _client_with_fen(fen: str, solution: str):
     Base.metadata.create_all(eng)
     TestSession = sessionmaker(bind=eng, autoflush=False)
     with TestSession() as db:
+        db.add(User(username="default", password_hash="unused"))
         p = Puzzle(fen=fen, solution=solution, side_to_move="w",
                    category="test", difficulty=2, source="test")
         db.add(p)
@@ -44,7 +46,7 @@ def _client_with_fen(fen: str, solution: str):
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    return TestClient(app), pid
+    return TestClient(app, headers={"Authorization": "Bearer " + make_token("default")}), pid
 
 
 def _client_with_puzzle(solution: str):
@@ -57,6 +59,7 @@ def _client_with_puzzle(solution: str):
     TestSession = sessionmaker(bind=eng, autoflush=False)
 
     with TestSession() as db:
+        db.add(User(username="default", password_hash="unused"))
         p = Puzzle(
             fen=MULTI_MATE_FEN,
             solution=solution,
@@ -77,7 +80,7 @@ def _client_with_puzzle(solution: str):
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    return TestClient(app), pid
+    return TestClient(app, headers={"Authorization": "Bearer " + make_token("default")}), pid
 
 
 def _session(client, pid):
@@ -184,6 +187,7 @@ def _client_multi(n: int):
     Base.metadata.create_all(eng)
     TestSession = sessionmaker(bind=eng, autoflush=False)
     with TestSession() as db:
+        db.add(User(username="default", password_hash="unused"))
         for i in range(n):
             db.add(Puzzle(fen=MULTI_MATE_FEN, solution="h7f7", side_to_move="w",
                           category="测试", difficulty=1, source="t"))
@@ -197,7 +201,7 @@ def _client_multi(n: int):
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    return TestClient(app)
+    return TestClient(app, headers={"Authorization": "Bearer " + make_token("default")})
 
 
 def test_first_try_accuracy_excludes_retry():
@@ -232,6 +236,7 @@ def _client_with_diffs():
     Base.metadata.create_all(eng)
     TestSession = sessionmaker(bind=eng, autoflush=False)
     with TestSession() as db:
+        db.add(User(username="default", password_hash="unused"))
         for d in range(1, 6):
             db.add(Puzzle(fen=MULTI_MATE_FEN, solution="h7f7", side_to_move="w",
                           category="t", difficulty=d, source="t"))
@@ -251,7 +256,7 @@ def _client_with_diffs():
 def test_adaptive_difficulty_high_accuracy_picks_hard():
     """近期首答全对 → 目标难度高 → 选最难的新题。"""
     TestSession = _client_with_diffs()
-    client = TestClient(app)
+    client = TestClient(app, headers={"Authorization": "Bearer " + make_token("default")})
     try:
         with TestSession() as db:
             for _ in range(12):
@@ -266,7 +271,7 @@ def test_adaptive_difficulty_high_accuracy_picks_hard():
 def test_adaptive_difficulty_low_accuracy_picks_easy():
     """近期全错 → 目标难度低 → 选最易的新题。"""
     TestSession = _client_with_diffs()
-    client = TestClient(app)
+    client = TestClient(app, headers={"Authorization": "Bearer " + make_token("default")})
     try:
         with TestSession() as db:
             for _ in range(12):

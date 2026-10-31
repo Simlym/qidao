@@ -58,14 +58,12 @@ def _without_env_key(monkeypatch):
     monkeypatch.delenv("LLM_API_KEY", raising=False)
 
 
-def test_explain_rules_are_free_for_guest(monkeypatch):
-    """游客也能获得不调用大模型的规则型棋理解说。"""
+def test_training_explain_requires_registered_account(monkeypatch):
+    """题库训练统一要求注册登录，包括规则讲解。"""
     _without_env_key(monkeypatch)
     client, pid = _make_client()
     r = client.post("/api/training/explain", json={"puzzle_id": pid})
-    assert r.status_code == 200
-    assert r.json()["mode"] == "rules"
-    assert r.json()["explanation"]
+    assert r.status_code == 401
 
 
 def test_coach_requires_login(monkeypatch):

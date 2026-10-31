@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.training import ratings
 from app.modules.puzzles import repository as repo
-from app.modules.auth.service import current_user_id
+from app.modules.auth.service import current_user_id, current_user
 from app.core.dependencies import get_db
 from app.core.models import Attempt, Review
 from app.modules.training.sessions import create_session, require_session
@@ -29,7 +29,7 @@ from .schemas import (
     RatingChange,
 )
 
-router = APIRouter(prefix="/api/challenge", tags=["challenge"])
+router = APIRouter(prefix="/api/challenge", tags=["challenge"], dependencies=[Depends(current_user)])
 
 LEVEL_SIZE = 6  # 每关题数
 

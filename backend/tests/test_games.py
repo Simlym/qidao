@@ -119,3 +119,64 @@ def test_delete_game(db):
     with pytest.raises(HTTPException) as exc_info:
         get_game(game_id, db, user="default")
     assert exc_info.value.status_code == 404
+
+
+def test_offline_import_deduplicates_per_account(db):
+    """响应丢失后的补传不重复创建棋谱，也不能命中其他账号的记录。"""
+    body = ImportRequest(moves="a3a4 a6a5", client_id="offline-test-id")
+    first = import_game.__wrapped__(None, body, db, user="offline-a")
+    retry = import_game.__wrapped__(None, body, db, user="offline-a")
+    other = import_game.__wrapped__(None, body, db, user="offline-b")
+    assert retry["id"] == first["id"]
+    assert retry["credits_awarded"] == 0
+    assert other["id"] != first["id"]
+
+
+def test_offline_sync_rejects_expired_token_instead_of_guest(db):
+    from starlette.requests import Request
+    request = Request({"type": "http", "headers": [(b"authorization", b"Bearer expired")]})
+    body = ImportRequest(moves="a3a4", client_id="expired-sync-id")
+    with pytest.raises(HTTPException) as exc:
+        import_game.__wrapped__(request, body, db, user="guest:device")
+    assert exc.value.status_code == 401
+
+
+def test_sync_requires_client_id(db):
+    from types import SimpleNamespace
+    from app.modules.games.router import sync_game
+    with pytest.raises(HTTPException) as exc:
+        sync_game.__wrapped__(None, ImportRequest(moves="a3a4"), db, SimpleNamespace(username="offline-a"))
+    assert exc.value.status_code == 422
+
+
+def test_sync_http_auth_and_retry():
+    from fastapi.testclient import TestClient
+    from sqlalchemy.pool import StaticPool
+    from app.main import app
+    from app.core.dependencies import get_db
+    from app.core.models import User
+    from app.modules.auth.service import make_token
+    isolated = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(isolated)
+    factory = sessionmaker(bind=isolated)
+    with factory() as session:
+        session.add(User(username="offline-http", password_hash="x", role="user"))
+        session.commit()
+    def override():
+        with factory() as session:
+            yield session
+    app.dependency_overrides[get_db] = override
+    try:
+        client = TestClient(app)
+        body = {"moves": "a3a4 a6a5", "client_id": "http-retry"}
+        assert client.post("/api/games/sync", json=body).status_code == 401
+        headers = {"Authorization": f"Bearer {make_token('offline-http')}"}
+        first = client.post("/api/games/sync", json=body, headers=headers)
+        assert first.status_code == 200
+        retry = client.post("/api/games/sync", json=body, headers=headers)
+        assert retry.status_code == 200 and retry.json()["id"] == first.json()["id"]
+        games = client.get("/api/games", headers=headers).json()
+        assert len(games) == 1
+    finally:
+        app.dependency_overrides.clear()
+        isolated.dispose()

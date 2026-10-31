@@ -16,7 +16,7 @@ from sqlalchemy.pool import StaticPool
 from app.main import app
 from app.core.dependencies import get_db
 from app.core.models import Base, Puzzle, User, Attempt, Review, PuzzleSession, PuzzleImportBatch
-from app.modules.auth.service import require_admin
+from app.modules.auth.service import require_admin, make_token
 from app.modules.puzzles import github_source, management, repository
 from app.modules.puzzles.schemas import ImportPreview
 from app.modules.puzzles.validation import validate_item
@@ -24,7 +24,7 @@ from app.core.rate_limit import limiter
 
 FEN = "4k4/R7R/9/9/9/9/9/9/9/3K5 w"
 ITEM = dict(fen=FEN, solution=["a8a9"], kind="杀法", category="双车错", difficulty=2)
-GUEST = {"X-Guest-ID": "a"*32}
+LEARNER = {"Authorization": "Bearer " + make_token("learner")}
 
 
 @pytest.fixture()
@@ -36,6 +36,9 @@ def env():
         connection.execute("PRAGMA foreign_keys=ON")
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, autoflush=False)
+    with factory() as db:
+        db.add(User(username="learner", password_hash="unused"))
+        db.commit()
     def override():
         with factory() as db:
             yield db
@@ -69,20 +72,20 @@ def test_import_snapshot_draft_publish_archive_preserves_history(env):
         puzzle = db.scalar(select(Puzzle))
         pid = puzzle.id
         assert puzzle.status == "draft" and repository.get_visible_puzzle(db,pid,"default") is None
-    assert client.get("/api/stats/catalog",headers=GUEST).json() == []
+    assert client.get("/api/stats/catalog",headers=LEARNER).json() == []
     assert client.post("/api/admin/puzzle-library/status",json={"batch_id":batch["id"],"status":"published"}).json()["updated"] == 1
-    session = client.get(f"/api/training/puzzle/{pid}",headers=GUEST).json()
+    session = client.get(f"/api/training/puzzle/{pid}",headers=LEARNER).json()
     with factory() as db:
         db.add_all([Review(puzzle_id=pid,user_id="guest:"+"a"*32,next_review=date.today()),Attempt(puzzle_id=pid,user_id="guest:"+"a"*32,correct=True)])
         db.commit()
         assert repository.count_due(db,"guest:"+"a"*32,date.today()) == 1
     # 兼容旧删除入口：改为下架，外键启用时也不能破坏引用。
     assert client.delete(f"/api/admin/puzzles/{pid}").status_code == 200
-    assert client.get(f"/api/training/puzzle/{pid}",headers=GUEST).status_code == 404
-    assert client.post("/api/training/check_move",headers=GUEST,json={"puzzle_id":pid,"session_id":session["session_id"],"move":"a8a9","step":0}).status_code == 404
-    assert client.get("/api/learning/curriculum",headers=GUEST).json()[0]["total"] == 0
-    assert client.get("/api/challenge/levels",headers=GUEST).json() == []
-    assert client.post("/api/learning/assessment/start",headers=GUEST).status_code == 409
+    assert client.get(f"/api/training/puzzle/{pid}",headers=LEARNER).status_code == 404
+    assert client.post("/api/training/check_move",headers=LEARNER,json={"puzzle_id":pid,"session_id":session["session_id"],"move":"a8a9","step":0}).status_code == 404
+    assert client.get("/api/learning/curriculum",headers=LEARNER).json()[0]["total"] == 0
+    assert client.get("/api/challenge/levels",headers=LEARNER).json() == []
+    assert client.post("/api/learning/assessment/start",headers=LEARNER).status_code == 409
     with factory() as db:
         assert repository.count_due(db,"guest:"+"a"*32,date.today()) == 0
         assert repository.first_due_puzzle(db,"guest:"+"a"*32,date.today()) is None
@@ -197,7 +200,8 @@ def test_input_size_format_auth_and_bounds(env):
     assert client.get("/api/admin/puzzles?limit=-1").status_code == 422
     assert client.get("/api/admin/puzzles?limit=10000").status_code == 422
     app.dependency_overrides.pop(require_admin)
-    assert client.get("/api/admin/puzzle-library/batches",headers=GUEST).status_code == 401
+    assert client.get("/api/admin/puzzle-library/batches",headers={"X-Guest-ID": "a"*32}).status_code == 401
+    assert client.get("/api/admin/puzzle-library/batches",headers=LEARNER).status_code == 403
     assert preview(client).status_code == 401
 
 

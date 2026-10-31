@@ -25,6 +25,9 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
   const [pack, setPack] = React.useState(null); // {id,type,title,puzzleIds,index}
   const [packResult, setPackResult] = React.useState(null);
   const didInit                   = React.useRef(false);
+  const requestSession = React.useRef(null);
+  const moveBusy = React.useRef(false);
+  React.useEffect(() => () => { requestSession.current?.abort(); didInit.current = false; }, []);
 
   // 多步追踪
   const [step, setStep]           = React.useState(0);
@@ -63,6 +66,9 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
   }, [timed, phase]);
 
   const resetState = React.useCallback(() => {
+    requestSession.current?.abort();
+    requestSession.current = new AbortController();
+    moveBusy.current = false;
     setPhase("loading");
     setTrainingError("");
     setStep(0);
@@ -89,19 +95,30 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
   // 常规取题（可带类目做弱点专项）
   const load = React.useCallback(async (category = null, kind = null) => {
     resetState();
-    const d = await getNext(category, kind);
-    setDueCount(d.due_count);
-    if (!d.puzzle) { setNewCapped(!!d.new_limit_reached); setPhase("empty"); return; }
-    beginPuzzle(d.puzzle);
+    const session = requestSession.current;
+    try {
+      const d = await getNext(category, kind, { signal: session.signal });
+      if (session.signal.aborted || requestSession.current !== session) return;
+      setDueCount(d.due_count);
+      if (!d.puzzle) { setNewCapped(!!d.new_limit_reached); setPhase("empty"); return; }
+      beginPuzzle(d.puzzle);
+    } catch (error) {
+      if (session.signal.aborted || requestSession.current !== session) return;
+      setTrainingError(error.status === 401 ? "登录已过期，请重新登录后训练。" : "无法连接题库，请检查服务器连接后重试。");
+      setPhase("unavailable");
+    }
   }, [resetState, beginPuzzle]);
 
   // 按 id 取指定题（来自复盘报告/实战漏着推荐）
   const loadById = React.useCallback(async (id, context = "training") => {
     resetState();
+    const session = requestSession.current;
     try {
-      const p = await getTrainingPuzzle(id, context);
+      const p = await getTrainingPuzzle(id, context, { signal: session.signal });
+      if (session.signal.aborted || requestSession.current !== session) return;
       beginPuzzle(p);
     } catch (e) {
+      if (session.signal.aborted || requestSession.current !== session) return;
       setTrainingError(e.status === 404 ? "这道题已下架或已有新版本，请回到每日训练。" : e.message);
       setPhase("unavailable");
     }
@@ -109,6 +126,7 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
 
   // 响应外部跳转目标：指定题 / 弱点类目；无目标时仅在首次挂载取常规题
   React.useEffect(() => {
+    if (target) didInit.current = true;
     if (target?.puzzleId) {
       setActiveCategory(null);
       loadById(target.puzzleId);
@@ -136,8 +154,13 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
   }, [target, load, loadById, onTargetConsumed]);
 
   async function trainingRequest(task) {
-    try { return await task(); }
+    const session = requestSession.current;
+    try {
+      const result = await task(session?.signal);
+      return session?.signal.aborted || requestSession.current !== session ? null : result;
+    }
     catch (e) {
+      if (session?.signal.aborted || requestSession.current !== session) return null;
       if ([404,410].includes(e.status)) {
         setTrainingError("这道题或解题会话已不可用，可能已下架或发布新版，请重新取题。");
         setPhase("unavailable");
@@ -147,7 +170,9 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
   }
 
   async function onMove(move) {
-    if (!puzzle || !["thinking"].includes(phase)) return;
+    if (!puzzle || !["thinking"].includes(phase) || moveBusy.current) return;
+    const session = requestSession.current;
+    moveBusy.current = true;
     const prevFen = currentFen;  // 走子前局面，供答错时回滚乐观更新
     const fenAfterMine = applyMove(currentFen, move);  // 我方落子后局面，也用于翻译对方应着
     setLastMove(move);
@@ -155,9 +180,11 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
     // 乐观更新：玩家这一手立刻落到棋盘上，不必等校验/对方应着返回。
     setCurrentFen(fenAfterMine);
 
-    const res = await trainingRequest(() => checkMove({
+    const res = await trainingRequest((signal) => checkMove({
       puzzle_id: puzzle.id, session_id: puzzle.session_id, step, move, attempt: wrongCount,
-    }));
+    }, { signal }));
+    if (session?.signal.aborted || requestSession.current !== session) return;
+    moveBusy.current = false;
     if (!res) { setCurrentFen(prevFen); return; }
 
     if (!res.correct) {
@@ -187,6 +214,7 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
       );
       setPhase("step_ok");
       setTimeout(() => {
+        if (session?.signal.aborted || requestSession.current !== session) return;
         setStepMsg("");
         setLastMove(null);
         setPhase("thinking");
@@ -203,14 +231,14 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
   async function onGiveUp() {
     // 放弃：直接提交 again，拿到正解
     solveMs.current = Date.now() - startedAt.current;
-    const res = await trainingRequest(() => submitRating({
+    const res = await trainingRequest((signal) => submitRating({
       puzzle_id: puzzle.id,
       session_id: puzzle.session_id,
       self_rating: "again",
       had_retry: true,
       correct: false,
       time_spent_ms: solveMs.current,
-    }));
+    }, { signal }));
     if (!res) return;
     setSolution(res.solution);
     setNextReview(res.next_review);
@@ -221,14 +249,14 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
 
   async function onRate(rating) {
     solveMs.current = Date.now() - startedAt.current;
-    const res = await trainingRequest(() => submitRating({
+    const res = await trainingRequest((signal) => submitRating({
       puzzle_id: puzzle.id,
       session_id: puzzle.session_id,
       self_rating: rating,
       had_retry: hadRetry,
       correct: true,
       time_spent_ms: solveMs.current,
-    }));
+    }, { signal }));
     if (!res) return;
     setSolution(res.solution);
     setNextReview(res.next_review);
@@ -264,9 +292,11 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
       onRequireLogin?.();
       return;
     }
+    const session = requestSession.current;
     setAiLoading(true);
     try {
-      const res = await explainPuzzle(puzzle.id);
+      const res = await explainPuzzle(puzzle.id, { signal: session?.signal });
+      if (session?.signal.aborted || requestSession.current !== session) return;
       if (!res.enabled) {
         setAiDisabled(true);
       } else {
@@ -276,11 +306,12 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
         if (!res.cached) onCreditsChanged?.(); // AI 使用独立额度，训练积分不变
       }
     } catch (e) {
+      if (session?.signal.aborted || requestSession.current !== session) return;
       if (e.status === 401) onRequireLogin?.();
       setAiText(e.message || "AI 讲解失败");
       onCreditsChanged?.();
     } finally {
-      setAiLoading(false);
+      if (!session?.signal.aborted && requestSession.current === session) setAiLoading(false);
     }
   }
 
@@ -301,7 +332,7 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
 
   // ── 渲染 ──────────────────────────────────────────────────────
 
-  if (phase === "unavailable") return <div className="panel"><h2>暂时无法继续这道题</h2><p role="status">{trainingError}</p><button onClick={() => { setPack(null); setActiveCategory(null); load(); }}>返回每日训练</button></div>;
+  if (phase === "unavailable") return <div className="panel"><h2>暂时无法继续这道题</h2><p role="status">{trainingError}</p><button onClick={onRequireLogin}>重新登录</button><button onClick={() => { setPack(null); setActiveCategory(null); load(); }}>返回每日训练</button></div>;
   if (phase === "loading") return <div className="panel">加载中…</div>;
   if (phase === "pack_done") return (
     <div className="panel learning-pack-result">

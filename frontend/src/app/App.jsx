@@ -1,9 +1,11 @@
 import React from "react";
+import ConnectedAccountGate from "../shared/ui/ConnectedAccountGate";
 import { API_BASE_URL, DEFAULT_API_BASE_URL } from "../shared/api/server.js";
-import Trainer from "../features/training/Trainer";
+import Trainer from "../features/training/TrainingPage";
 import Coach from "../features/coach/Coach";
 import Stats from "../features/stats/Stats";
 import Games from "../features/games/Games";
+import { useLocalGameSync } from "../features/play/useLocalGameSync.js";
 import Play from "../features/play/Play";
 import JieqiPlay from "../features/jieqi/JieqiPlay";
 import Challenge from "../features/challenge/Challenge";
@@ -69,6 +71,7 @@ export default function App() {
   // 复盘目标：从对弈结束「一键复盘」跳转时携带的棋局 id
   const [reviewGameId, setReviewGameId] = React.useState(null);
   const [user, setUser] = React.useState(null); // {username, role}
+  useLocalGameSync(user?.username || "guest");
   const [credits, setCredits] = React.useState(null); // {balance, checkin_today, costs, ...}
   const [entitlements, setEntitlements] = React.useState(null);
   const [authOpen, setAuthOpen] = React.useState(false);
@@ -148,7 +151,7 @@ export default function App() {
           refreshCredits();
           refreshEntitlements();
         })
-        .catch(() => setToken(null));
+        .catch((error) => { if (error.status === 401) setToken(null); });
     }
   }, [refreshCredits, refreshEntitlements]);
 
@@ -255,7 +258,7 @@ export default function App() {
   const pageContent = (
     <>
       {tab === "today" && (
-        <Today user={user} onNavigate={setTab} onPractice={practiceCategory} />
+        <Today user={user} onNavigate={setTab} onPractice={practiceCategory} onRequireLogin={requireLogin} />
       )}
       {tab === "train" && (
         <Trainer
@@ -267,6 +270,7 @@ export default function App() {
         />
       )}
       {tab === "coach" && (
+        <ConnectedAccountGate user={user} onRequireLogin={requireLogin} title="AI 教练">
         <Coach
           onPractice={practiceCategory}
           onNavigate={setTab}
@@ -276,9 +280,10 @@ export default function App() {
           onCreditsChanged={refreshCredits}
           onRequireLogin={requireLogin}
         />
+        </ConnectedAccountGate>
       )}
-      {tab === "challenge" && <Challenge />}
-      {tab === "learning" && <Learning onPractice={practiceScope} onStartPack={startPack} />}
+      {tab === "challenge" && <ConnectedAccountGate user={user} onRequireLogin={requireLogin} title="题库闯关"><Challenge key={user?.username} /></ConnectedAccountGate>}
+      {tab === "learning" && <ConnectedAccountGate user={user} onRequireLogin={requireLogin} title="学习计划"><Learning key={user?.username} onPractice={practiceScope} onStartPack={startPack} /></ConnectedAccountGate>}
       {tab === "stats" && <Stats onPractice={practiceCategory} />}
       {tab === "play" && (
         <Play

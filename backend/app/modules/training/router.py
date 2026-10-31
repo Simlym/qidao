@@ -9,7 +9,7 @@ from app.modules.credits import service as credits
 from app.modules.ai_usage import service as ai_usage
 from app.modules.ai_usage.http import http_request_key
 from app.modules.puzzles import repository as repo
-from app.modules.auth.service import current_user_id
+from app.modules.auth.service import current_user_id, current_user
 from app.core.dependencies import get_db
 from app.shared.xiangqi.validation import FILES, parse_fen
 from app.integrations.llm import explain_puzzle
@@ -35,7 +35,7 @@ from .schemas import (
     SubmitResponse,
 )
 
-router = APIRouter(prefix="/api/training", tags=["training"])
+router = APIRouter(prefix="/api/training", tags=["training"], dependencies=[Depends(current_user)])
 
 QUALITY_MAP = {"again": 1, "hard": 3, "good": 4, "easy": 5}
 

@@ -7,11 +7,11 @@ const HUMAN = "a3a4";
 const ENGINE = "a6a5";
 const afterHuman = applyMove(INITIAL_FEN, HUMAN);
 
-test("执红开局走服务端接口", async () => {
+test("未启用本地引擎时执红开局走服务端接口", async () => {
   const calls = [];
   const output = { fen: INITIAL_FEN, legal_moves: [HUMAN], status: "ongoing" };
   const result = await createPlayRound({
-    side: "w", level: "easy", localRuntime: "native",
+    side: "w", level: "easy", localRuntime: null,
     engine: { evaluate() { throw new Error("不应调用"); } },
     api: { newPlayGame: async (input) => { calls.push(input); return output; } },
   });
@@ -56,12 +56,12 @@ test("落子完成本地引擎合法应着，并保留回合结果", async () =>
   });
   assert.equal(r.fen, nextFen);
   assert.equal(r.engine_move, ENGINE);
-  assert.equal(r.status, "check");
+  assert.equal(r.status, "ongoing");
 });
 
 test("人类落子后已结束则引擎不再应着", async () => {
   const r = await resolvePlayTurn({
-    fen: INITIAL_FEN, move: HUMAN, level: "medium", localRuntime: "wasm",
+    fen: "4k4/4R4/9/9/9/4P4/9/9/9/4K4 w - - 0 1", move: "e8e9", level: "medium", localRuntime: "wasm",
     engine: { evaluate: async () => { throw new Error("不应调用"); } },
     api: { getPositionState: async () => ({ status: "checkmate", legal_moves: [] }) },
   });
@@ -92,4 +92,14 @@ test("云端返回失败可透传，让页面负责回滚乐观落子", async ()
     fen: INITIAL_FEN, move: HUMAN, level: "easy", localRuntime: null,
     api: { playMove: async () => { throw new Error("server down"); } },
   }), /server down/);
+});
+
+
+test("本地引擎的开局与完整回合无需网络", async () => {
+  const api = new Proxy({}, { get() { throw new Error("离线不得访问服务端"); } });
+  const start = await createPlayRound({ side: "w", level: "easy", localRuntime: "native", api });
+  assert.ok(start.legal_moves.includes(HUMAN));
+  const next = await resolvePlayTurn({ fen: start.fen, move: HUMAN, level: "easy", localRuntime: "native",
+    engine: { evaluate: async () => ({ bestMove: ENGINE }) }, api });
+  assert.equal(next.fen, applyMove(afterHuman, ENGINE));
 });

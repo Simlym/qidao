@@ -40,6 +40,10 @@ export function createSessionStore(storage, serverId, defaultServerId) {
 
 const store = () => createSessionStore(localStorage, SERVER_ID, DEFAULT_API_BASE_URL);
 export const getToken = () => store().getToken();
-export const setToken = (token) => store().setToken(token);
+export const SESSION_CHANGED = "xq-session-changed";
+export const setToken = (token) => {
+  store().setToken(token);
+  globalThis.dispatchEvent?.(new Event(SESSION_CHANGED));
+};
 export const getGuestId = () => store().getGuestId();
 export const resetGuestId = () => store().resetGuestId();

@@ -13,12 +13,13 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.dependencies import get_db
 from app.main import app
-from app.core.models import Attempt, Base, Game, GameAnalysis, Puzzle
+from app.core.models import Attempt, Base, Game, GameAnalysis, Puzzle, User
+from app.modules.auth.service import make_token
 from app.modules.puzzles.content import rule_explanation, solution_lines
 
 GUEST = "cccccccccccccccccccccccccccccccc"
-HEADERS = {"X-Guest-ID": GUEST}
-OWNER = f"guest:{GUEST}"
+OWNER = "learner"
+HEADERS = {"Authorization": "Bearer " + make_token(OWNER)}
 FEN = "9/9/5k1R1/9/9/9/9/9/7R1/4K4 w"
 
 
@@ -28,6 +29,7 @@ def env():
     Session = sessionmaker(bind=engine, autoflush=False)
     Base.metadata.create_all(engine)
     with Session() as db:
+        db.add(User(username=OWNER, password_hash="unused"))
         db.add_all([
             Puzzle(fen=FEN, solution="h7f7|h7f7", kind="杀法", category="双车错", tags="封锁逃路,子力配合"),
             Puzzle(fen=FEN, solution="h7f7", kind="开局", category="出子效率", tags="中心控制"),

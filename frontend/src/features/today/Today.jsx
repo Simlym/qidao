@@ -3,11 +3,13 @@ import { getToday } from "../../shared/api";
 
 const ACTION_ICON = { train: "◎", category: "↺", games: "≡", play: "♟" };
 
-export default function Today({ user, onNavigate, onPractice }) {
+export default function Today({ user, onNavigate, onPractice, onRequireLogin }) {
   const [plan, setPlan] = React.useState(null);
   const [error, setError] = React.useState("");
 
   React.useEffect(() => {
+    if (!user) return;
+    setError(""); setPlan(null);
     let alive = true;
     getToday().then((value) => alive && setPlan(value))
       .catch((e) => alive && setError(e.message || "今日计划加载失败"));
@@ -19,6 +21,13 @@ export default function Today({ user, onNavigate, onPractice }) {
     else onNavigate?.(action.type);
   }
 
+  if (!user) return <section className="panel today-hero">
+    <div><span className="today-eyebrow">欢迎来到棋岛</span><h2>先下一盘，再开始系统训练</h2>
+      <p>启用本地引擎即可离线对弈，对局自动保存到本机。题库训练、闯关、学习计划和 AI 功能需要注册登录并联网。</p>
+      <div className="btn-row"><button onClick={() => onNavigate?.("play")}>开始本地对弈</button>
+        <button onClick={onRequireLogin}>注册 / 登录，开始训练</button></div>
+    </div>
+  </section>;
   if (error) return <div className="panel import-error">{error}</div>;
   if (!plan) return <div className="panel">正在整理今日计划…</div>;
   const primary = plan.actions[0];

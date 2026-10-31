@@ -60,7 +60,7 @@ export default function ServerSettings() {
           onChange={(event) => { setAddress(event.target.value); setNotice(null); }} />
       </label>
       <p id="server-address-help" className="server-help">请连接你信任的服务。检测连接不发送当前账号或游客信息。</p>
-      <p className="server-warning">连接或恢复默认后会重新加载页面，未保存的对局将丢失。请先保存需要保留的棋谱。</p>
+      <p className="server-warning">连接或恢复默认后会重新加载页面。象棋已保存的回合可在原服务器的「本机对局」中继续；正在计算的回合及其他未保存内容可能丢失。</p>
       <div className="server-actions">
         <button disabled={busy} onClick={() => check(false)}>{busy ? "连接中…" : "检测连接"}</button>
         <button className="server-connect" disabled={busy || address === API_BASE_URL} onClick={() => check(true)}>连接并重新加载</button>

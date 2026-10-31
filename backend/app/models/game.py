@@ -23,6 +23,9 @@ class Game(Base):
 
     __tablename__ = "games"
 
+    __table_args__ = (UniqueConstraint("user_id", "client_id", name="uq_games_user_client"),)
+    client_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     variant: Mapped[str] = mapped_column(String(12), default="xiangqi", index=True)
     user_id: Mapped[str] = mapped_column(String(40), default="default", index=True)  # 棋局归属，匿名回退 default

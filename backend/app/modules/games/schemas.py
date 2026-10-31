@@ -9,6 +9,7 @@ _MOVES_MAX = 8000
 
 
 class ImportRequest(BaseModel):
+    client_id: str | None = Field(default=None, min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
     variant: str = Field(default="xiangqi", pattern="^(xiangqi|jieqi)$")
     moves: str = Field(max_length=_MOVES_MAX)
     initial_fen: str = Field(default="", max_length=240)

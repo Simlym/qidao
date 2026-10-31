@@ -3,7 +3,7 @@ import { fmtDuration } from "../model";
 
 // 不影响主棋盘生命周期的终局覆盖层。
 export default function ResultOverlay({
-  over, overDismissed, winnerText, moveLog, totalMs, saved, savedGameId,
+  over, overDismissed, winnerText, localNotice, moveLog, totalMs, saved, savedGameId,
   onGoReview, onDismiss, onRestart,
 }) {
   if (!over || overDismissed) return null;
@@ -22,7 +22,7 @@ export default function ResultOverlay({
                   共 {Math.ceil(moveLog.length / 2)} 回合
                   {totalMs > 0 && ` · 用时 ${fmtDuration(totalMs)}`}
                   <br />
-                  {saved ? "已存入「复盘」，正在自动分析本局得失。" : "本局未保存。"}
+                  {localNotice || (saved ? "已存入「复盘」。" : "正在保存到本机…")}
                 </p>
                 <div className="btn-row" style={{ justifyContent: "center" }}>
                   {saved && savedGameId && onGoReview && (

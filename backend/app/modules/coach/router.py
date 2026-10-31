@@ -14,7 +14,7 @@ from app.core.rate_limit import limiter
 from app.core.settings import get_llm_config
 from app.modules.ai_usage.http import http_request_key
 
-router = APIRouter(prefix="/api/coach", tags=["coach"])
+router = APIRouter(prefix="/api/coach", tags=["coach"], dependencies=[Depends(current_user)])
 
 
 def _to_out(plan: CoachPlan) -> PlanOut:

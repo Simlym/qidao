@@ -11,12 +11,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.modules.auth.service import current_user_id
+from app.modules.auth.service import current_user_id, current_user
 from app.core.dependencies import get_db
 from app.core.models import Attempt, Game, GameAnalysis, LearningPack, Puzzle
 from .schemas import PackOut
 
-router = APIRouter(prefix="/api/learning", tags=["learning"])
+router = APIRouter(prefix="/api/learning", tags=["learning"], dependencies=[Depends(current_user)])
 
 CURRICULUM = {
     "杀法": {"goal": "识别将死网络与连续先手", "skills": ["将军次序", "封锁逃路", "子力配合"]},
