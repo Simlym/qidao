@@ -62,7 +62,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   React.useEffect(() => {
     const el = logRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [moveLog]);
+  }, [moveLog, inspectorTab]);
 
   // 键盘快捷键：Ctrl/Cmd+Z 悔棋，H 提示。经 ref 转发，监听器只挂一次。
   React.useEffect(() => {
@@ -149,8 +149,8 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   const useSideLayout = isDesktop || wideWeb;
 
   return (
-    <div className="play">
-      {localNotice && <p role="status">{localNotice}</p>}
+    <div className="play xiangqi-play">
+      {!useSideLayout && localNotice && <p role="status">{localNotice}</p>}
       {moveError && <div className="result bad" role="alert">{moveError}</div>}
       {/* 状态与操作分两行：状态文案变化（引擎思考中 ↔ 轮到你走）不再挤动按钮换行，棋盘不跳动 */}
       {!useSideLayout && <div className="panel play-status-bar">
@@ -321,15 +321,14 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
       <div className="play-main">
         {wideWeb && (
           <aside className="panel web-play-rail" aria-label="本局状态">
-            <div className="web-play-rail-title">本局对弈</div>
+            <div className="web-play-rail-title">标准象棋<span className="web-level-badge">{LEVELS.find((item) => item.key === level)?.label}</span></div>
             <div className="web-player-card opponent">
               <span className="web-player-avatar">机</span>
               <div><strong>电脑</strong><small>{engineDisplay}</small></div>
             </div>
             <div className="web-turn-card">
-              <small>当前局面</small>
               <strong>{currentTurnText}</strong>
-              <span>{LEVELS.find((item) => item.key === level)?.label} · {Math.ceil(moveLog.length / 2)} 回合</span>
+              <span>第 {Math.floor(moveLog.length / 2) + 1} 回合</span>
             </div>
             <div className="web-player-card self">
               <span className="web-player-avatar">我</span>
@@ -338,13 +337,14 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
             <div className="web-play-rail-meta">
               <span>累计用时</span><strong>{totalMs > 0 ? fmtDuration(totalMs) : "00:00"}</strong>
             </div>
-            <button className="web-sound-button" onClick={cycleSound}>
+            {localNotice && <p className="web-save-notice" role="status">{localNotice}</p>}
+            <button className="web-sound-button" onClick={cycleSound} title="点击切换音效">
               {muted ? "🔇 已静音" : `🔊 ${soundThemeLabel(soundKey)}`}
             </button>
           </aside>
         )}
         <div className="play-board-area">
-          {useSideLayout && (
+          {isDesktop && (
             <div className="desktop-board-playerbar">
               <span>电脑</span>
               <strong>{currentTurnText}</strong>
@@ -358,9 +358,10 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
             legalMoves={over ? [] : legalMoves}
             hintMove={hint?.move || null}
             flipped={humanSide === "b"}
+            fitContainerHeight={useSideLayout}
           />
 
-          <CapturedPieces capt={capt} />
+          {!useSideLayout && <CapturedPieces capt={capt} />}
 
           <ResultOverlay localNotice={localNotice}
             over={over} overDismissed={overDismissed} winnerText={winnerText}
@@ -374,11 +375,12 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
 
         {useSideLayout ? (
           <aside className="panel move-log desktop-play-inspector">
-            <div className="desktop-game-summary">
+            {wideWeb ? <div className="web-inspector-heading"><strong>对局记录</strong><span>{moveLog.length} 步</span></div> : <div className="desktop-game-summary">
               <strong>本局信息</strong>
               <span>{humanSide === "w" ? "你执红" : "你执黑"} · {LEVELS.find((item) => item.key === level)?.label}</span>
               <span>{engineDisplay}</span>
-            </div>
+              {localNotice && <small role="status">{localNotice}</small>}
+            </div>}
 
             <div className="desktop-inspector-tabs" role="tablist" aria-label="对局信息">
               <button
@@ -399,7 +401,8 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
               </button>
             </div>
 
-            <div className="desktop-inspector-body">
+            <div className={`desktop-inspector-body${inspectorTab === "moves" ? " showing-moves" : ""}`}>
+              <CapturedPieces capt={capt} />
               {inspectorTab === "moves" && (
                 moveLog.length > 0 ? (
                   <MoveHistory moveLog={moveLog} timesLog={timesLog} logRef={logRef} />
@@ -502,24 +505,26 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
               <button onClick={undo} disabled={!canUndo || thinking}>悔棋</button>
               <button
                 className={showEval ? "active" : ""}
+                aria-pressed={showEval}
                 onClick={() => {
                   setShowEval((value) => !value);
                   setInspectorTab("analysis");
                 }}
               >
-                评分 {showEval ? "开" : "关"}
+                <span>局面评分</span><span className="play-toggle-state">{showEval ? "开" : "关"}</span>
               </button>
               <button
                 className={showBook ? "active" : ""}
+                aria-pressed={showBook}
                 onClick={() => {
                   setShowBook((value) => !value);
                   setInspectorTab("analysis");
                 }}
               >
-                云库 {showBook ? "开" : "关"}
+                <span>云库参考</span><span className="play-toggle-state">{showBook ? "开" : "关"}</span>
               </button>
-              <button onClick={copyFen}>{fenCopied ? "已复制" : "复制 FEN"}</button>
-              <button className="danger" onClick={restart}>重开</button>
+              <button className="secondary" onClick={copyFen}>{fenCopied ? "已复制" : "复制局面"}</button>
+              <button className="secondary danger" onClick={restart}>重新开局</button>
               {over && overDismissed && (
                 <button className="wide" onClick={() => setOverDismissed(false)}>查看结果</button>
               )}

@@ -4,7 +4,7 @@ import { TAB_DESCRIPTIONS } from "../navigation";
 
 export default function DesktopShell({
   tab, activeGroup, activeTab, navigation, secondaryNavigation,
-  reminderBanner, serverIndicator, account, children, onNavigate,
+  reminderBanner, account, children, onNavigate,
 }) {
   const title = activeGroup?.label || activeTab.label;
   return (
@@ -32,7 +32,7 @@ export default function DesktopShell({
         {secondaryNavigation}
         <main>{children}</main>
         <footer className="desktop-statusbar">
-          {serverIndicator}<span>桌面模式</span><span className="desktop-status-spacer" /><span>{title}</span>
+          <span>桌面模式</span><span className="desktop-status-spacer" /><span>{title}</span>
         </footer>
       </section>
     </>

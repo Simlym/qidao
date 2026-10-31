@@ -27,18 +27,25 @@ export default function LocalGameLibrary({ onRestore }) {
     catch { setError("删除失败，请检查设备存储权限。"); }
   }
   if (!records.length && !guests.length) return null;
-  return <section className="panel">
-    <h3>本机对局</h3>
-    <p className="muted">进行中的对局可继续；已完成的棋谱登录原账号后自动同步。本机记录请保留应用数据。</p>
-    {guests.length > 0 && <button onClick={claim}>认领本机游客对局（{guests.length}）</button>}
-    {error && <p role="alert">{error}</p>}
-    <ul>{records.map((record) => <li key={record.id}>
-      <button className="btn-link" onClick={() => onRestore(record)}>
-        {record.playedOn} · {record.moves.length} 手 · {record.over ? "查看对局" : "继续对局"}
-      </button>{" "}
-      <small>{record.serverId ? "已同步" : record.payload ? "已保存到本机 · 待同步" : "已保存到本机"}</small>
-      {record.syncError && <span role="status"> · {record.syncError}</span>}
-      {" "}<button className="btn-link" onClick={() => remove(record)}>删除本机记录</button>
+  return <section className="panel local-game-library" aria-labelledby="local-games-title">
+    <div className="local-library-heading">
+      <div><h3 id="local-games-title">本机对局</h3><p className="muted">继续未完成的对局，或查看已保存的棋谱。</p></div>
+      <span className="local-library-count">{records.length} 局</span>
+    </div>
+    {guests.length > 0 && <button className="local-claim-button" onClick={claim}>认领本机游客对局（{guests.length}）</button>}
+    {error && <p role="alert" className="local-library-error">{error}</p>}
+    <ul className="local-game-list">{records.map((record) => <li className="local-game-card" key={record.id}>
+      <span className="local-game-mark" aria-hidden="true">{record.over ? "谱" : "弈"}</span>
+      <div className="local-game-details">
+        <div className="local-game-title"><strong>{record.playedOn}</strong><span className={record.over ? "local-game-state finished" : "local-game-state"}>{record.over ? "已结束" : "进行中"}</span></div>
+        <p className="local-game-meta"><span>{record.moves.length} 手</span><span>{record.serverId ? "已同步到服务器" : record.payload ? "已保存到本机 · 待同步" : "已保存到本机"}</span></p>
+        {record.syncError && <p className="local-game-sync-error" role="status">{record.syncError}</p>}
+      </div>
+      <div className="local-game-actions">
+        <button className="local-game-resume" onClick={() => onRestore(record)} aria-label={`${record.over ? "查看" : "继续"} ${record.playedOn} 的 ${record.moves.length} 手对局`}>{record.over ? "查看棋谱" : "继续对局"}<span aria-hidden="true"> →</span></button>
+        <button className="local-game-delete" onClick={() => remove(record)} aria-label={`删除 ${record.playedOn} 的 ${record.moves.length} 手本机记录`}>删除记录</button>
+      </div>
     </li>)}</ul>
+    <p className="local-library-footnote">已完成的棋谱登录原账号后自动同步。本机记录保存在当前设备，清除应用数据将丢失未同步的记录。</p>
   </section>;
 }

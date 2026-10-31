@@ -1,0 +1,32 @@
+/* 本机对局：状态、内容与操作分区，窄屏时操作独占一行。 */
+.panel.local-game-library { color: var(--app-text, #423b34); background: var(--app-surface, #fff); border-color: var(--app-border, #e8e1d7); }
+.local-library-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.local-library-heading h3 { margin: 0; font-size: 19px; }
+.local-library-heading p { margin: 6px 0 0; color: var(--app-muted, #887e74); font-size: 13px; line-height: 1.8; }
+.local-library-count { flex-shrink: 0; border: 1px solid var(--app-border, #e5dbcf); border-radius: 20px; padding: 4px 11px; font-size: 12px; color: var(--app-muted, #887e74); }
+.local-game-library .local-game-list { display: grid; gap: 12px; list-style: none; margin: 0; padding: 0; }
+.local-game-card { display: flex; align-items: center; gap: 16px; min-width: 0; padding: 18px; border: 1px solid var(--app-border, #e8e1d7); border-radius: 12px; background: var(--app-surface, #fffdf9); }
+.local-game-mark { display: grid; place-items: center; flex-shrink: 0; width: 46px; height: 46px; border-radius: 12px; background: var(--app-surface-soft, #f5eee5); color: var(--app-accent, #9b4936); font-family: serif; font-size: 25px; }
+.local-game-details { flex: 1; min-width: 0; }
+.local-game-title { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.local-game-title strong { font-size: 14px; font-variant-numeric: tabular-nums; }
+.local-game-state { padding: 3px 7px; border-radius: 5px; background: var(--app-accent-soft, #f4e6db); color: var(--app-accent, #9b4936); font-size: 11px; white-space: nowrap; }
+.local-game-state.finished { background: var(--app-surface-soft, #eeeae4); color: var(--app-muted, #887e74); }
+.local-game-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 8px 0 0; color: var(--app-muted, #887e74); font-size: 12px; line-height: 1.7; }
+.local-game-sync-error, .local-library-error { margin: 8px 0 0; color: var(--app-accent, #9b4936); font-size: 12px; overflow-wrap: anywhere; line-height: 1.7; }
+.local-library-error { margin-bottom: 12px; }
+.local-game-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.local-game-library button { font: inherit; cursor: pointer; }
+.local-game-library .local-game-resume { padding: 10px 14px; border: 1px solid var(--app-accent, #9b4936); border-radius: 8px; background: var(--app-accent-soft, #f8ece6); color: var(--app-accent, #9b4936); font-size: 13px; font-weight: 600; }
+.local-game-library .local-game-resume:hover { filter: brightness(.96); }
+.local-game-library .local-game-delete { padding: 10px 4px; border: 0; border-radius: 4px; background: transparent; color: var(--app-muted, #887e74); font-size: 12px; }
+.local-game-library .local-game-delete:hover { color: var(--app-accent, #9b4936); text-decoration: underline; }
+.local-game-library button:focus-visible { outline: 2px solid var(--app-accent, #9b4936); outline-offset: 3px; }
+.local-library-footnote { margin: 18px 0 0; color: var(--app-muted, #887e74); font-size: 12px; line-height: 1.8; }
+.local-claim-button { padding: 9px 12px; margin-bottom: 16px; border: 1px solid var(--app-border, #e5dbcf); border-radius: 8px; color: var(--app-accent, #9b4936); background: var(--app-surface-soft, #f5eee5); font-size: 13px; }
+@media (max-width: 700px) {
+  .local-game-card { flex-wrap: wrap; gap: 12px; padding: 16px; }
+  .local-game-actions { flex-basis: 100%; justify-content: flex-end; border-top: 1px solid var(--app-border, #eee7de); padding-top: 12px; }
+  .local-game-details { flex-basis: calc(100% - 58px); }
+  .local-library-heading { align-items: flex-start; }
+}

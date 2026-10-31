@@ -1,6 +1,5 @@
 import React from "react";
 import ConnectedAccountGate from "../shared/ui/ConnectedAccountGate";
-import { API_BASE_URL, DEFAULT_API_BASE_URL } from "../shared/api/server.js";
 import Trainer from "../features/training/TrainingPage";
 import Coach from "../features/coach/Coach";
 import Stats from "../features/stats/Stats";
@@ -194,10 +193,12 @@ export default function App() {
 
   const account = user ? (
     <>
+      <div className="web-account-identity">
+        <strong>{user.username}</strong>
+        {entitlements?.active && <span className="member-badge">PRO</span>}
+      </div>
       <CreditsBadge credits={credits} onCheckin={refreshCredits} />
-      {entitlements?.active && <span className="member-badge">PRO</span>}
-      <span className="user-name">{user.username}</span>
-      <button className="btn-link" onClick={logout}>退出</button>
+      <button className="btn-link" onClick={logout}>退出登录</button>
     </>
   ) : (
     <>
@@ -247,12 +248,6 @@ export default function App() {
       )}
       <button className="reminder-x" onClick={reminders.dismiss}>×</button>
     </div>
-  );
-
-  const serverIndicator = (
-    <button className="btn-link server-indicator" title={`当前服务器：${API_BASE_URL}`} onClick={() => setTab("settings")}>
-      {API_BASE_URL === DEFAULT_API_BASE_URL ? "默认服务" : "自建服务"} · {new URL(API_BASE_URL).host}
-    </button>
   );
 
   const pageContent = (
@@ -326,7 +321,6 @@ export default function App() {
         <DesktopShell
           tab={tab} activeGroup={activeGroup} activeTab={activeTab}
           navigation={navigation} secondaryNavigation={secondaryNavigation}
-          serverIndicator={serverIndicator}
           reminderBanner={reminderBanner} account={desktopAccount} onNavigate={setTab}
         >
           {pageContent}
@@ -334,7 +328,6 @@ export default function App() {
       ) : (
         <WebShell
           user={user} navigation={navigation} secondaryNavigation={secondaryNavigation}
-          serverIndicator={serverIndicator}
           reminderBanner={reminderBanner} account={account} onNavigate={setTab}
         >
           {pageContent}

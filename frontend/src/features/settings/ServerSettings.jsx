@@ -47,13 +47,15 @@ export default function ServerSettings() {
     <div className="settings-group server-settings">
       <div className="settings-heading">
         <h2>服务器（高级）</h2>
-        <p>默认使用客户端配置的服务，高级用户可以连接自己部署的棋岛后端。</p>
+        <p>管理服务连接。通常无需修改，使用自建服务时再进行设置。</p>
       </div>
+      <div className="server-current-heading"><strong>服务地址</strong><span>{API_BASE_URL === DEFAULT_API_BASE_URL ? "使用默认服务" : "使用自定义服务"}</span></div>
       <dl className="server-addresses">
         <dt>当前服务器</dt><dd>{API_BASE_URL}</dd>
-        <dt>默认服务器</dt><dd>{DEFAULT_API_BASE_URL}</dd>
       </dl>
       <p className="server-description">各服务器的账号、会员、训练进度和棋谱相互独立。切换不会迁移数据；返回原服务器可继续使用原账号。</p>
+      <div className="server-edit-card">
+      <h3>连接其他服务器</h3>
       <label className="server-address-input">服务器 API 地址
         <input type="url" value={address} disabled={busy} spellCheck={false} autoCapitalize="none" aria-describedby="server-address-help"
           placeholder="https://chess.example.com/api"
@@ -65,6 +67,7 @@ export default function ServerSettings() {
         <button disabled={busy} onClick={() => check(false)}>{busy ? "连接中…" : "检测连接"}</button>
         <button className="server-connect" disabled={busy || address === API_BASE_URL} onClick={() => check(true)}>连接并重新加载</button>
         <button disabled={busy || API_BASE_URL === DEFAULT_API_BASE_URL} onClick={restore}>恢复默认服务器</button>
+      </div>
       </div>
       {notice && <p role={notice.error ? "alert" : "status"} className={notice.error ? "server-error" : "server-success"}>{notice.text}</p>}
     </div>

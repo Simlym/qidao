@@ -89,6 +89,8 @@
 
 /* ── Web 端响应式外壳与统一视觉 ───────────────────────────
    桌面客户端有独立布局；以下规则只服务浏览器与 PWA。 */
+/* 长短页面切换时保留对称的滚动条空间，保持页面与导航居中位置一致。 */
+html:has(.app-web) { scrollbar-gutter: stable both-edges; }
 .app-web {
   --web-accent: #9f432f;
   --web-accent-deep: #713324;
@@ -142,6 +144,74 @@
 .app-web .user-box { gap: 7px; }
 .app-web .user-box .btn-link { min-height: 40px; padding-inline: 15px; font-weight: 600; }
 
+/* 账户信息按需展开，不占用主导航或页面内容的空间。 */
+.web-account-menu { position: relative; min-width: 0; }
+.web-account-menu > summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 5px 10px 5px 6px;
+  border: 1px solid var(--web-border);
+  border-radius: 12px;
+  color: var(--web-ink);
+  background: var(--web-surface);
+  cursor: pointer;
+  list-style: none;
+}
+.web-account-menu > summary::-webkit-details-marker { display: none; }
+.web-account-menu > summary:hover,
+.web-account-menu[open] > summary { border-color: var(--web-accent); }
+.web-account-menu > summary:focus-visible {
+  outline: 3px solid var(--web-accent);
+  outline-offset: 3px;
+}
+.web-account-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--web-accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.web-account-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; }
+.web-account-arrow { color: var(--web-muted); font-size: 12px; }
+.web-account-menu[open] .web-account-arrow { rotate: 180deg; }
+.web-account-popover {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(280px, calc(100vw - 32px));
+  max-height: calc(100dvh - 90px);
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid var(--web-border);
+  border-radius: 14px;
+  background: var(--app-surface, #fffdf9);
+  color: var(--web-ink);
+  box-shadow: 0 12px 32px rgba(65, 47, 34, .16);
+}
+.web-account-actions,
+.web-account-content { display: flex; flex-direction: column; gap: 8px; }
+.web-account-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--web-border); }
+.web-account-identity { display: flex; align-items: center; gap: 8px; padding: 4px; }
+.web-account-identity strong { min-width: 0; overflow-wrap: anywhere; }
+.web-account-popover .credits-box { justify-content: space-between; flex-wrap: wrap; padding: 4px 0; }
+.web-account-popover .credits-amt { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.app-web .web-account-popover .btn-link:not(.credits-checkin) {
+  width: 100%;
+  text-align: left;
+  border-color: transparent;
+  color: var(--web-ink);
+  background: transparent;
+}
+.app-web .web-account-popover .btn-link:not(.credits-checkin):hover { color: var(--web-accent); background: var(--app-accent-soft, #f4ece5); }
+.app-web .web-account-popover .btn-register { display: block; }
+
 .app-web > .section-tabs {
   width: 100%;
   min-height: 48px;
@@ -170,6 +240,8 @@
   box-shadow: 0 2px 8px rgba(62, 43, 31, .08);
 }
 .app-web > main { min-width: 0; }
+/* 已进入棋局后不再重复选择棋种；重开回到准备页时恢复。 */
+.app-web:has(> main > .play) > .section-tabs { display: none; }
 .app-web > main > :is(.today-page, .trainer, .play, .play-setup, .games-layout, .stats, .coach, .challenge, .admin, .learning-page, .settings-page) {
   width: 100%;
   max-width: 1180px;
@@ -237,14 +309,27 @@
 
 /* 宽屏 Web 对弈：信息放到棋盘两侧，避免横向工具条挤占宝贵的纵向空间。 */
 @media (min-width: 1100px) {
+  .app-web:has(> main > .play) {
+    height: 100dvh;
+    min-height: 0;
+    padding-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+  }
+  .app-web:has(> main > .play) > .web-header { flex: 0 0 auto; min-height: 64px; }
+  .app-web:has(> main > .play) > .reminder-banner { flex: 0 0 auto; }
+  .app-web:has(> main > .play) > main { flex: 1; min-height: 0; }
+  .app-web > main > .play { height: 100%; min-height: 0; display: flex; flex-direction: column; }
   .app-web > main > .play { max-width: 1248px; }
   .app-web .play-main {
     display: grid;
+    flex: 1;
+    min-height: 0;
     grid-template-columns: 210px minmax(500px, 1fr) 286px;
-    align-items: start;
+    align-items: stretch;
     gap: 16px;
   }
-  .app-web .play-board-area { min-width: 0; padding-top: 0; }
+  .app-web .play-board-area { height: 100%; min-width: 0; min-height: 0; padding-top: 0; overflow: hidden; }
   .app-web .desktop-board-playerbar {
     min-height: 26px;
     margin: 0 auto 2px;
@@ -254,24 +339,25 @@
   .app-web .xq-board-measure { max-width: 610px; margin-inline: auto; }
   .app-web .play-main .desktop-play-inspector {
     width: 286px;
-    height: min(700px, calc(100vh - 178px));
-    min-height: 520px;
+    height: 100%;
+    min-height: 0;
+    max-height: none;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    position: sticky;
-    top: 12px;
+    position: static;
   }
   .app-web .desktop-inspector-body { min-height: 0; flex: 1; overflow-y: auto; padding: 10px 12px; }
   .app-web .desktop-play-inspector .move-log-list { max-height: none; }
   .app-web .web-play-rail {
-    min-height: 420px;
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
     margin: 0;
     padding: 16px;
-    position: sticky;
-    top: 12px;
+    align-self: start;
   }
   .web-play-rail-title { margin-bottom: 14px; color: #3d342d; font-size: 15px; font-weight: 750; }
   .web-player-card { display: flex; align-items: center; gap: 10px; padding: 11px 0; }
@@ -298,11 +384,41 @@
     color: #755243; background: #fff; cursor: pointer;
   }
 
-  /* 揭棋需要更宽的暗子池，因此采用棋盘 + 综合信息栏的双栏工作区。 */
+  /* 标准象棋：左侧只留对局状态，右侧只留记录与辅助操作。 */
+  .app-web .xiangqi-play .play-main { grid-template-columns: 190px minmax(500px, 1fr) 300px; }
+  .app-web .xiangqi-play .web-play-rail { padding: 16px; border-radius: 14px; }
+  .xiangqi-play .web-play-rail-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+  .web-level-badge { padding: 3px 7px; border-radius: 5px; background: var(--app-surface-soft, #f3eee7); color: var(--web-muted); font-size: 10px; font-weight: 500; }
+  .xiangqi-play .web-player-card { padding-block: 8px; }
+  .xiangqi-play .web-player-avatar { width: 30px; height: 30px; flex-basis: 30px; font-size: 13px; }
+  .xiangqi-play .web-player-card strong { font-size: 13px; }
+  .xiangqi-play .web-turn-card { margin-block: 10px; padding: 12px 8px; border: 0; border-radius: 9px; background: var(--app-accent-soft, #f5eae0); }
+  .xiangqi-play .web-turn-card strong { margin: 0 0 5px; color: var(--web-accent); font-size: 16px; }
+  .xiangqi-play .web-play-rail-meta { margin-top: 12px; padding-top: 12px; }
+  .web-save-notice { margin: 10px 0 0; color: var(--web-muted); font-size: 10px; line-height: 1.6; overflow-wrap: anywhere; }
+  .app-web .xiangqi-play .web-sound-button { margin-top: 8px; min-height: 30px; padding: 5px; border-color: transparent; color: var(--web-muted); background: transparent; font-size: 11px; }
+  .app-web .xiangqi-play .web-sound-button:hover { background: var(--app-surface-soft, #f5efe7); color: var(--web-accent); }
+  .web-inspector-heading { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; min-height: 46px; padding: 12px 16px; border-bottom: 1px solid var(--web-border); }
+  .web-inspector-heading strong { color: var(--web-ink); font-size: 14px; }
+  .web-inspector-heading > span { color: var(--web-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .app-web .xiangqi-play .desktop-inspector-tabs { margin: 10px 12px 0; padding: 3px; gap: 4px; background: var(--app-surface-soft, #f3eee7); border: 0; border-radius: 8px; }
+  .app-web .xiangqi-play .desktop-inspector-tabs button { padding: 7px; border: 0; border-radius: 6px; font-size: 12px; }
+  .app-web .xiangqi-play .desktop-inspector-tabs button.active { background: var(--app-surface, #fff); color: var(--web-accent); box-shadow: 0 1px 4px rgba(65, 47, 34, .08); }
+  .app-web .xiangqi-play .desktop-inspector-actions { padding: 12px; gap: 8px; background: var(--app-surface, #fffdf9); }
+  .app-web .xiangqi-play .desktop-inspector-actions button { min-height: 38px; color: var(--web-ink); border-color: var(--web-border); background: var(--app-surface, #fff); font-size: 12px; }
+  .app-web .xiangqi-play .desktop-inspector-actions button.primary { color: #fff; background: var(--web-accent); border-color: var(--web-accent); }
+  .app-web .xiangqi-play .desktop-inspector-actions button[aria-pressed] { display: flex; justify-content: space-between; align-items: center; min-height: 32px; border-color: transparent; background: var(--app-surface-soft, #f7f3ee); color: var(--web-muted); font-size: 11px; }
+  .app-web .xiangqi-play .desktop-inspector-actions button[aria-pressed="true"] { color: var(--web-accent); background: var(--app-accent-soft, #f5e7df); }
+  .play-toggle-state { margin-left: 6px; font-size: 10px; opacity: .75; }
+  .app-web .xiangqi-play .desktop-inspector-actions button.secondary { min-height: 28px; border-color: transparent; background: transparent; color: var(--web-muted); font-size: 11px; }
+  .app-web .xiangqi-play .desktop-inspector-actions button.danger { color: #a04436; }
+  .app-web .xiangqi-play .desktop-inspector-actions button:hover:not(:disabled) { border-color: var(--web-accent); }
+
+  /* 揭棋的暗子池与棋盘共享同一可用高度。 */
   .app-web .jieqi-play .play-main {
     width: 100%;
-    height: calc(100dvh - 158px);
-    min-height: 680px;
+    height: 100%;
+    min-height: 0;
     margin-inline: auto;
     grid-template-columns: 210px minmax(500px, 1fr) 286px;
     align-items: stretch;

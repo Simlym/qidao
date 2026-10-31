@@ -357,6 +357,8 @@
   max-height: 560px; overflow-y: auto;
   font-size: 13px;
 }
+.move-history { min-width: 0; }
+.move-history-heading { display: none; }
 .move-log-list li { display: flex; gap: 8px; min-width: 150px; }
 .move-log-no { color: #999; min-width: 22px; text-align: right; font-variant-numeric: tabular-nums; }
 .move-log-cell { display: inline-flex; align-items: baseline; gap: 4px; min-width: 64px; }

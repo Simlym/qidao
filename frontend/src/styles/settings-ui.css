@@ -1,0 +1,75 @@
+/* 设置中心：设备偏好与服务器连接各自保持单一入口。 */
+.settings-page { min-height: 520px; }
+.settings-content { padding: 30px 34px; }
+.settings-heading { margin-bottom: 24px; padding-bottom: 20px; }
+.settings-heading h2 { font-size: 23px; }
+.settings-heading p { line-height: 1.8; }
+.settings-sections button { min-height: 44px; }
+.settings-sections button svg { flex-shrink: 0; }
+.settings-sections button:focus-visible,
+.settings-preview-button:focus-visible { outline: 2px solid var(--app-accent, #9b4936); outline-offset: 3px; }
+.settings-preference-card { overflow: hidden; border: 1px solid var(--app-border, #e8e1d7); border-radius: 12px; background: var(--app-surface, #fffdf9); }
+.settings-card-caption { display: flex; align-items: center; gap: 9px; padding: 16px 20px; background: var(--app-surface-soft, #f7f3ed); color: var(--app-text, #423b34); }
+.settings-card-caption svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.settings-card-caption h3 { margin: 0; font-size: 14px; }
+.settings-card-caption > span { margin-left: auto; color: var(--app-muted, #887e74); font-size: 11px; }
+.settings-preference-card .settings-row { padding: 20px; gap: 16px; }
+.settings-preference-card .settings-row:last-child { border: 0; }
+.settings-row p { line-height: 1.7; }
+.settings-preference-card .settings-switch { flex-shrink: 0; gap: 10px; }
+.settings-switch input[role="switch"] { appearance: none; width: 40px; height: 24px; margin: 0; padding: 0; border: 0; border-radius: 20px; position: relative; background: var(--app-border, #cfc8bf); cursor: pointer; transition: background .15s; }
+.settings-switch input[role="switch"]::before { content: ''; position: absolute; width: 18px; height: 18px; top: 3px; left: 3px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #0002; transition: transform .15s; }
+.settings-switch input[role="switch"]:checked { background: var(--app-accent, #9b4936); }
+.settings-switch input[role="switch"]:checked::before { transform: translateX(16px); }
+.settings-switch input[role="switch"]:focus-visible { outline: 2px solid var(--app-accent, #9b4936); outline-offset: 3px; }
+.settings-preview-button { flex-shrink: 0; padding: 9px 12px; border: 1px solid var(--app-border, #ded5ca); border-radius: 8px; background: var(--app-surface, #fffdf9); color: var(--app-text, #67534a); font: inherit; font-size: 12px; cursor: pointer; }
+.settings-preview-button:hover:not(:disabled) { background: var(--app-accent-soft, #f5ebe4); }
+.settings-preview-button:disabled { opacity: .45; cursor: default; }
+.settings-save-note { margin: 16px 0 0; color: var(--app-muted, #887e74); font-size: 12px; line-height: 1.8; }
+.server-current-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.server-current-heading strong { font-size: 14px; }
+.server-current-heading > span { padding: 3px 9px; border-radius: 6px; color: var(--app-accent, #8a4933); background: var(--app-accent-soft, #f4e9df); font-size: 11px; }
+.server-addresses dd { font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+.server-description { line-height: 1.8; }
+.server-edit-card { padding: 20px; border: 1px solid var(--app-border, #e8e1d7); border-radius: 12px; background: var(--app-surface, #fffdf9); }
+.server-edit-card h3 { margin: 0 0 18px; font-size: 15px; }
+.server-edit-card .server-address-input { font-size: 13px; }
+.server-edit-card .server-actions { gap: 8px; }
+.server-edit-card .server-actions button { padding-inline: 12px; }
+/* 外观分类按需展示，卡片随内容区宽度排布。 */
+.cosmetic-store { max-width: 1100px; }
+.cosmetic-store .settings-heading { margin-bottom: 14px; padding-bottom: 14px; }
+.cosmetic-store .cosmetic-balance { margin: 0 0 14px; align-items: center; flex-wrap: wrap; }
+.cosmetic-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--app-border, #e8e1d7); }
+.cosmetic-tabs button { min-height: 36px; padding: 7px 14px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--app-muted, #887e74); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.cosmetic-tabs button:hover { background: var(--app-surface-soft, #f7f3ed); color: var(--app-text, #423b34); }
+.cosmetic-tabs button[aria-pressed="true"] { background: var(--app-accent-soft, #f5ebe4); color: var(--app-accent, #9b4936); border-color: var(--app-border, #e8e1d7); }
+.cosmetic-store button:focus-visible { outline: 2px solid var(--app-accent, #9b4936); outline-offset: 3px; }
+.cosmetic-count { margin-left: 6px; color: var(--app-muted, #887e74); font-size: 11px; font-weight: 400; }
+.cosmetic-store .cosmetic-presets, .cosmetic-store .cosmetic-category { margin-bottom: 0; }
+.cosmetic-store .cosmetic-presets-heading { margin-bottom: 12px; }
+.cosmetic-store .cosmetic-presets-heading p { line-height: 1.6; }
+.cosmetic-store .cosmetic-preset-grid, .cosmetic-store .cosmetic-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px; }
+.cosmetic-store .cosmetic-preset { grid-template-columns: 52px minmax(0, 1fr); align-content: start; gap: 8px 12px; padding: 14px; }
+.cosmetic-store .preset-visual { min-height: 60px; height: 60px; background-size: 13px 13px; }
+.cosmetic-store .preset-board-mark { top: 4px; left: 4px; font-size: 8px; }
+.cosmetic-store .preset-piece-mark { width: 32px; height: 32px; font-size: 21px; }
+.cosmetic-store .preset-copy p { margin-top: 6px; font-size: 12px; line-height: 1.6; }
+.cosmetic-store .cosmetic-preset > button { grid-column: 2; justify-self: start; min-height: 32px; padding: 6px 12px; }
+.cosmetic-store .cosmetic-card { padding: 14px; }
+.cosmetic-store .cosmetic-card > button { grid-column: 2; justify-self: start; min-height: 32px; padding: 6px 12px; }
+.cosmetic-store .cosmetic-card-body p { min-height: 0; font-size: 12px; line-height: 1.6; }
+@media (max-width: 700px) {
+  .settings-content { padding: 24px 18px; }
+  .settings-page { min-height: 0; }
+  .settings-preference-card .settings-row, .settings-card-caption { padding: 16px; }
+  .server-edit-card { padding: 16px; }
+}
+@media (max-width: 400px) {
+  .settings-preference-card .settings-switch > span { display: none; }
+  .settings-sound-preview { flex-wrap: wrap; }
+  .settings-sound-preview > div { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-switch input[role="switch"], .settings-switch input[role="switch"]::before { transition: none; }
+}

@@ -7,7 +7,7 @@ import BrowserEngineSettings from "./BrowserEngineSettings";
 import { createEngineManager } from "../../domain/xiangqi/engine/createEngineManager";
 import { evalPosition, evalJieqiPosition, getCosmetics, purchaseCosmetic } from "../../shared/api";
 import { cosmeticPreferences, setCosmeticPreference } from "../../shared/preferences/cosmetics";
-import { playSound, soundMuted, setSoundMuted, soundTheme, setSoundTheme } from "../../shared/sounds";
+import { playSound, soundMuted, setSoundMuted, soundTheme, setSoundTheme, soundThemeLabel } from "../../shared/sounds";
 import { analysisPreferences, saveAnalysisPreferences } from "../../shared/preferences/analysisPreferences";
 import { runtime, supportsNativeEngine } from "../../platform/runtime";
 
@@ -15,14 +15,17 @@ const xiangqiEngine = createEngineManager({ remoteEvaluate: evalPosition });
 const jieqiEngine = createEngineManager({ variant: "jieqi", remoteEvaluate: evalJieqiPosition });
 const SECTIONS = [
   { key: "general", label: "通用", icon: "sliders" },
-  { key: "account", label: "账户与 AI 额度", icon: "sliders" },
-  { key: "puzzle-feedback", label: "我的题目反馈", icon: "sliders" },
-  { key: "server", label: "服务器（高级）", icon: "sliders" },
+  { key: "account", label: "账户与 AI 额度", icon: "account" },
+  { key: "puzzle-feedback", label: "我的题目反馈", icon: "feedback" },
+  { key: "server", label: "服务器（高级）", icon: "server" },
   { key: "appearance", label: "棋盘与外观", icon: "palette" },
   { key: "xiangqi", label: "标准象棋引擎", icon: "cpu" },
   { key: "jieqi", label: "揭棋引擎", icon: "spark" },
 ];
 const SECTION_ICONS = {
+  account: <><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></>,
+  feedback: <><path d="M21 11a8 8 0 0 1-8 8H7l-4 3V11a9 9 0 0 1 18 0Z"/><path d="M8 8h8M8 12h5"/></>,
+  server: <><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01M12 6.5h5M12 17.5h5"/></>,
   sliders: <><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></>,
   palette: <><path d="M12 3a9 9 0 0 0 0 18h1.4a1.6 1.6 0 0 0 1.2-2.7 1.6 1.6 0 0 1 1.2-2.7H18A3 3 0 0 0 21 12a9 9 0 0 0-9-9Z"/><circle cx="7.5" cy="11.5" r=".7"/><circle cx="10" cy="7.5" r=".7"/><circle cx="15" cy="7.5" r=".7"/></>,
   cpu: <><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/><rect x="10" y="10" width="4" height="4" rx=".5"/></>,
@@ -87,6 +90,7 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
   const [muted, setMuted] = React.useState(soundMuted);
   const [theme, setTheme] = React.useState(soundTheme);
   const [appearance, setAppearance] = React.useState(cosmeticPreferences);
+  const [appearanceCategory, setAppearanceCategory] = React.useState("presets");
   const [catalog, setCatalog] = React.useState([]);
   const [storeBusy, setStoreBusy] = React.useState("");
   const [storeNotice, setStoreNotice] = React.useState(null);
@@ -184,7 +188,7 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
       <aside className="settings-sections" aria-label="设置分类">
         <div className="settings-nav-title"><span>设置</span><small>偏好与引擎</small></div>
         {SECTIONS.map((item) => (
-          <button key={item.key} className={section === item.key ? "active" : ""} onClick={() => setSection(item.key)}>
+          <button key={item.key} className={section === item.key ? "active" : ""} aria-current={section === item.key ? "page" : undefined} onClick={() => setSection(item.key)}>
             <svg viewBox="0 0 24 24" aria-hidden="true">{SECTION_ICONS[item.icon]}</svg>
             <span>{item.label}</span>
           </button>
@@ -193,16 +197,23 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
 
       <section className="settings-content">
         {section === "general" && (
-          <div className="settings-group">
-            <div className="settings-row"><div><strong>当前服务器</strong><p>查看地址或连接自建服务。</p></div><button onClick={() => setSection("server")}>服务器设置</button></div>
-            <div className="settings-heading"><h2>通用设置</h2><p>这些偏好会保存在当前设备上。</p></div>
-            <div className="settings-row">
-              <div><strong>对弈音效</strong><p>走子、吃子和对局结果提示音。</p></div>
-              <label className="settings-switch">
-                <input type="checkbox" checked={!muted} onChange={(event) => changeMuted(!event.target.checked)} />
-                <span>{muted ? "关闭" : "开启"}</span>
-              </label>
-            </div>
+          <div className="settings-group general-settings">
+            <div className="settings-heading"><h2>通用设置</h2><p>调整当前设备的使用偏好，修改后自动保存。</p></div>
+            <section className="settings-preference-card" aria-labelledby="sound-preferences-title">
+              <div className="settings-card-caption"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 4-6 5H2v6h3l6 5V4ZM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg><h3 id="sound-preferences-title">声音</h3><span>仅此设备</span></div>
+              <div className="settings-row">
+                <div><strong id="sound-toggle-title">对弈音效</strong><p id="sound-toggle-help">走子、吃子和对局结果提示音。</p></div>
+                <label className="settings-switch">
+                  <span aria-hidden="true">{muted ? "已关闭" : "已开启"}</span>
+                  <input type="checkbox" role="switch" aria-labelledby="sound-toggle-title" aria-describedby="sound-toggle-help" checked={!muted} onChange={(event) => changeMuted(!event.target.checked)} />
+                </label>
+              </div>
+              <div className="settings-row settings-sound-preview">
+                <div><strong>当前音色 · {soundThemeLabel(theme)}</strong><p>在「棋盘与外观」中选择更多音色。</p></div>
+                <button className="settings-preview-button" disabled={muted} onClick={() => playSound("move")}>试听音效</button>
+              </div>
+            </section>
+            <p className="settings-save-note">偏好保存在本机，无需手动保存。</p>
           </div>
         )}
 
@@ -223,9 +234,15 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
                 <span className="cosmetic-message error" role="alert">{storeNotice.text}</span>
               )}
             </div>
-            <section className="cosmetic-presets" aria-labelledby="cosmetic-presets-title">
+            <nav className="cosmetic-tabs" aria-label="外观分类">
+              {[["presets", "推荐套装"], ...Object.entries(TYPE_META)].map(([key, title]) => (
+                <button key={key} aria-pressed={appearanceCategory === key} aria-controls="cosmetic-category-content" onClick={() => setAppearanceCategory(key)}>{title}</button>
+              ))}
+            </nav>
+            <div id="cosmetic-category-content">
+            {appearanceCategory === "presets" && <section className="cosmetic-presets" aria-labelledby="cosmetic-presets-title">
               <div className="cosmetic-presets-heading">
-                <div><h3 id="cosmetic-presets-title">推荐套装</h3><p>一键应用整套，也可以继续在下方自由混搭。</p></div>
+                <div><h3 id="cosmetic-presets-title">推荐套装 <span className="cosmetic-count">{STYLE_PRESETS.length} 套</span></h3><p>一键搭配主题、棋盘、棋子与音效，也可切换分类自由混搭。</p></div>
               </div>
               <div className="cosmetic-preset-grid">
                 {STYLE_PRESETS.map((preset) => {
@@ -240,13 +257,13 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
                         <strong>{preset.name}</strong>
                         <p>{preset.description}</p>
                       </div>
-                      <button disabled={selected} onClick={() => usePreset(preset)}>{selected ? "整套使用中" : "一键应用"}</button>
+                      <button aria-label={`${preset.name}：${selected ? "整套使用中" : "一键应用"}`} disabled={selected} onClick={() => usePreset(preset)}>{selected ? "整套使用中" : "一键应用"}</button>
                     </article>
                   );
                 })}
               </div>
-            </section>
-            {Object.entries(TYPE_META).map(([type, title]) => (
+            </section>}
+            {Object.entries(TYPE_META).filter(([type]) => type === appearanceCategory).map(([type, title]) => (
               <section className="cosmetic-category" key={type}>
                 <h3>{title}</h3>
                 <div className="cosmetic-grid">
@@ -277,6 +294,7 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
                 </div>
               </section>
             ))}
+            </div>
           </div>
         )}
 
