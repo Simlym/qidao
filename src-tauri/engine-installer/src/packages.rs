@@ -789,9 +789,11 @@ mod tests {
                 .expect("设置 QIDAO_TEST_FAIRY_PACKAGE_DIR"),
         );
         let packages = catalog("xiangqi").unwrap();
+        let package_id = std::env::var("QIDAO_TEST_FAIRY_PACKAGE_ID")
+            .unwrap_or_else(|_| "xiangqi-fairy-c07e94a5-20261107".to_string());
         let p = packages
             .iter()
-            .find(|p| p.engine_id == "fairy-stockfish")
+            .find(|p| p.id == package_id)
             .unwrap();
         let root = tempfile::tempdir().unwrap();
         let cancel = AtomicBool::new(false);

@@ -57,3 +57,29 @@ ZIP 大小 5,814,717 字节；SHA-256 为
 用户验收：关闭上一份 PC 测试程序，打开新版测试程序；进入标准象棋设置，
 选择本次 ZIP，点击“导入 ZIP 并启用”，验证对弈、提示、评分、悔棋与停止分析。
 本地验收已通过，下一步通过 GitHub 工作流构建独立草稿并核对附件；当前不自动替换现有引擎。
+
+## GitHub 草稿复核（2026-11-07）
+
+- 固定标签：`engines-20261107.2`，仅含 Fairy 标准象棋包，不包含 Pikafish 权重。
+- [构建任务](https://github.com/Simlym/qidao/actions/runs/42362210152)已成功，源码为棋岛提交 `9cbd3c2`，沿用已提交的 `nnue=no` 配方。
+- [Release 草稿](https://github.com/Simlym/qidao/releases/tag/untagged-2e94d403a7432a8aea7b)含程序 ZIP、对应第三方源码 ZIP、`engine-release.json` 和 `SHA256SUMS.txt`；未公开、未设为 Latest。
+- 程序 ZIP：5,814,734 字节，SHA-256 `bf276f77331fa167c5d2e01faab86de015a3adc219763192c4b1c5306f8850d9`。
+- 包内清单 SHA-256：`caeac0df4f6a21eafd19ef6624d13fdcc640b8f189a6c715a8c29c74f36bad7e`。
+- 下载到 `.engine-build/github-fairy-verified-release/` 后，核验全部附件校验和、清单与逐个资源，再在本机执行完整协议测试，通过。
+- Rust 实际执行 ZIP 安装、NNUE 与坐标试算、重新检测、篡改权重后拒绝启用，通过。
+
+云端 ZIP 和程序哈希均与本地用户验收包不同；云端包登记为
+`xiangqi-fairy-cloud-20261107`、`applicationTested=false`、`publicDownload=false`。
+云端自动验证不冒充该准确附件的客户端用户验收；原本地已验收包继续保留。
+源码配方工作区另有 `nnue=yes` 改动，未纳入上述提交和云端构建，不能据此改变既有包的构建记录。
+
+复测指定云端包：
+
+```powershell
+$env:QIDAO_TEST_FAIRY_PACKAGE_DIR = 'E:/git/qidao/.engine-build/github-fairy-verified-release'
+$env:QIDAO_TEST_FAIRY_PACKAGE_ID = 'xiangqi-fairy-cloud-20261107'
+cargo test --manifest-path src-tauri/engine-installer/Cargo.toml --locked real_fairy_package_uses_nnue_and_zero_based_coordinates -- --ignored
+```
+
+下一步是公开发行前核对源码与许可材料、选定正式包并接通匿名下载；
+Web/Android 需要另行构建 WASM、适配 Worker 及资源缓存，不能直接运行该 Windows EXE。

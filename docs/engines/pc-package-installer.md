@@ -7,8 +7,9 @@ Windows x64 的个人设置中，标准象棋和揭棋各自提供“引擎包�
 普通原生程序仍可手动选择，Fairy-Stockfish 的原有上游下载入口保留在标准象棋的“其他引擎”中。
 
 新安装器采用 [`native-packages.json`](native-packages.json) 中构建时固定的可信清单，
-包含本地已验收的 `test-20261107-03`、GitHub `engines-20261107.1` 草稿构建，以及 [Fairy NNUE 本地候选](fairy-nnue.md)，
-两者的 ZIP 及包内清单 SHA-256 分别固定，不能互相代替。
+包含本地已验收的 `test-20261107-03`、GitHub `engines-20261107.1` 草稿构建，以及
+[Fairy NNUE 本地已验收包和 `engines-20261107.2` 云端草稿](fairy-nnue.md)，
+各版本的 ZIP 及包内清单 SHA-256 分别固定，不能互相代替。
 选择文件后按大小和哈希自动识别，不依赖文件名；CPU 或棋种不匹配的包不会运行。
 清单以外的原生引擎可继续使用“选择程序”，不能通过 ZIP 安装器绕过固定版本校验。
 
