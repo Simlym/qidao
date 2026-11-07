@@ -87,7 +87,6 @@ Fairy-Stockfish + 明确 CC0 的象棋网络是商业默认候选，完成版本
 Web 使用 Release 附件仍需解决 CORS、Worker 同源加载和 COOP/COEP；
 Android 还需实测 WebView 缓存和资源协议，不假定可直接复用浏览器 Service Worker。
 
-PC 安装器下一阶段需从仅支持 Fairy-Stockfish 单个 EXE，扩展为按棋种选择固定 ZIP 包：
-校验 ZIP、受限解压、校验包内程序和匹配权重、分别使用象棋/揭棋 FEN 试算，
-再保存独立配置；取消和失败继续保留旧配置。真实 Release 附件存在并完成来源审核前，
-不将示例下载地址写成可安装项。
+PC 安装器已扩展为按棋种安装固定 ZIP 包，见[PC 安装器验证记录](pc-package-installer.md)。
+本地导入、受限解压、资源校验、象棋/揭棋独立试算及配置启用已接通。
+在线下载代码使用同仓库固定 Release 地址，但草稿版本保持禁用；不将示例或草稿地址写成有效下载项。

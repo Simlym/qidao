@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+pub mod packages;
 use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File},
@@ -382,6 +383,17 @@ impl Drop for ChildGuard {
 }
 
 pub fn smoke_test(path: &Path, cancel: &AtomicBool, timeout: Duration) -> Result<(), String> {
+    probe(path, cancel, timeout, "xiangqi", true, None)
+}
+
+fn probe(
+    path: &Path,
+    cancel: &AtomicBool,
+    timeout: Duration,
+    variant: &str,
+    fairy: bool,
+    network: Option<&Path>,
+) -> Result<(), String> {
     cancelled(cancel)?;
     let mut command = Command::new(path);
     command
@@ -413,24 +425,41 @@ pub fn smoke_test(path: &Path, cancel: &AtomicBool, timeout: Duration) -> Result
         input.write_all(b"uci\n").map_err(|e| e.to_string())?;
         let deadline = Instant::now() + timeout;
         wait_for(&receiver, "uciok", deadline, cancel)?;
-        input.write_all(b"setoption name UCI_Variant value xiangqi\nsetoption name Protocol value ucicyclone\nsetoption name Use NNUE value false\nsetoption name Threads value 1\nsetoption name Hash value 16\nisready\n").map_err(|e| e.to_string())?;
+        if fairy {
+            input.write_all(b"setoption name UCI_Variant value xiangqi\nsetoption name Protocol value ucicyclone\nsetoption name Use NNUE value false\n").map_err(|e| e.to_string())?;
+        }
+        if let Some(network) = network {
+            input
+                .write_all(
+                    format!("setoption name EvalFile value {}\n", network.display()).as_bytes(),
+                )
+                .map_err(|e| e.to_string())?;
+        }
+        input
+            .write_all(b"setoption name Threads value 1\nsetoption name Hash value 16\nisready\n")
+            .map_err(|e| e.to_string())?;
         wait_for(&receiver, "readyok", deadline, cancel)?;
+        let (fen, expected) = match variant {
+            "xiangqi" => (INITIAL_FEN, "h2e2"),
+            "jieqi" => ("xxxxkxxxx/9/1x5x1/x1x1x1x1x/9/9/X1X1X1X1X/1X5X1/9/XXXXKXXXX w A2B2N2R2C2P5a2b2n2r2c2p5 - 0 1", "g3g4"),
+            _ => return Err("不支持的引擎棋种".into()),
+        };
         input
             .write_all(
-                format!("position fen {INITIAL_FEN}\ngo depth 1 searchmoves h2e2\n").as_bytes(),
+                format!("position fen {fen}\ngo depth 1 searchmoves {expected}\n").as_bytes(),
             )
             .map_err(|e| e.to_string())?;
         let line = wait_for(&receiver, "bestmove ", deadline, cancel)?;
         let best = line.split_whitespace().nth(1).unwrap_or("");
         let bytes = best.as_bytes();
-        if best != "h2e2"
+        if best != expected
             || bytes.len() != 4
             || ![bytes[0], bytes[2]]
                 .iter()
                 .all(|c| (b'a'..=b'i').contains(c))
             || ![bytes[1], bytes[3]].iter().all(|c| c.is_ascii_digit())
         {
-            return Err("象棋试算未返回有效着法".into());
+            return Err("引擎试算未返回有效着法".into());
         }
         Ok(())
     })();

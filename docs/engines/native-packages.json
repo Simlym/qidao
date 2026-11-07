@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/Simlym/qidao",
+  "packages": [
+    {
+      "id": "jieqi-cloud-20261107",
+      "variant": "jieqi",
+      "engineId": "pikafish",
+      "name": "PikaJieQi",
+      "version": "jieqi-old-23b9466",
+      "fileName": "jieqi-pikafish-jieqi-old-23b9466-windows-x64-sse41-popcnt.zip",
+      "size": 8712047,
+      "sha256": "b7f2d047547a8f95e1752bf7943e6f59be9614221e873c3facfbff155cac2d15",
+      "manifestSha256": "d9dbeef9d5cee9adfe411b3742e6e06bc218b4b1d48665d8a1077d17bf25f453",
+      "entrypoint": "PikaJieQi.exe",
+      "networkPath": "pikafish.nnue",
+      "sourceCommit": "23b9466c981f0f3a1133f92de1a6f86406c4eccc",
+      "sourceUrl": "https://github.com/official-pikafish/Pikafish/tree/23b9466c981f0f3a1133f92de1a6f86406c4eccc",
+      "licenseUrl": "https://github.com/official-pikafish/Pikafish/blob/23b9466c981f0f3a1133f92de1a6f86406c4eccc/Copying.txt",
+      "requiresFeatures": [
+        "sse4.1",
+        "popcnt"
+      ],
+      "releaseTag": "engines-20261107.1",
+      "publicDownload": false
+    },
+    {
+      "id": "xiangqi-cloud-20261107",
+      "variant": "xiangqi",
+      "engineId": "pikafish",
+      "name": "Pikafish",
+      "version": "Pikafish-2026-01-02",
+      "fileName": "xiangqi-pikafish-Pikafish-2026-01-02-windows-x64-sse41-popcnt.zip",
+      "size": 54020871,
+      "sha256": "16b23ea34b83a0866d8a9c1150e66616494930b653cfec88a80fb085641473ec",
+      "manifestSha256": "c6286a86bbf89e32f1fdd7283e552eddd410072c7aaa7a6b84529552f5ee8da7",
+      "entrypoint": "pikafish.exe",
+      "networkPath": "pikafish.nnue",
+      "sourceCommit": "ce0679e00ee196f7ba17f6ec18941b9a5036f8cf",
+      "sourceUrl": "https://github.com/official-pikafish/Pikafish/tree/ce0679e00ee196f7ba17f6ec18941b9a5036f8cf",
+      "licenseUrl": "https://github.com/official-pikafish/Pikafish/blob/ce0679e00ee196f7ba17f6ec18941b9a5036f8cf/Copying.txt",
+      "requiresFeatures": [
+        "sse4.1",
+        "popcnt"
+      ],
+      "releaseTag": "engines-20261107.1",
+      "publicDownload": false
+    },
+    {
+      "id": "jieqi-local-tested-20261107",
+      "variant": "jieqi",
+      "engineId": "pikafish",
+      "name": "PikaJieQi",
+      "version": "jieqi-old-23b9466",
+      "fileName": "jieqi-pikafish-jieqi-old-23b9466-windows-x64-sse41-popcnt.zip",
+      "size": 8712188,
+      "sha256": "de5848b55ad8819222006efda494ccff5b175174f368b6fba33467aab3b3907d",
+      "manifestSha256": "355ff29f55647b21356bfbc85ed30f643e196d2a312e333a35ed5105a34e628d",
+      "entrypoint": "PikaJieQi.exe",
+      "networkPath": "pikafish.nnue",
+      "sourceCommit": "23b9466c981f0f3a1133f92de1a6f86406c4eccc",
+      "sourceUrl": "https://github.com/official-pikafish/Pikafish/tree/23b9466c981f0f3a1133f92de1a6f86406c4eccc",
+      "licenseUrl": "https://github.com/official-pikafish/Pikafish/blob/23b9466c981f0f3a1133f92de1a6f86406c4eccc/Copying.txt",
+      "requiresFeatures": [
+        "sse4.1",
+        "popcnt"
+      ],
+      "releaseTag": null,
+      "publicDownload": false
+    },
+    {
+      "id": "xiangqi-local-tested-20261107",
+      "variant": "xiangqi",
+      "engineId": "pikafish",
+      "name": "Pikafish",
+      "version": "Pikafish-2026-01-02",
+      "fileName": "xiangqi-pikafish-Pikafish-2026-01-02-windows-x64-sse41-popcnt.zip",
+      "size": 54021057,
+      "sha256": "68b3fb6c00ed825a169e7afc67cb0b10e6c19d029e2d940fc950a2a1bcf67752",
+      "manifestSha256": "e1b42bd5bd3017898c86bfe53a1a2ec10700881a9854121a4a46f52984a7799c",
+      "entrypoint": "pikafish.exe",
+      "networkPath": "pikafish.nnue",
+      "sourceCommit": "ce0679e00ee196f7ba17f6ec18941b9a5036f8cf",
+      "sourceUrl": "https://github.com/official-pikafish/Pikafish/tree/ce0679e00ee196f7ba17f6ec18941b9a5036f8cf",
+      "licenseUrl": "https://github.com/official-pikafish/Pikafish/blob/ce0679e00ee196f7ba17f6ec18941b9a5036f8cf/Copying.txt",
+      "requiresFeatures": [
+        "sse4.1",
+        "popcnt"
+      ],
+      "releaseTag": null,
+      "publicDownload": false
+    }
+  ]
+}

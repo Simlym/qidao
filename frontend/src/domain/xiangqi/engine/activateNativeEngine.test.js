@@ -35,3 +35,42 @@ test("首次安装启用失败后移除失败配置", async () => {
   await assert.rejects(activateNativeEngine({ path: "new.exe" }, h.options));
   assert.equal(h.saved(), null);
 });
+
+test("离开页面后到达的引擎就绪结果不会保留新配置", async () => {
+  const previous = { path: "old.exe" };
+  const h = harness(previous, ["native"]);
+  let current = true;
+  h.options.isCurrent = () => current;
+  h.options.manager.availableKinds = async () => { current = false; return ["native"]; };
+  await assert.rejects(activateNativeEngine({ path: "new.exe" }, h.options), /已取消/);
+  assert.equal(h.saved(), previous);
+});
+
+test("页面已离开时不开始启用引擎", async () => {
+  const h = harness({ path: "old.exe" }, ["native"]);
+  h.options.isCurrent = () => false;
+  await assert.rejects(activateNativeEngine({ path: "new.exe" }, h.options), /已取消/);
+  assert.equal(h.disposed(), 0);
+  assert.equal(h.saved().path, "old.exe");
+});
+
+test("新页面的启用等待旧事务回滚，不被迟到结果覆盖", async () => {
+  const h = harness({ path: "old.exe" }, ["native"]);
+  let current = true;
+  let started;
+  let release;
+  const entered = new Promise((resolve) => { started = resolve; });
+  const pending = new Promise((resolve) => { release = resolve; });
+  const first = activateNativeEngine({ path: "stale.exe" }, {
+    ...h.options,
+    isCurrent: () => current,
+    manager: { dispose: async () => {}, availableKinds: async () => { started(); await pending; return ["native"]; } },
+  });
+  await entered;
+  current = false;
+  const second = activateNativeEngine({ path: "latest.exe" }, h.options);
+  release();
+  await assert.rejects(first, /已取消/);
+  await second;
+  assert.equal(h.saved().path, "latest.exe");
+});

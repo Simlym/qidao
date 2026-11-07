@@ -302,7 +302,7 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
           <div className="settings-group">
             <div className="settings-heading"><h2>标准象棋引擎</h2><p>用于人机对弈、局面评分和着法提示。</p></div>
             {supportsNativeEngine(runtime)
-              ? <NativeEngineSettings manager={xiangqiEngine} />
+              ? <NativeEngineSettings key="xiangqi" manager={xiangqiEngine} />
               : <BrowserEngineSettings manager={xiangqiEngine} />}
           </div>
         )}
@@ -338,7 +338,7 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
               </div>
             </section>
             {supportsNativeEngine(runtime)
-              ? <NativeEngineSettings manager={jieqiEngine} variant="jieqi" label="揭棋 UCI 引擎" />
+              ? <NativeEngineSettings key="jieqi" manager={jieqiEngine} variant="jieqi" label="揭棋 UCI 引擎" />
               : <BrowserEngineSettings manager={jieqiEngine} variant="jieqi" />}
           </div>
         )}

@@ -9,6 +9,17 @@ permissions:
   contents: read
 
 jobs:
+  engine-installer:
+    name: 原生引擎安装器 (${{ matrix.os }})
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --manifest-path src-tauri/engine-installer/Cargo.toml --locked
+
   engine-tools:
     name: 引擎打包工具回归
     runs-on: windows-latest

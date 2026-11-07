@@ -1,5 +1,7 @@
 import React from "react";
 import NativeEngineInstaller from "./NativeEngineInstaller";
+import NativePackageInstaller from "./NativePackageInstaller";
+import { nativeInstallationProfile } from "../../domain/xiangqi/engine/nativeInstallationProfile";
 import { activateNativeEngine } from "../../domain/xiangqi/engine/activateNativeEngine";
 import {
   getNativeEngineProfile,
@@ -18,10 +20,15 @@ export default function NativeEngineSettings({
   const [path, setPath] = React.useState(() => initial?.path || "");
   const [threads, setThreads] = React.useState(() => initial?.threads || 2);
   const [hashMb, setHashMb] = React.useState(() => initial?.hashMb || 256);
-  const [installing, setInstalling] = React.useState(false);
+  const [installingSources, setInstallingSources] = React.useState({ package: false, legacy: false });
+  const installing = installingSources.package || installingSources.legacy;
+  const packageBusy = React.useCallback((value) => setInstallingSources((s) => ({ ...s, package: value })), []);
+  const legacyBusy = React.useCallback((value) => setInstallingSources((s) => ({ ...s, legacy: value })), []);
   const [checking, setChecking] = React.useState(false);
   const [statuses, setStatuses] = React.useState(null);
   const [platform, setPlatform] = React.useState(null);
+  const activationEpoch = React.useRef(0);
+  React.useEffect(() => () => { activationEpoch.current++; }, []);
 
   React.useEffect(() => {
     if (!supportsNativeEngine(runtime)) return;
@@ -59,21 +66,20 @@ export default function NativeEngineSettings({
   }
 
   async function activateProfile(profile) {
+    const current = activationEpoch.current;
     await activateNativeEngine(profile, {
       manager,
       readProfile: () => getNativeEngineProfile(variant),
       writeProfile: (value) => saveNativeEngineProfile(value, variant),
       removeProfile: () => removeNativeEngineProfile(variant),
+      isCurrent: () => current === activationEpoch.current,
     });
   }
 
   async function activateInstallation(result) {
-    await activateProfile({
-      path: result.enginePath, args: [], threads, hashMb,
-      uciVariant: result.receipt.uciVariant, uciProtocol: result.receipt.uciProtocol, useNnue: result.receipt.useNnue,
-    });
+    await activateProfile(nativeInstallationProfile(result, variant, { threads, hashMb }));
     setPath(result.enginePath);
-    setStatuses({ program: { ok: true, text: `已安装并启用：${result.enginePath}` }, nnue: null });
+    setStatuses({ program: { ok: true, text: `已安装并启用：${result.enginePath}` }, nnue: result.nnuePath ? { ok: true, text: `已校验匹配权重：${result.nnuePath}` } : null });
     onReady?.(true, "native");
   }
 
@@ -115,7 +121,7 @@ export default function NativeEngineSettings({
     <div className="native-engine-settings">
       <strong>PC 本地分析引擎</strong>
       <p className="muted">
-        可手动选择{label}程序或所在目录；Windows 标准象棋也可使用下方引导安装。
+        可手动选择{label}程序或所在目录；Windows 也可使用下方引擎包安装。
         {variant === "jieqi" && " 必须使用支持揭棋暗子局面的专用引擎，不能复用普通标准象棋引擎。"}
       </p>
       {platform && <p className="muted" style={{ fontSize: 12 }}>
@@ -125,7 +131,8 @@ export default function NativeEngineSettings({
       <p className="muted" style={{ fontSize: 12 }}>
         手动导入时，请根据上述平台信息选择引擎；程序与权重的许可需分别确认。
       </p>
-      {variant === "xiangqi" && platform?.os === "windows" && <NativeEngineInstaller externalBusy={checking} onActivate={activateInstallation} onBusyChange={setInstalling} />}
+      {platform?.os === "windows" && <NativePackageInstaller key={variant} variant={variant} externalBusy={checking || installingSources.legacy} onActivate={activateInstallation} onBusyChange={packageBusy} />}
+      {variant === "xiangqi" && platform?.os === "windows" && <details><summary>其他引擎：Fairy-Stockfish 上游下载</summary><NativeEngineInstaller externalBusy={checking || installingSources.package} onActivate={activateInstallation} onBusyChange={legacyBusy} /></details>}
       <div className="native-engine-input">
         <input
           value={path}

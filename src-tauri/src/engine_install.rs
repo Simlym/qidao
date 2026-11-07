@@ -134,12 +134,31 @@ pub async fn verify_native_engine_installation(
 }
 
 #[tauri::command]
-pub fn open_engine_install_link(link: String) -> Result<(), String> {
-    let catalog = installer::catalog()?;
-    let url = match link.as_str() {
-        "source" => catalog.source_url,
-        "license" => catalog.license_url,
-        _ => return Err("未知的引擎链接".into()),
+pub fn open_engine_install_link(
+    link: String,
+    variant: Option<String>,
+    package_id: Option<String>,
+) -> Result<(), String> {
+    let url = if let Some(id) = package_id {
+        let package = installer::packages::catalog(variant.as_deref().ok_or("缺少引擎棋种")?)?
+            .into_iter()
+            .find(|p| p.id == id)
+            .ok_or("未知的引擎包")?;
+        match link.as_str() {
+            "source" => package.source_url,
+            "license" => package.license_url,
+            "network" => {
+                "https://github.com/official-pikafish/Networks/blob/master/README.md".into()
+            }
+            _ => return Err("未知的引擎链接".into()),
+        }
+    } else {
+        let catalog = installer::catalog()?;
+        match link.as_str() {
+            "source" => catalog.source_url,
+            "license" => catalog.license_url,
+            _ => return Err("未知的引擎链接".into()),
+        }
     };
     #[cfg(target_os = "windows")]
     {
@@ -157,4 +176,113 @@ pub fn open_engine_install_link(link: String) -> Result<(), String> {
         let _ = url;
         Err("请在浏览器中查看安装清单中的来源与许可链接".into())
     }
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PackageInfo {
+    packages: Vec<installer::packages::Package>,
+    installed: Vec<installer::packages::Installation>,
+    busy: bool,
+}
+
+fn package_root(app: &tauri::AppHandle, variant: &str) -> Result<PathBuf, String> {
+    // 先由随包清单校验棋种，目录不接受前端自由拼接。
+    installer::packages::catalog(variant)?;
+    Ok(app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("engines")
+        .join(variant)
+        .join("pikafish"))
+}
+
+#[tauri::command]
+pub fn native_package_info(
+    variant: String,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Arc<InstallState>>,
+) -> Result<PackageInfo, String> {
+    let packages = installer::packages::catalog(&variant)?;
+    let platform = super::platform_info();
+    let installed = installer::packages::installed(&package_root(&app, &variant)?, &packages);
+    Ok(PackageInfo {
+        packages: packages
+            .into_iter()
+            .filter(|p| {
+                installer::packages::compatible(p, platform.os, platform.arch, &platform.features)
+            })
+            .collect(),
+        installed,
+        busy: state.busy.load(Ordering::Acquire),
+    })
+}
+
+#[tauri::command]
+pub async fn manage_native_package(
+    variant: String,
+    action: String,
+    package_id: Option<String>,
+    archive_path: Option<String>,
+    progress: Channel<installer::Progress>,
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Arc<InstallState>>,
+) -> Result<installer::packages::Installation, String> {
+    let platform = super::platform_info();
+    let packages: Vec<_> = installer::packages::catalog(&variant)?
+        .into_iter()
+        .filter(|p| {
+            installer::packages::compatible(p, platform.os, platform.arch, &platform.features)
+        })
+        .collect();
+    if packages.is_empty() {
+        return Err("当前系统或 CPU 不支持已登记的引擎包".into());
+    }
+    if !matches!(action.as_str(), "import" | "download" | "verify") {
+        return Err("未知的引擎包操作".into());
+    }
+    let root = package_root(&app, &variant)?;
+    if state
+        .busy
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .is_err()
+    {
+        return Err("已有引擎安装或检测正在进行".into());
+    }
+    let state = state.inner().clone();
+    let guard = BusyGuard(state.clone());
+    state.cancel.store(false, Ordering::Relaxed);
+    tauri::async_runtime::spawn_blocking(move || {
+        let _guard = guard;
+        let package = if action == "import" {
+            installer::packages::match_archive(
+                std::path::Path::new(archive_path.as_ref().ok_or("请选择 ZIP 引擎包")?),
+                &packages,
+            )?
+        } else {
+            packages
+                .into_iter()
+                .find(|p| Some(&p.id) == package_id.as_ref())
+                .ok_or("引擎包不在固定版本清单中")?
+        };
+        let report = |event| {
+            let _ = progress.send(event);
+        };
+        match action.as_str() {
+            "import" => installer::packages::install_archive(
+                &root,
+                &package,
+                std::path::Path::new(archive_path.as_ref().unwrap()),
+                &state.cancel,
+                report,
+            ),
+            "download" => {
+                installer::packages::download_install(&root, &package, &state.cancel, report)
+            }
+            _ => installer::packages::verify_installation(&root, &package, &state.cancel),
+        }
+    })
+    .await
+    .map_err(|e| format!("引擎包安装任务异常：{e}"))?
 }

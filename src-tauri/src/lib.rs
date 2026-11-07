@@ -285,6 +285,8 @@ pub fn run() {
             engine_install::cancel_native_engine_install,
             engine_install::verify_native_engine_installation,
             engine_install::open_engine_install_link,
+            engine_install::native_package_info,
+            engine_install::manage_native_package,
         ]);
     builder
         .setup(|app| {
