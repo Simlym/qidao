@@ -2,6 +2,35 @@
   "schemaVersion": 1,
   "records": [
     {
+      "id": "web-fairy-wasm-single-20261107-01",
+      "reportedOn": "2026-11-07",
+      "platform": "linux-chromium/windows-chrome",
+      "clientSourceCommit": "eb94c04",
+      "status": "automated-browser-passed",
+      "workflowUrl": "https://github.com/Simlym/qidao/actions/runs/42368271147",
+      "scope": "单线程版在无跨源隔离且无 SharedArrayBuffer 的真实浏览器通过 ZIP 下载校验、缓存安装、NNUE、红黑强制着法、MultiPV、停止和离线重启。本机另通过真实 ZIP 文件选择、立即连续停止与新局面搜索，测得停止响应约 21 毫秒；补充测试代码随本记录提交。不代表安卓真机、揭棋或公开发布通过",
+      "artifacts": [
+        {
+          "variant": "xiangqi",
+          "fileName": "xiangqi-fairy-stockfish-c07e94a5-d062eec1-wasm-single-v1.zip",
+          "sha256": "9b6c52ecdc7bae9c030b475c116347b5b86fd8aeefa1207dadce7f7d83d44f5a",
+          "manifestSha256": "7b5fa96f49319d09cc5eae822ff40c6c79b3f169b233efe3570ff28db852a762",
+          "sourceCommit": "d062eec1681dc8c805fed80dfa0528eeb554312b",
+          "sourceModified": true,
+          "threads": false
+        }
+      ]
+    },
+    {
+      "id": "web-wasm-zip-user-20261107-01",
+      "reportedOn": "2026-11-07",
+      "platform": "user-unspecified",
+      "status": "user-reported-passed",
+      "evidence": "用户在 ZIP 文件选择入口修改后确认：测试没问题，可以正常走棋",
+      "scope": "用户确认本地导入后可以正常走棋；未指定平台、附件校验值或逐项用例，不推定单线程候选及安卓真机验收通过",
+      "relatedEngineAcceptance": "web-fairy-wasm-20261107-01"
+    },
+    {
       "id": "pc-pikafish-20261107-01",
       "reportedOn": "2026-11-07",
       "platform": "windows-x64",

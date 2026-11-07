@@ -67,12 +67,28 @@ try {
     if (![1, 2, 3].every((index) => transcript.some((line) => line.includes(`multipv ${index} `)))) throw new Error("多候选输出不完整");
     const stopped = search(["go infinite"]);
     await new Promise((resolve) => setTimeout(resolve, 100));
+    const stopStarted = performance.now();
     worker.postMessage("stop");
     await stopped;
+    const stopLatencyMs = Math.round(performance.now() - stopStarted);
     const reset = await search(["ucinewgame", `position fen ${black}`, "go depth 2 searchmoves h7e7"]);
     if (!reset.startsWith("bestmove h7e7")) throw new Error("停止后新局面失效");
+    await new Promise((resolve, reject) => {
+      const moves = [];
+      const timer = setTimeout(() => { worker.removeEventListener("message", listen); reject(new Error("连续停止与重开超时")); }, 30000);
+      const listen = ({ data }) => {
+        if (typeof data !== "string" || !data.startsWith("bestmove ")) return;
+        moves.push(data);
+        if (moves.length !== 2) return;
+        clearTimeout(timer); worker.removeEventListener("message", listen);
+        if (moves[0].startsWith("bestmove h2e2") && moves[1].startsWith("bestmove h7e7")) resolve();
+        else reject(new Error(`连续搜索顺序错误：${moves.join(", ")}`));
+      };
+      worker.addEventListener("message", listen);
+      for (const command of [`position fen ${red}`, "go infinite searchmoves h2e2", "stop", "ucinewgame", `position fen ${black}`, "go depth 2 searchmoves h7e7"]) worker.postMessage(command);
+    });
     if (!transcript.some((line) => /NNUE evaluation using .* enabled/.test(line))) throw new Error("未确认 NNUE 启用");
-    return { status: "passed", profile, redMove, blackMove, multiPv: 3, stopAndReset: true, nnue: true, transcript };
+    return { status: "passed", profile, redMove, blackMove, multiPv: 3, stopAndReset: true, stopLatencyMs, queuedRestart: true, crossOriginIsolated, sharedArrayBuffer: typeof SharedArrayBuffer !== "undefined", nnue: true, transcript };
   }, spec);
   await context.setOffline(true);
   report.offlineRestart = await page.evaluate(async () => {

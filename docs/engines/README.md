@@ -80,6 +80,7 @@ local-engines/
 浏览器包格式见 [package-spec.md](package-spec.md)，推荐来源元数据见 [catalog.json](catalog.json)。
 
 Web / Android [WASM 在线安装](wasm-online-install.md)已接入设置页：固定包校验、
-暂存缓存、候选握手、取消和失败保留旧引擎。标准象棋 Fairy 线程版已完成真实 WASM 构建、
+暂存缓存、候选握手、取消和失败保留旧引擎。标准象棋 Fairy 线程版与单线程版已完成真实 WASM 构建、
 浏览器试算和离线重新启动验证，同源静态分发也已通过 Docker/Nginx 测试。
-推荐下载仍未开放；安卓真机、无共享内存的单线程路线与揭棋 WASM 待完成，后续统一发布。
+单线程版在无 SharedArrayBuffer 环境通过验证。推荐下载仍未开放；安卓真机、实际 HTTPS 部署
+与揭棋 WASM 待完成，后续统一发布。

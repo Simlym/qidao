@@ -36,7 +36,7 @@ NNUE 启用、红黑坐标、多候选和停止分析等构建验收。
 
 ## 统一发布前仍需完成
 
-1. 标准象棋 Fairy + CC0 线程版已完成构建与浏览器验收；继续评估无共享内存的单线程路线。
+1. 标准象棋 Fairy + CC0 线程版与单线程版均已完成构建与浏览器验收。
    揭棋仍需独立构建，并验证扩展 FEN 与限知协议，不复用普通象棋包。
 2. 部署静态分发目录并验证 HTTPS 站点，见下节。浏览器不再直接依赖 GitHub 附件的 CORS；
    GitHub URL 保留为固定发行身份，实际下载文件仍须通过相同大小与 SHA-256 检查。
@@ -80,8 +80,11 @@ MultiPV、停止搜索、新局面及离线重新启动。
 Docker 镜像固定到 SHA-256，匹配同一 CC0 象棋网络。
 构建入口为 `scripts/build_wasm_engine.py` 和手工触发的 `wasm-engine-candidate.yml`。
 产物包含匹配网络、GPL/CC0/署名、上游完整源码、棋岛 Worker 与构建脚本、镜像摘要及校验和。
-该上游采用 pthread：即使 `Threads=1` 仍要求 SharedArrayBuffer；当前候选必须标记 `threads=true`。
-没有把它标为可在不支持跨源隔离的 Android WebView 上使用的单线程版本。
+该上游采用 pthread：即使 `Threads=1` 仍要求 SharedArrayBuffer；线程版标记 `threads=true`。
+单线程版通过 `--flavor single` 在独立源码目录应用棋岛适配：移除 pthread 调度，搜索在一个
+Worker 中运行，使用 Asyncify 定期让出事件循环处理停止标志，其他 UCI 命令仍按顺序消费。
+包内附完整修改补丁，源码附件包含适配脚本；单线程版标记 `threads=false`，不使用共享内存。
+它仍需要 Worker、Service Worker 与 CacheStorage，不代表已通过安卓真机验收。
 
 安卓配置已按 [Tauri 官方响应头配置](https://v2.tauri.app/security/http-headers/)为应用资源加入
 COOP/COEP，不改变应用标识、来源协议或既有存储目录。它只提供隔离所需的响应头，
@@ -103,7 +106,7 @@ COOP/COEP，不改变应用标识、来源协议或既有存储目录。它只�
 
 候选保存为 GitHub Actions 测试产物，不创建正式 Release，不置为 Latest，也不改变现有 PC 引擎。
 WASM 包和源码附件的准确校验值见前端固定清单及 `acceptance.json`。
-待完成：安卓真机、无 SharedArrayBuffer 的单线程路线、揭棋 WASM 与统一公开发布。
+待完成：安卓真机、实际 HTTPS 部署、揭棋 WASM 与统一公开发布。
 
 最终文件位于本机 `dist-engines/wasm-20261107-01/`，可在支持跨源隔离的 Web 设置中
 点击“选择 ZIP 引擎包”直接导入，无需解压；也可使用已解压的 `package/` 子目录。
@@ -113,3 +116,19 @@ ZIP 为 `xiangqi-fairy-stockfish-c07e94a5-d062eec1-wasm-threads.zip`，5,497,658
 SHA-256 `50a5a24e73cede25218281d7a4e76ff2aea484bc6656f8d57cdc59906edc29b2`；
 清单 SHA-256 `26f225eab76c871947b4fad3b15be028b305a922d16998f6701b2fbf2bf95f7e`。
 `engines-20261107.3` 仅预留为候选的计划发行标签，尚未创建该 Release。
+
+## 单线程候选验收（2026-11-07）
+
+[单线程构建与浏览器测试](https://github.com/Simlym/qidao/actions/runs/42368271147)
+基于棋岛提交 `eb94c04`，使用同一固定上游提交、镜像和 CC0 NNUE。
+Ubuntu / Chromium 与本机 Windows / Chrome 均在 `crossOriginIsolated=false` 且
+`SharedArrayBuffer` 不存在的环境通过安装、NNUE、红黑着法、MultiPV、停止和离线重启。
+本机补充验证真实 ZIP 文件选择，以及立即排队停止旧搜索并启动新局面的命令顺序；
+本次停止响应约 21 毫秒，该数值仅为本机测试结果。
+
+文件位于本机 `dist-engines/wasm-single-20261107-01/`：
+`xiangqi-fairy-stockfish-c07e94a5-d062eec1-wasm-single-v1.zip`，5,418,500 字节，
+SHA-256 `9b6c52ecdc7bae9c030b475c116347b5b86fd8aeefa1207dadce7f7d83d44f5a`；
+清单 SHA-256 `7b5fa96f49319d09cc5eae822ff40c6c79b3f169b233efe3570ff28db852a762`。
+该包登记在推荐列表首位，保留线程版供选择，现有已安装引擎不会自动替换。
+`engines-20261107.4` 仅为计划发行标签，`publicDownload=false`；不创建公开 Release。
