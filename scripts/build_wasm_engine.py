@@ -24,24 +24,35 @@ def sha(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--flavor", choices=["threads", "single"], default="threads")
     args = parser.parse_args()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     source = output / "source"
     run("git", "clone", "--no-checkout", REPO, source)
     run("git", "-C", source, "checkout", "--detach", COMMIT)
+    single = args.flavor == "single"
+    if single:
+        from wasm.single_thread import apply
+        apply(source)
     run("docker", "pull", IMAGE)
     image = subprocess.check_output(["docker", "image", "inspect", IMAGE, "--format", "{{index .RepoDigests 0}}"], text=True).strip()
     arguments = ["make", "-C", "/src/src", "-j2", "build", "ARCH=wasm", "largeboards=yes",
                  "nnue=no", "embedded_nnue=no", "wasm_simd=no", "minify_js=no", "EM_UPSTREAM=84dd49a4"]
     run("docker", "run", "--rm", "-v", f"{source}:/src", image, *arguments)
     # 上游 emscripten_build 的两个前置目标没有先后依赖，不能在 -j 下同时构建和复制。
-    run("docker", "run", "--rm", "-v", f"{source}:/src", image,
-        *["emscripten_copy_files" if item == "build" else item for item in arguments])
+    if not single:
+        run("docker", "run", "--rm", "-v", f"{source}:/src", image,
+            *["emscripten_copy_files" if item == "build" else item for item in arguments])
     stage = output / "package"
     stage.mkdir()
-    for name in ["stockfish.js", "stockfish.wasm", "stockfish.worker.js"]:
-        shutil.copyfile(source / "src/emscripten/public" / name, stage / name)
+    runtime_files = ["stockfish.js", "stockfish.wasm"] + ([] if single else ["stockfish.worker.js"])
+    runtime_dir = source / "src" if single else source / "src/emscripten/public"
+    for name in runtime_files:
+        shutil.copyfile(runtime_dir / name, stage / name)
+    if single:
+        patch = subprocess.check_output(["git", "-C", str(source), "diff", "--binary"])
+        (stage / "qidao-single-thread.patch").write_bytes(patch)
     shutil.copyfile(ROOT / "scripts/wasm/engine.worker.js", stage / "engine.worker.js")
     network = stage / "xiangqi-c07e94a5c7cb.nnue"
     with urllib.request.urlopen(NETWORK_URL, timeout=120) as response:
@@ -57,23 +68,27 @@ def main():
     (stage / "SOURCE.md").write_text(f"# Fairy WASM 候选\n\n源码：{REPO}\n提交：{COMMIT}\n"
         f"工具镜像：{image}\n构建参数：{' '.join(arguments)}\n权重：{NETWORK_URL}\n"
         "构建脚本和棋岛 Worker 适配见配套 qidao-wasm-build-source.zip；上游源码见 fairy-wasm-source.zip。\n"
-        "线程版，要求 SharedArrayBuffer / COOP / COEP；Threads=1 仍需要线程运行时。尚未公开发布。\n", encoding="utf-8")
-    manifest = {"schemaVersion": 1, "id": "fairy-xiangqi-c07e94a5-wasm-threads", "name": "Fairy-Stockfish NNUE",
-                "version": f"c07e94a5-{COMMIT[:8]}", "variant": "xiangqi", "runtime": "wasm", "protocol": "uci",
-                "entrypoint": "engine.worker.js", "threads": True, "sourceCommit": COMMIT, "sourceUrl": REPO,
+        + ("单线程适配 v1，不依赖 SharedArrayBuffer；补丁随包提供，Asyncify 协作处理停止。尚未公开发布。\n" if single else
+           "线程版，要求 SharedArrayBuffer / COOP / COEP；Threads=1 仍需要线程运行时。尚未公开发布。\n"), encoding="utf-8")
+    suffix = "single-v1" if single else "threads"
+    manifest = {"schemaVersion": 1, "id": f"fairy-xiangqi-c07e94a5-wasm-{suffix}", "name": "Fairy-Stockfish NNUE",
+                "version": f"c07e94a5-{COMMIT[:8]}" + ("-single-v1" if single else ""), "variant": "xiangqi", "runtime": "wasm", "protocol": "uci",
+                "entrypoint": "engine.worker.js", "threads": not single, "sourceCommit": COMMIT, "sourceUrl": REPO,
+                "sourceModified": single,
                 "engineLicense": "GPL-3.0", "networkLicense": "CC0-1.0", "buildImage": image, "assets": []}
     for path in sorted(stage.rglob("*")):
         if path.is_file():
             manifest["assets"].append({"path": path.relative_to(stage).as_posix(), "size": path.stat().st_size,
                 "sha256": sha(path), "role": "evaluation-network" if path == network else "file"})
     (stage / "engine-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    archive = output / "xiangqi-fairy-stockfish-c07e94a5-d062eec1-wasm-threads.zip"
+    archive = output / f"xiangqi-fairy-stockfish-c07e94a5-d062eec1-wasm-{suffix}.zip"
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zip:
         for path in sorted(stage.rglob("*")):
             if path.is_file(): zip.write(path, path.relative_to(stage))
     run("git", "-C", source, "archive", "--format=zip", f"--output={output / 'fairy-wasm-source.zip'}", COMMIT)
     with zipfile.ZipFile(output / "qidao-wasm-build-source.zip", "w", zipfile.ZIP_DEFLATED) as zip:
-        for name in ["scripts/build_wasm_engine.py", "scripts/wasm/engine.worker.js"]:
+        for name in ["scripts/build_wasm_engine.py", "scripts/wasm/engine.worker.js", "scripts/wasm/single_thread.py",
+                     "scripts/wasm/single-preamble.js", "docs/licenses/CC0-1.0.txt", "docs/licenses/Fairy-Xiangqi-NNUE.md"]:
             zip.write(ROOT / name, name)
     (output / "build-result.json").write_text(json.dumps({"fileName": archive.name, "size": archive.stat().st_size,
         "sha256": sha(archive), "manifestSha256": sha(stage / "engine-manifest.json"), "manifest": manifest}, ensure_ascii=False, indent=2), encoding="utf-8")

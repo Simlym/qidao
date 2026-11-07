@@ -1,6 +1,12 @@
 name: WASM 象棋候选构建
 on:
   workflow_dispatch:
+    inputs:
+      flavor:
+        description: WASM 运行时
+        type: choice
+        options: [single, threads]
+        default: single
 permissions:
   contents: read
 jobs:
@@ -43,7 +49,9 @@ jobs:
         with:
           python-version: '3.11'
       - name: 固定上游源码与工具镜像构建
-        run: python scripts/build_wasm_engine.py --output dist-engines/wasm-candidate
+        env:
+          FLAVOR: ${{ inputs.flavor }}
+        run: python scripts/build_wasm_engine.py --output dist-engines/wasm-candidate --flavor "$FLAVOR"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

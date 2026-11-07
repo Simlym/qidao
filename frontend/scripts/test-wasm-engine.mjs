@@ -10,14 +10,16 @@ const directory = resolve(process.argv[2]);
 const result = JSON.parse(readFileSync(resolve(directory, "build-result.json"), "utf8"));
 const archive = readFileSync(resolve(directory, result.fileName));
 const spec = { id: "wasm-browser-candidate", packageId: result.manifest.id, name: result.manifest.name,
-  version: result.manifest.version, variant: "xiangqi", runtime: "wasm", threads: true, publicDownload: true,
+  version: result.manifest.version, variant: "xiangqi", runtime: "wasm", threads: Boolean(result.manifest.threads), publicDownload: true,
   releaseTag: "engines-20261107.3", fileName: result.fileName, size: result.size, sha256: result.sha256,
   manifestSha256: result.manifestSha256,
   url: `https://github.com/Simlym/qidao/releases/download/engines-20261107.3/${result.fileName}` };
 const vite = await createServer({ root: resolve("frontend"), server: { middlewareMode: true }, appType: "custom" });
 const server = httpServer(async (request, response) => {
-  response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-  response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+  if (spec.threads) {
+    response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+  }
   if (request.url === "/harness") {
     response.setHeader("Content-Type", "text/html");
     response.end(await vite.transformIndexHtml("/harness", '<!doctype html><html><head><title>WASM 验收</title></head><body><div id="root"></div></body></html>'));
@@ -37,6 +39,7 @@ try {
     const { installBrowserEngine } = await import("/src/domain/xiangqi/engine/browserEngineInstaller.js");
     const local = await import("/src/domain/xiangqi/engine/localEngine.js");
     const { ensureBrowserEngineStorage } = await import("/src/platform/browserEngineStorage.js");
+    if (!spec.threads && (crossOriginIsolated || typeof SharedArrayBuffer !== "undefined")) throw new Error("单线程测试必须在无共享内存环境执行");
     await ensureBrowserEngineStorage();
     const profile = await installBrowserEngine(spec, "xiangqi", {
       deliveryUrl: () => "/candidate.zip", probe: local.probeBrowserEngineProfile,
