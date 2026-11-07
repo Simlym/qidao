@@ -1,0 +1,25 @@
+name: WASM 象棋候选构建
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 固定上游源码与工具镜像构建
+        run: python scripts/build_wasm_engine.py --output dist-engines/wasm-candidate
+      - name: 保存未发布候选与完整源码材料
+        uses: actions/upload-artifact@v4
+        with:
+          name: fairy-wasm-candidate
+          path: |
+            dist-engines/wasm-candidate/*.zip
+            dist-engines/wasm-candidate/*.json
+            dist-engines/wasm-candidate/*.txt
+          retention-days: 14
