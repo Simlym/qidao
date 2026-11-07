@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "records": [
+    {
+      "id": "pc-pikafish-20261107-01",
+      "reportedOn": "2026-11-07",
+      "platform": "windows-x64",
+      "applicationVersion": null,
+      "cpu": null,
+      "status": "user-reported-passed",
+      "evidence": "用户在本聊天中确认：我用pc的客户端验证了，都正常",
+      "scope": "用户确认两个新源码构建包均可在 PC 客户端正常使用；未逐项报告测试用例，不推定 Web、Android、其他 CPU 构建或全部异步生命周期测试通过",
+      "artifacts": [
+        {
+          "variant": "xiangqi",
+          "fileName": "xiangqi-pikafish-Pikafish-2026-01-02-windows-x64-sse41-popcnt.zip",
+          "sha256": "68b3fb6c00ed825a169e7afc67cb0b10e6c19d029e2d940fc950a2a1bcf67752",
+          "sourceCommit": "ce0679e00ee196f7ba17f6ec18941b9a5036f8cf"
+        },
+        {
+          "variant": "jieqi",
+          "fileName": "jieqi-pikafish-jieqi-old-23b9466-windows-x64-sse41-popcnt.zip",
+          "sha256": "de5848b55ad8819222006efda494ccff5b175174f368b6fba33467aab3b3907d",
+          "sourceCommit": "23b9466c981f0f3a1133f92de1a6f86406c4eccc"
+        }
+      ]
+    }
+  ]
+}

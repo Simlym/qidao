@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "notice": "提供上游项目信息；Windows 默认引导安装的固定版本与校验值见 install-catalog.json。项目不托管或代理引擎文件。",
+  "notice": "提供上游项目信息，不代表实机验证或允许分发。当前 Windows 下载仍使用 install-catalog.json；后续同仓库 Release 方案见 releases.md，本地测试基线见 baseline-sources.json 和 baseline-lock.json。",
   "engines": [
     {
       "id": "fairy-stockfish",

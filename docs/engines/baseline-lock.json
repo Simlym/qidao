@@ -1,0 +1,375 @@
+{
+  "schemaVersion": 1,
+  "packages": [
+    {
+      "id": "pikafish-xiangqi-2026-01-02",
+      "files": [
+        {
+          "path": "android-arm64/meta.json",
+          "size": 149,
+          "sha256": "2a16dfd593ce997ac9fc766fc4967de566793775903f292a757dd48ba8f05f5e"
+        },
+        {
+          "path": "android-arm64/pikafish-armv8",
+          "size": 1768392,
+          "sha256": "66c3115f1550abc0496d29463bae36353a0a1782af52f9ed6faf5b75502785c6"
+        },
+        {
+          "path": "android-arm64/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "android-arm64-dotprod/meta.json",
+          "size": 157,
+          "sha256": "ffa07373e271f5b5eeae856d53b16b2bf30b97caf10cd6a58bdaaf1c9d140298"
+        },
+        {
+          "path": "android-arm64-dotprod/pikafish",
+          "size": 1768840,
+          "sha256": "eee9e61eef91b67dc06a39d7b1dc68aefb881dca985da08012a1f9350a7b7e45"
+        },
+        {
+          "path": "android-arm64-dotprod/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "linux-x64-avx2/meta.json",
+          "size": 144,
+          "sha256": "e9ec6936ae71e6baea29c828c375b69b57f4f5db78e93b0b4ca8c13655b0dd48"
+        },
+        {
+          "path": "linux-x64-avx2/pikafish",
+          "size": 769584,
+          "sha256": "98b569626c1f49932d5f8b5571740fe75e1a28beaa75cfd2feda87db2773f8bc"
+        },
+        {
+          "path": "linux-x64-avx2/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "linux-x64-avx512/meta.json",
+          "size": 146,
+          "sha256": "70fcd62dad2a3c653c30867ce6a5995c867597de3df2b39836e5641b1d6b2411"
+        },
+        {
+          "path": "linux-x64-avx512/pikafish",
+          "size": 708144,
+          "sha256": "1de676211d9efcf039b5f996fbafeb9669dce8b861d138c19442ccd666c935b7"
+        },
+        {
+          "path": "linux-x64-avx512/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "linux-x64-avx512icl/meta.json",
+          "size": 149,
+          "sha256": "17fa3dc507b50ea4ac3c0f847b84d7ec2886bef78fd08818930d082d07ebec2f"
+        },
+        {
+          "path": "linux-x64-avx512icl/pikafish",
+          "size": 712240,
+          "sha256": "294be5f2995478b893d79e82eb4e34d702119cd627c3480f5784b9727d9695d9"
+        },
+        {
+          "path": "linux-x64-avx512icl/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "linux-x64-avxvnni/meta.json",
+          "size": 147,
+          "sha256": "f2093247a1f175d9ba36ad090d0cb1a1b99277b74ad392c691f9792490b4917b"
+        },
+        {
+          "path": "linux-x64-avxvnni/pikafish",
+          "size": 704048,
+          "sha256": "ffa50b2bdf04bc7e3ec5c0f9355497eccb4da4c34290496106568cc744ff77f0"
+        },
+        {
+          "path": "linux-x64-avxvnni/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "linux-x64-bmi2/meta.json",
+          "size": 144,
+          "sha256": "0a9fc4417eb80dcb0cbed4f7d413eefbc868b29971ed642af83cae9620d8df63"
+        },
+        {
+          "path": "linux-x64-bmi2/pikafish",
+          "size": 708144,
+          "sha256": "3ed3e8152a3057809909c4351911ddd4d14fc7fdc074ff0da4ff10b9176f6ea5"
+        },
+        {
+          "path": "linux-x64-bmi2/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "linux-x64-sse41-popcnt/meta.json",
+          "size": 152,
+          "sha256": "024362b36b1f511bd8ff9473c4d98f16dd00281a5c5e1119a06dda96ba0e1b94"
+        },
+        {
+          "path": "linux-x64-sse41-popcnt/pikafish",
+          "size": 765488,
+          "sha256": "be780323c9d1bb03771d6a59f6ce8020970aaf97db245b9e1cebe3b9dcd792c9"
+        },
+        {
+          "path": "linux-x64-sse41-popcnt/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "linux-x64-vnni512/meta.json",
+          "size": 147,
+          "sha256": "2123d72f2f10400eb838a4d2c121ed36558feabb7bdc5b0a6561b230a1007b53"
+        },
+        {
+          "path": "linux-x64-vnni512/pikafish",
+          "size": 712240,
+          "sha256": "1f7efdbd42b561a8c8ff90d501f0c7b0804335be80384cdef5a467c2380da063"
+        },
+        {
+          "path": "linux-x64-vnni512/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "macos-arm64/meta.json",
+          "size": 155,
+          "sha256": "0b9dd02d54aab5ce0f4b31f02bbf72914ffc61bf7fe8005d04f5dd2f11b4fbff"
+        },
+        {
+          "path": "macos-arm64/pikafish",
+          "size": 647384,
+          "sha256": "58e859f6adb67c45b86a4a25388c521e3d69492911042a9aa500b2e6935baf63"
+        },
+        {
+          "path": "macos-arm64/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "windows-x64-avx2/meta.json",
+          "size": 150,
+          "sha256": "cf1d28e83ca33560a1da29b82722e95cf076992aaca05b69dcaa0a13713fa90a"
+        },
+        {
+          "path": "windows-x64-avx2/pikafish.exe",
+          "size": 1592320,
+          "sha256": "a230d4ff63923eb4bfc82d5c86957201b64290c8bc0d752226b4d780a80fa7eb"
+        },
+        {
+          "path": "windows-x64-avx2/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "windows-x64-avx512/meta.json",
+          "size": 152,
+          "sha256": "cd539bfcd60dbb6795cbe75c98f613dd7de7e4dfe8ab2dbd3fb5c0b740d06be9"
+        },
+        {
+          "path": "windows-x64-avx512/pikafish.exe",
+          "size": 1526784,
+          "sha256": "38e988912b62592d94dcd64573e0a115198502ab0e054bc620b4657e08d89f80"
+        },
+        {
+          "path": "windows-x64-avx512/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "windows-x64-avx512icl/meta.json",
+          "size": 155,
+          "sha256": "c02e43e39f342aabd4e5f41c5b301cffe7cb26df54baa9bf7bca546f12a3d0bd"
+        },
+        {
+          "path": "windows-x64-avx512icl/pikafish.exe",
+          "size": 1528832,
+          "sha256": "d75f6202533fdb9e65c1b02f3b18eaef6ac77c7636bf976ebbf34172c4f18f2f"
+        },
+        {
+          "path": "windows-x64-avx512icl/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "windows-x64-avxvnni/meta.json",
+          "size": 153,
+          "sha256": "088344fb52da04eeb54c6a85c2b2a89060a4aa8168917fccb329cfb7ae65a717"
+        },
+        {
+          "path": "windows-x64-avxvnni/pikafish.exe",
+          "size": 1528320,
+          "sha256": "013161b469559552ccce8ac6af22b25b964ba75504b07d04dfc41cfe485c15d0"
+        },
+        {
+          "path": "windows-x64-avxvnni/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "windows-x64-bmi2/meta.json",
+          "size": 157,
+          "sha256": "24dd521b604cd22f24528d20e8ab474190d9036e4008bf678ebd113df60d9013"
+        },
+        {
+          "path": "windows-x64-bmi2/pikafish.exe",
+          "size": 1528832,
+          "sha256": "83429d412a9678d08ed374735db370869008f955cbb1af4d76df0a0ed853ca04"
+        },
+        {
+          "path": "windows-x64-bmi2/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "windows-x64-sse41-popcnt/meta.json",
+          "size": 158,
+          "sha256": "f53704b11851a339e1607f68ed9cdd4ee4721714974461d83631ced3e28497b1"
+        },
+        {
+          "path": "windows-x64-sse41-popcnt/pikafish.exe",
+          "size": 1583616,
+          "sha256": "39e7412287dfd16561a0b88cbbecda6eebbfd4bea1984c3f1a30960bf249dc74"
+        },
+        {
+          "path": "windows-x64-sse41-popcnt/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "windows-x64-vnni512/meta.json",
+          "size": 153,
+          "sha256": "dbb4f36ca92a83215752d11b1d44ddb10e993c84c44a07a02541a4b261b9ce30"
+        },
+        {
+          "path": "windows-x64-vnni512/pikafish.exe",
+          "size": 1530368,
+          "sha256": "0a4f3f648116a4bbd489a8174bcc370d242f44ba37b6c756045cf3990228cdc7"
+        },
+        {
+          "path": "windows-x64-vnni512/pikafish.nnue",
+          "size": 53212941,
+          "sha256": "c4026370d7516d9b0f668447f9ca1931241538bdc689cde6fec6a991ac4d5f77"
+        },
+        {
+          "path": "指令集变体说明.md",
+          "size": 3832,
+          "sha256": "ddb44f8fd6e1ea9169729bcb976ad1ad704f32c8a6c30eab5841da5db3dbc39a"
+        }
+      ]
+    },
+    {
+      "id": "pikafish-jieqi-23b9466",
+      "files": [
+        {
+          "path": "android-arm64/Copying.txt",
+          "size": 35821,
+          "sha256": "0b383d5a63da644f628d99c33976ea6487ed89aaa59f0b3257992deac1171e6b"
+        },
+        {
+          "path": "android-arm64/pikafish.nnue",
+          "size": 8102906,
+          "sha256": "c02ea63a35e338faf8d0842e0610befc92b95658cddaa13e8f7d5457cef7891b"
+        },
+        {
+          "path": "android-arm64/PikaJieQi",
+          "size": 1064056,
+          "sha256": "efc1d28b3440625269186f5d3be59cf53da9e9097655dd8cabb30c21751cc8ed"
+        },
+        {
+          "path": "android-arm64/README.txt",
+          "size": 1256,
+          "sha256": "4dfd2cc8a1578d0489bd0ead0e3e94f42c9da839b867a7d631dff2bac96bd4b2"
+        },
+        {
+          "path": "linux-x64-sse41-popcnt/Copying.txt",
+          "size": 35821,
+          "sha256": "0b383d5a63da644f628d99c33976ea6487ed89aaa59f0b3257992deac1171e6b"
+        },
+        {
+          "path": "linux-x64-sse41-popcnt/meta.json",
+          "size": 159,
+          "sha256": "f89344a635d7b7f4edf3aa2ad1ec52df1530c7cc8e4995f3ea3e1e40477604f9"
+        },
+        {
+          "path": "linux-x64-sse41-popcnt/pikafish.nnue",
+          "size": 8102906,
+          "sha256": "c02ea63a35e338faf8d0842e0610befc92b95658cddaa13e8f7d5457cef7891b"
+        },
+        {
+          "path": "linux-x64-sse41-popcnt/PikaJieQi",
+          "size": 355408,
+          "sha256": "07030075340160e9869218c22e76435f3767ad365a9327efaf5b2f4661ef412c"
+        },
+        {
+          "path": "linux-x64-sse41-popcnt/README.txt",
+          "size": 942,
+          "sha256": "640e294dee33bc196a8f700aaefe4053d552989b0397a6eb69f2a3553bc503b7"
+        },
+        {
+          "path": "windows-x64-avxvnni/Copying.txt",
+          "size": 35821,
+          "sha256": "0b383d5a63da644f628d99c33976ea6487ed89aaa59f0b3257992deac1171e6b"
+        },
+        {
+          "path": "windows-x64-avxvnni/pikafish.nnue",
+          "size": 8102906,
+          "sha256": "c02ea63a35e338faf8d0842e0610befc92b95658cddaa13e8f7d5457cef7891b"
+        },
+        {
+          "path": "windows-x64-avxvnni/PikaJieQi.exe",
+          "size": 3391531,
+          "sha256": "ff9f195cc56da4cf3983113ed55df7637c0385829e925c9fea6db4d3523c4dbd"
+        },
+        {
+          "path": "windows-x64-avxvnni/README.txt",
+          "size": 972,
+          "sha256": "543e62324453df1fdca0e257801b4085717c81505927f221d1f204608df1d378"
+        }
+      ]
+    },
+    {
+      "id": "pikafish-xiangqi-wasm-legacy",
+      "files": [
+        {
+          "path": "engine-manifest.json",
+          "size": 528,
+          "sha256": "85af61496052752b22b6ce14a7f63ae4b89ae32b3e37ba6f074c17f8168940c1"
+        },
+        {
+          "path": "pikafish.data",
+          "size": 36085723,
+          "sha256": "2e9280f355cd4f092fcb63c21477692100afaf9ba9868a10c9c8d5b8fc6d1d1f"
+        },
+        {
+          "path": "pikafish.js",
+          "size": 153691,
+          "sha256": "06e858fe0d6b117004a0b649626eefdd3e74bad456f630a819ee733ceea84d81"
+        },
+        {
+          "path": "pikafish.wasm",
+          "size": 584274,
+          "sha256": "aa6c8147be9387b75493d1da89319566b897412d76c6815bc61430b1d4f2c82e"
+        },
+        {
+          "path": "pikafish.worker.js",
+          "size": 1000,
+          "sha256": "6e307920fa63b6b51a64c09cf63143f484b8d593afad0352743ea6dbf9210f03"
+        },
+        {
+          "path": "worker-smoke.html",
+          "size": 1121,
+          "sha256": "aa6324bc0e6c81cf6a397de3dd88acee404d5453e200db3b2b941161a5a7fbc9"
+        }
+      ]
+    }
+  ]
+}

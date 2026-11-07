@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/official-pikafish/Pikafish.git",
+  "toolchain": {
+    "version": "w64devkit-2.11.0",
+    "url": "https://github.com/skeeto/w64devkit/releases/download/v2.11.0/w64devkit-x64-2.11.0.7z.exe",
+    "sha256": "54c2bb9962e8a30c8270e34c5efc3d5fee579f53087fa7d435b95fbba2af7b2b"
+  },
+  "engines": {
+    "xiangqi": {
+      "version": "Pikafish-2026-01-02",
+      "commit": "ce0679e00ee196f7ba17f6ec18941b9a5036f8cf",
+      "executable": "pikafish.exe",
+      "networkArchiveUrl": "https://github.com/official-pikafish/Pikafish/releases/download/Pikafish-2026-01-02/Pikafish.2026-01-02.7z",
+      "networkArchiveSha256": "84257063905615919fb4ee6a70273a94843bb6ec04c45e3ac706098838bc1a49",
+      "networkLicenseUrl": "https://github.com/official-pikafish/Networks/blob/master/README.md",
+      "applicationTestEvidence": {
+        "record": "docs/engines/acceptance.json#pc-pikafish-20261107-01",
+        "artifactSha256": "68b3fb6c00ed825a169e7afc67cb0b10e6c19d029e2d940fc950a2a1bcf67752"
+      },
+      "distribution": "pending-review"
+    },
+    "jieqi": {
+      "version": "jieqi-old-23b9466",
+      "commit": "23b9466c981f0f3a1133f92de1a6f86406c4eccc",
+      "executable": "PikaJieQi.exe",
+      "networkArchiveUrl": "https://github.com/official-pikafish/Pikafish/releases/download/Pikafish-2022-12-26/Pikafish.2022-12-26.zip",
+      "networkArchiveSha256": "1cbda939cff9a048d1b5987a3f212395d0ea5fc115d30a355f95b34af26298fc",
+      "networkLicenseUrl": "https://github.com/official-pikafish/Networks/blob/master/README.md",
+      "applicationTestEvidence": {
+        "record": "docs/engines/acceptance.json#pc-pikafish-20261107-01",
+        "artifactSha256": "de5848b55ad8819222006efda494ccff5b175174f368b6fba33467aab3b3907d"
+      },
+      "distribution": "pending-review"
+    }
+  }
+}

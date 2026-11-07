@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/Simlym/qidao",
+  "packages": [
+    {
+      "id": "pikafish-xiangqi-2026-01-02",
+      "variant": "xiangqi",
+      "runtime": "native",
+      "directory": "local-engines/xiangqi/native/pikafish/2026-01-02",
+      "version": "Pikafish-2026-01-02",
+      "versionEvidence": "本地目录与 meta.json；尚未核对上游源码提交和二进制来源",
+      "sourceUrl": "https://github.com/official-pikafish/Pikafish",
+      "sourceCommit": null,
+      "engineLicense": "GPL-3.0",
+      "networkLicenseUrl": "https://github.com/official-pikafish/Networks/blob/master/README.md",
+      "verification": {
+        "status": "user-reported-pc-working",
+        "note": "用户确认 PC 标准象棋可正常使用；未记录具体 CPU 构建、测试日期和完整用例，不能推定目录内所有平台均已验证"
+      },
+      "distribution": { "status": "pending-review", "note": "权重商业使用及再分发权限、对应源码材料尚未确认，不进入公开发行清单" },
+      "protocol": { "name": "uci", "coordinates": "a0-i9", "options": {}, "network": "pikafish.nnue" }
+    },
+    {
+      "id": "pikafish-jieqi-23b9466",
+      "variant": "jieqi",
+      "runtime": "native",
+      "directory": "local-engines/jieqi/native/pikafish/jieqi-old-23b9466",
+      "version": "jieqi-old-23b9466",
+      "versionEvidence": "本地 README.txt 记载的源码提交；尚未复现编译",
+      "sourceUrl": "https://github.com/official-pikafish/Pikafish/tree/23b9466c981f0f3a1133f92de1a6f86406c4eccc",
+      "sourceCommit": "23b9466c981f0f3a1133f92de1a6f86406c4eccc",
+      "engineLicense": "GPL-3.0",
+      "networkLicenseUrl": "https://github.com/official-pikafish/Networks/blob/master/README.md",
+      "networkEvidence": "本地 README.txt 记载来自 Pikafish 2022-12-26 发布包；需核对该历史文件的实际许可",
+      "verification": {
+        "status": "user-reported-pc-working",
+        "note": "用户确认 PC 揭棋可正常使用；其他平台、限知输入及分析生命周期仍需专项回归"
+      },
+      "distribution": { "status": "pending-review", "note": "历史权重来源、商业使用及再分发权限、对应源码材料尚未确认，不进入公开发行清单" },
+      "protocol": { "name": "uci", "coordinates": "a0-i9", "positionFormat": "棋岛揭棋扩展 FEN，仅传递可见信息", "options": {}, "network": "pikafish.nnue" }
+    },
+    {
+      "id": "pikafish-xiangqi-wasm-legacy",
+      "variant": "xiangqi",
+      "runtime": "wasm",
+      "directory": "local-engines/xiangqi/wasm/pikafish/legacy/browser",
+      "version": "legacy",
+      "versionEvidence": "来源和具体版本尚未确认；本地已包含棋岛清单及 Worker",
+      "sourceUrl": "https://github.com/official-pikafish/Pikafish",
+      "sourceCommit": null,
+      "engineLicense": "GPL-3.0",
+      "networkLicenseUrl": "https://github.com/official-pikafish/Networks/blob/master/README.md",
+      "networkEvidence": "pikafish.js 引用虚拟文件 /pikafish.nnue；数据包内容及权重版本待核实",
+      "verification": { "status": "pending", "note": "尚未验证 Web 和 Android 的启动、走棋、评分、取消及缓存" },
+      "distribution": { "status": "pending-review", "note": "构建来源、权重许可及对应源码材料尚未确认，不进入公开发行清单" },
+      "protocol": { "name": "uci", "coordinates": "a0-i9", "options": {}, "entrypoint": "pikafish.worker.js", "networkContainer": "pikafish.data" }
+    }
+  ]
+}

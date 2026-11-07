@@ -1,0 +1,67 @@
+name: 引擎源码构建与草稿
+
+on:
+  workflow_dispatch:
+    inputs:
+      engine:
+        description: 棋种
+        type: choice
+        options: [all, xiangqi, jieqi]
+        default: all
+      release_tag:
+        description: 固定引擎标签，例如 engines-20261107.1
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  PYTHONIOENCODING: utf-8
+
+concurrency:
+  group: engine-draft-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 检查固定来源与标签
+        shell: pwsh
+        env:
+          ENGINE: ${{ inputs.engine }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          python scripts/build_engines.py --engine $env:ENGINE --output dist-engines/draft --release-tag $env:RELEASE_TAG --preflight
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: 准备固定编译工具
+        shell: pwsh
+        run: ./scripts/setup_engine_toolchain.ps1
+      - name: 从固定源码构建并试算
+        shell: pwsh
+        env:
+          ENGINE: ${{ inputs.engine }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          python scripts/build_engines.py --engine $env:ENGINE --output dist-engines/draft --release-tag $env:RELEASE_TAG
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: 创建草稿，不发布、不设为软件 Latest
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          '从固定上游源码构建的维护者测试草稿。详见 engine-release.json、源码附件及包内许可；草稿不代表已核准公开分发或商业使用。公开发布前须运行 --check-distribution 并完成对应文件审核。' | Set-Content notes.md -Encoding utf8
+          $files = Get-ChildItem dist-engines/draft -File | Where-Object { $_.Extension -in '.zip', '.json', '.txt' } | ForEach-Object FullName
+          gh release create $env:RELEASE_TAG @files --draft --latest=false --target $env:TARGET_SHA --title "棋岛引擎 $env:RELEASE_TAG" --notes-file notes.md
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
