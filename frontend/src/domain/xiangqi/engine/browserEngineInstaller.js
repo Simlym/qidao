@@ -1,4 +1,5 @@
 import { unzip } from "fflate";
+import { engineDeliveryUrl } from "../../../platform/engineDelivery.js";
 import { downloadEngineBytes } from "../../../shared/api/enginePackages.js";
 import { browserEngineCapabilities, getBrowserEngineProfile, importBrowserEnginePackage,
   discardBrowserEnginePackage, commitBrowserEnginePackage } from "./browserEnginePackages.js";
@@ -52,7 +53,7 @@ async function extract(bytes, signal) {
 // 来源必须是客户端内嵌清单；测试可注入输送和试算，生产不接受用户填写 URL。
 export async function installBrowserEngine(spec, variant, {
   signal, onProgress, probe, beforeCommit = async () => {}, isCurrent = () => true,
-  download = downloadEngineBytes, capabilities = browserEngineCapabilities(),
+  download = downloadEngineBytes, deliveryUrl = engineDeliveryUrl, capabilities = browserEngineCapabilities(),
 } = {}) {
   validateWasmDownload(spec, variant, capabilities);
   const check = () => {
@@ -62,7 +63,7 @@ export async function installBrowserEngine(spec, variant, {
   let profile;
   try {
     check();
-    const bytes = await download(spec.url, spec.size, { signal, onProgress });
+    const bytes = await download(deliveryUrl(spec), spec.size, { signal, onProgress });
     check();
     onProgress?.({ phase: "verifying", downloaded: spec.size, total: spec.size });
     if (bytes.length !== spec.size || await sha(bytes) !== spec.sha256) throw new Error("WASM ZIP 校验失败");

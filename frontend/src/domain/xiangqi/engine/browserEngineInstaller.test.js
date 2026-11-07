@@ -34,7 +34,7 @@ function environment(t) {
   t.after(() => { globalThis.localStorage = storage; globalThis.caches = caches; });
   return { values, entries, cache, previous };
 }
-const options = (bytes, extra = {}) => ({ capabilities, download: async () => bytes, probe: async () => true, ...extra });
+const options = (bytes, extra = {}) => ({ capabilities, deliveryUrl: (spec) => spec.url, download: async () => bytes, probe: async () => true, ...extra });
 
 test("在线 WASM 在全部校验和候选握手后才切换并清理旧包", async (t) => {
   const { values, entries, previous } = environment(t);

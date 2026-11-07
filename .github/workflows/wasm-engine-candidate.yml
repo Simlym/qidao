@@ -4,6 +4,36 @@ on:
 permissions:
   contents: read
 jobs:
+  static-delivery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: 用真实前端 Docker 上下文构建
+        run: docker build --build-arg IMAGE_REGISTRY=docker.io --build-arg NPM_REGISTRY=https://registry.npmjs.org -t qidao-static-test frontend
+      - name: 验证静态下载与缺失附件行为
+        run: |
+          mkdir -p .engine-build/static-site/engines-20261107.3
+          echo 'static-test' > .engine-build/static-site/engines-20261107.3/test.zip
+          docker run -d --rm --name qidao-static-test --add-host backend:127.0.0.1 -p 127.0.0.1:8087:80 -v "$PWD/.engine-build/static-site:/srv/qidao/engine-releases:ro" qidao-static-test
+          trap 'docker stop qidao-static-test' EXIT
+          python - <<'PY'
+          import time, urllib.request, urllib.error
+          for attempt in range(20):
+              try:
+                  response = urllib.request.urlopen('http://127.0.0.1:8087/engine-releases/engines-20261107.3/test.zip')
+                  break
+              except OSError:
+                  time.sleep(0.5)
+          assert response.read() == b'static-test\n'
+          assert response.headers['Access-Control-Allow-Origin'] == '*'
+          assert response.headers['Cross-Origin-Resource-Policy'] == 'cross-origin'
+          try:
+              urllib.request.urlopen('http://127.0.0.1:8087/engine-releases/missing.zip')
+              raise AssertionError('缺失文件不应返回应用首页')
+          except urllib.error.HTTPError as error:
+              assert error.code == 404
+          PY
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
@@ -14,6 +44,17 @@ jobs:
           python-version: '3.11'
       - name: 固定上游源码与工具镜像构建
         run: python scripts/build_wasm_engine.py --output dist-engines/wasm-candidate
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 准备真实浏览器验收
+        working-directory: frontend
+        run: |
+          npm ci
+          npm install --prefix ../.engine-build/browser-deps --no-save --package-lock=false playwright@1.56.1
+          node ../.engine-build/browser-deps/node_modules/playwright/cli.js install --with-deps chromium
+      - name: 浏览器真实安装、NNUE、坐标、停止和离线重启
+        run: node frontend/scripts/test-wasm-engine.mjs dist-engines/wasm-candidate
       - name: 保存未发布候选与完整源码材料
         uses: actions/upload-artifact@v4
         with:

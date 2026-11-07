@@ -45,3 +45,4 @@ src-tauri/engine-installer/target/
 
 # 从仓库根目录启动时的默认 SQLite 数据库
 /data/*.db
+dist-engine-site/

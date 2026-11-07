@@ -1,7 +1,7 @@
 # Web / Android WASM 在线安装（第一部分）
 
 本阶段实现客户端安装链路，等待后续与 PC 一起发布。尚无经过验收并可公开分发的
-WASM 附件，因此 `wasm-packages.json` 的 `packages` 暂为空；设置页显示准备状态，
+WASM 附件，因此前端 [`wasm-packages.json`](../../frontend/src/domain/xiangqi/engine/wasm-packages.json) 的 `packages` 暂为空；设置页显示准备状态，
 不使用原生 EXE、示例地址或未验收构建冒充推荐下载。
 
 ## 已实现
@@ -37,9 +37,8 @@ NNUE 启用、红黑坐标、多候选和停止分析等构建验收。
 
 1. 从固定公开源码构建单线程优先的 WASM 包，核对匹配权重、许可、对应源码和 Worker 协议。
    标准象棋优先评估 Fairy + CC0 网络；揭棋需单独验证扩展 FEN 与限知协议，不复用普通象棋包。
-2. 解决浏览器下载 CORS。原生端可下载 GitHub 附件，不代表浏览器 fetch 可读取它；当前传输层
-   使用 CORS 模式，失败会明确报错。尚未实现同源分发/代理，也未在 GitHub 不支持 CORS 时自动绕过。
-   正式接入同源分发或受控代理时仍须固定源和哈希，并保留 GitHub 为发行依据，不传业务凭据。
+2. 部署静态分发目录并验证 HTTPS 站点，见下节。浏览器不再直接依赖 GitHub 附件的 CORS；
+   GitHub URL 保留为固定发行身份，实际下载文件仍须通过相同大小与 SHA-256 检查。
 3. 在实际 Web 部署验证缓存资源响应头、Worker 同源读取、离线重启和更新回退。
 4. 安卓真机验证自定义资源协议下的 Service Worker 与 CacheStorage；若不支持，需另行实现
    原生文件存储和资源访问桥接。当前能力检测不等于已支持全部 Android WebView。
@@ -47,3 +46,37 @@ NNUE 启用、红黑坐标、多候选和停止分析等构建验收。
 
 自动回归从 `frontend/` 执行 `npm run test:core`、`npm run test:config` 和 `npm run build`。
 测试使用本地构造 ZIP 和受控网络替身，不将其视为真实 WASM 或安卓真机验收。
+
+## 静态分发与跨域
+
+Web 默认从当前站点的 `/engine-releases/<固定标签>/<文件名>` 下载。
+安卓通过公开构建参数 `VITE_ENGINE_DOWNLOAD_BASE_URL=https://站点/engine-releases` 指定同一目录；
+不绑定账号、会员或所选业务服务器。该参数不能包含凭据、查询参数或片段。
+前端目录中保留编译时固定清单，保证独立 `frontend/` Docker 构建无需读取容器外的 docs。
+
+正式 Release 附件下载到维护者机器后运行：
+
+```powershell
+python scripts/prepare_wasm_site.py --artifacts 已下载的附件目录 --output dist-engine-site
+```
+
+脚本只复制清单中 `publicDownload=true` 且 ZIP、包内清单哈希均匹配的包；
+不访问网络、不自动发布，也不替换固定标签下的不同内容。
+Compose 将独立目录只读挂载到 Nginx，不把引擎加入前端镜像或应用安装包。
+Nginx 为该路径提供匿名 GET/HEAD、CORS `*` 与跨源资源响应头；缺失文件返回 404，
+不落入 SPA 首页。支持跨源下载不等于可跨源执行 Worker：下载后仍在本设备同源缓存中运行。
+
+开发调试可使用独立静态服务器并显式指定下载基址；不要把本机引擎放进 `frontend/public/`。
+真实 WASM 浏览器验收脚本 `frontend/scripts/test-wasm-engine.mjs` 使用临时站点和隔离浏览器上下文，
+测试包不进入正式清单。它依次测试真实下载校验、缓存安装、NNUE 启用、红黑强制着法、
+MultiPV、停止搜索、新局面及离线重新启动。
+
+## 固定源码 WASM 候选
+
+官方移植仓库 `fairy-stockfish/fairy-stockfish.wasm` 固定提交
+`d062eec1681dc8c805fed80dfa0528eeb554312b`，采用上游 Emscripten 2.0.26 工具路线，
+Docker 镜像固定到 SHA-256，匹配同一 CC0 象棋网络。
+构建入口为 `scripts/build_wasm_engine.py` 和手工触发的 `wasm-engine-candidate.yml`。
+产物包含匹配网络、GPL/CC0/署名、上游完整源码、棋岛 Worker 与构建脚本、镜像摘要及校验和。
+该上游采用 pthread：即使 `Threads=1` 仍要求 SharedArrayBuffer；当前候选必须标记 `threads=true`。
+没有把它标为可在不支持跨源隔离的 Android WebView 上使用的单线程版本。

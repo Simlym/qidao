@@ -18,7 +18,10 @@ function dispatch(command) {
       if (!response.ok) throw new Error("网络文件读取失败");
       return response.arrayBuffer();
     });
-    engine = await Stockfish({ locateFile: (name) => new URL(name, self.location.href).href });
+    engine = await Stockfish({
+      mainScriptUrlOrBlob: new URL("stockfish.js", self.location.href).href,
+      locateFile: (name) => new URL(name, self.location.href).href,
+    });
     engine.addMessageListener((line) => self.postMessage(line));
     networkPath = "/xiangqi-c07e94a5c7cb.nnue";
     engine.FS.writeFile(networkPath, new Uint8Array(bytes));

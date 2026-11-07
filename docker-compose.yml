@@ -69,6 +69,8 @@ services:
         NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
     restart: unless-stopped
+    volumes:
+      - ./dist-engine-site:/srv/qidao/engine-releases:ro
     depends_on:
       backend:
         condition: service_healthy
