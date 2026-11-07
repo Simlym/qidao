@@ -52,7 +52,7 @@ export default function BrowserEngineInstaller({ variant, manager, busy, onBusyC
 
   return <section className="engine-package-card" aria-label="WASM 在线安装">
     <h3>在线安装 WASM 引擎</h3>
-    <p>安装棋岛 GitHub 固定发行版，由站点提供下载，无需登录。校验并检测成功后启用，失败时保留原引擎。</p>
+    <p>安装棋岛 GitHub 固定发行版，由 GitHub 提供下载，无需登录。校验并检测成功后启用，失败时保留原引擎。</p>
     {!spec ? <p>推荐 WASM 包正在准备中，统一发布后开放在线安装。当前可继续手动导入目录。</p> : <>
       <select aria-label="WASM 发行版本" disabled={busy} value={spec.id} onChange={(event) => setSelected(event.target.value)}>
         {packages.map((item) => <option key={item.id} value={item.id}>{item.name} {item.version}{item.threads ? " · 多线程" : " · 单线程"}</option>)}

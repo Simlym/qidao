@@ -1,0 +1,39 @@
+name: 发布 GitHub 引擎下载站
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: engine-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 下载固定公开附件并核验
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/prepare_wasm_site.py --download --artifacts .engine-build/pages-assets --output .engine-build/pages/engine-releases
+      - name: 添加下载站说明
+        run: |
+          printf '%s\n' '<!doctype html><meta charset="utf-8"><title>棋岛引擎下载</title><h1>棋岛引擎下载</h1><p>此站仅分发固定版本引擎，不托管应用或账号。</p><p><a href="https://github.com/Simlym/qidao/releases">引擎、对应源码与许可证：GitHub Releases</a></p>' > .engine-build/pages/index.html
+          touch .engine-build/pages/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .engine-build/pages
+      - uses: actions/deploy-pages@v4
+        id: deploy

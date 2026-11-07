@@ -2,6 +2,29 @@
   "schemaVersion": 1,
   "records": [
     {
+      "id": "pc-jieqi-classical-20261107",
+      "reportedOn": "2026-11-07",
+      "platform": "windows-x64",
+      "status": "automated-protocol-passed",
+      "scope": "固定上游源码重建，确认 USE_NNUEEVAL=0；无任何 NNUE 文件时 UCI、红黑强制着法、停止和新局面试算通过。先前同源码版本已通过用户走棋验收；本次重构建包不据此声称逐项用户验收或棋力验收。",
+      "artifacts": [
+        {
+          "fileName": "jieqi-pikafish-23b9466-classical-v1-windows-x64-sse41-popcnt.zip",
+          "sha256": "2f2c5eacd9b47482ced5601c303ecb1c4f8836846f2984b085c0306c89e891b6",
+          "manifestSha256": "2caca9a56585dd118cd638d4f995cf836ebfb197cb979bfec5804df93e95423c"
+        }
+      ]
+    },
+    {
+      "id": "jieqi-wasm-classical-user-20261107-01",
+      "reportedOn": "2026-11-07",
+      "platform": "user-unspecified",
+      "status": "user-reported-passed",
+      "evidence": "用户收到 v3 安卓 APK 和揭棋传统评估候选后确认：上面的版本，可以正常走棋（未测试棋力）",
+      "scope": "揭棋传统评估候选正常走棋通过用户验收，用户明确未测试棋力。未逐项指明平台、附件校验值或其他用例，不推定棋力、NNUE、真机断网冷启动或在线下载已验收",
+      "relatedEngineAcceptance": "jieqi-wasm-classical-20261107-01"
+    },
+    {
       "id": "jieqi-wasm-classical-20261107-01",
       "reportedOn": "2026-11-07",
       "platform": "linux-chromium/windows-chrome/android-emulator-x86_64",

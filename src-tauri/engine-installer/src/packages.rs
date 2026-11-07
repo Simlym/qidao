@@ -31,7 +31,7 @@ pub struct Package {
     pub sha256: String,
     pub manifest_sha256: String,
     pub entrypoint: String,
-    pub network_path: String,
+    pub network_path: Option<String>,
     pub source_commit: String,
     pub source_url: String,
     pub license_url: String,
@@ -72,7 +72,11 @@ pub fn catalog(variant: &str) -> Result<Vec<Package>, String> {
             || !safe_path(&p.file_name)
             || p.file_name.contains('/')
             || !safe_path(&p.entrypoint)
-            || !safe_path(&p.network_path)
+            || p.network_path
+                .as_deref()
+                .is_some_and(|path| !safe_path(path))
+            || (p.network_path.is_none()
+                && (p.variant != "jieqi" || p.network_license.as_deref() != Some("not-applicable")))
             || p.size == 0
             || p.size > MAX_EXPANDED
             || !digest(&p.sha256)
@@ -197,7 +201,10 @@ fn manifest(directory: &Path, package: &Package) -> Result<Manifest, String> {
         }
     }
     if !paths.contains(&package.entrypoint.to_ascii_lowercase())
-        || !paths.contains(&package.network_path.to_ascii_lowercase())
+        || package
+            .network_path
+            .as_ref()
+            .is_some_and(|path| !paths.contains(&path.to_ascii_lowercase()))
     {
         return Err("引擎包缺少固定程序或匹配权重".into());
     }
@@ -361,7 +368,11 @@ fn installation(root: &Path, p: &Package) -> Installation {
     Installation {
         package: p.clone(),
         engine_path: dir.join(&p.entrypoint).to_string_lossy().into(),
-        nnue_path: dir.join(&p.network_path).to_string_lossy().into(),
+        nnue_path: p
+            .network_path
+            .as_ref()
+            .map(|path| dir.join(path).to_string_lossy().into_owned())
+            .unwrap_or_default(),
     }
 }
 
@@ -410,7 +421,10 @@ pub fn verify_installation(
         Duration::from_secs(30),
         &p.variant,
         p.uci_protocol.as_deref() == Some("ucicyclone"),
-        Some(&dir.join(&p.network_path)),
+        p.network_path
+            .as_ref()
+            .map(|path| dir.join(path))
+            .as_deref(),
     )?;
     Ok(installation(root, p))
 }
@@ -449,7 +463,10 @@ pub fn install_archive(
         Duration::from_secs(30),
         &p.variant,
         p.uci_protocol.as_deref() == Some("ucicyclone"),
-        Some(&stage.path().join(&p.network_path)),
+        p.network_path
+            .as_ref()
+            .map(|path| stage.path().join(path))
+            .as_deref(),
     )?;
     let receipt = Receipt {
         package_id: p.id.clone(),
@@ -572,7 +589,12 @@ mod tests {
     ) -> (tempfile::TempDir, PathBuf, Package) {
         let root = tempfile::tempdir().unwrap();
         let archive = root.path().join("test.zip");
-        let mut p = catalog("xiangqi").unwrap().remove(0);
+        let mut p = catalog("xiangqi")
+            .unwrap()
+            .into_iter()
+            .find(|p| p.engine_id == "pikafish")
+            .unwrap();
+        p.public_download = false;
         let engine = b"MZtest";
         let weight = b"weights";
         let manifest = serde_json::to_vec(&serde_json::json!({
@@ -584,7 +606,7 @@ mod tests {
         let mut zip = zip::ZipWriter::new(File::create(&archive).unwrap());
         for (name, bytes) in [
             (p.entrypoint.as_str(), engine.as_slice()),
-            (p.network_path.as_str(), weight.as_slice()),
+            (p.network_path.as_deref().unwrap(), weight.as_slice()),
             ("engine-manifest.json", manifest.as_slice()),
         ] {
             zip.start_file(name, SimpleFileOptions::default()).unwrap();
@@ -617,9 +639,7 @@ mod tests {
             } else {
                 assert!(!entries.iter().any(|p| p.engine_id == "fairy-stockfish"));
             }
-            assert!(entries
-                .iter()
-                .all(|p| p.variant == variant && !p.public_download));
+            assert!(entries.iter().all(|p| p.variant == variant));
             assert!(compatible(
                 &entries[0],
                 "windows",
@@ -648,7 +668,11 @@ mod tests {
             p.id
         );
         unpack(&archive, stage.path(), &p, &AtomicBool::new(false)).unwrap();
-        fs::write(stage.path().join(&p.network_path), b"changed").unwrap();
+        fs::write(
+            stage.path().join(p.network_path.as_ref().unwrap()),
+            b"changed",
+        )
+        .unwrap();
         assert!(verify_contents(stage.path(), &p, &AtomicBool::new(false)).is_err());
         let mut wrong_hash = p.clone();
         wrong_hash.sha256 = "0".repeat(64);
@@ -791,10 +815,7 @@ mod tests {
         let packages = catalog("xiangqi").unwrap();
         let package_id = std::env::var("QIDAO_TEST_FAIRY_PACKAGE_ID")
             .unwrap_or_else(|_| "xiangqi-fairy-c07e94a5-20261107".to_string());
-        let p = packages
-            .iter()
-            .find(|p| p.id == package_id)
-            .unwrap();
+        let p = packages.iter().find(|p| p.id == package_id).unwrap();
         let root = tempfile::tempdir().unwrap();
         let cancel = AtomicBool::new(false);
         let result =
@@ -804,5 +825,37 @@ mod tests {
         verify_installation(root.path(), p, &cancel).unwrap();
         fs::write(&result.nnue_path, b"changed").unwrap();
         assert!(verify_installation(root.path(), p, &cancel).is_err());
+    }
+
+    #[test]
+    #[cfg(windows)]
+    #[ignore = "需要访问正式 GitHub Releases；运行真实匿名下载、安装及重验"]
+    fn public_packages_download_install_and_verify() {
+        for variant in ["xiangqi", "jieqi"] {
+            let packages = catalog(variant).unwrap();
+            let p = packages.iter().find(|p| p.public_download).unwrap();
+            let root = tempfile::tempdir().unwrap();
+            let cancel = AtomicBool::new(false);
+            let mut downloaded = false;
+            let result = download_install(root.path(), p, &cancel, |event| {
+                downloaded |= event.phase == "downloading" && event.downloaded > 0;
+            })
+            .unwrap();
+            assert!(downloaded);
+            assert!(Path::new(&result.engine_path).is_file());
+            if p.network_path.is_none() {
+                assert!(result.nnue_path.is_empty());
+                assert!(!Path::new(&result.engine_path)
+                    .parent()
+                    .unwrap()
+                    .join("pikafish.nnue")
+                    .exists());
+            } else {
+                assert!(Path::new(&result.nnue_path).is_file());
+            }
+            verify_installation(root.path(), p, &cancel).unwrap();
+            fs::write(&result.engine_path, b"changed").unwrap();
+            assert!(verify_installation(root.path(), p, &cancel).is_err());
+        }
     }
 }

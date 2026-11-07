@@ -3,6 +3,57 @@
   "repository": "https://github.com/Simlym/qidao",
   "packages": [
     {
+      "id": "xiangqi-fairy-cloud-20261107",
+      "variant": "xiangqi",
+      "engineId": "fairy-stockfish",
+      "name": "Fairy-Stockfish NNUE",
+      "version": "nnue-c07e94a5-84dd49a4",
+      "fileName": "xiangqi-fairy-stockfish-nnue-c07e94a5-84dd49a4-windows-x64-sse41-popcnt.zip",
+      "size": 5814734,
+      "sha256": "bf276f77331fa167c5d2e01faab86de015a3adc219763192c4b1c5306f8850d9",
+      "manifestSha256": "caeac0df4f6a21eafd19ef6624d13fdcc640b8f189a6c715a8c29c74f36bad7e",
+      "entrypoint": "stockfish.exe",
+      "networkPath": "xiangqi-c07e94a5c7cb.nnue",
+      "sourceCommit": "84dd49a4bd00b9959b07e1b917d362c46e6f6d75",
+      "sourceUrl": "https://github.com/fairy-stockfish/Fairy-Stockfish/tree/84dd49a4bd00b9959b07e1b917d362c46e6f6d75",
+      "licenseUrl": "https://github.com/fairy-stockfish/Fairy-Stockfish/blob/84dd49a4bd00b9959b07e1b917d362c46e6f6d75/Copying.txt",
+      "requiresFeatures": [
+        "sse4.1",
+        "popcnt"
+      ],
+      "releaseTag": "engines-20261107.2",
+      "publicDownload": false,
+      "uciVariant": "xiangqi",
+      "uciProtocol": "ucicyclone",
+      "networkLicense": "CC0-1.0",
+      "networkLicenseUrl": "https://github.com/official-pikafish/Networks/blob/a238f8da2df269c28fec0e2bd2ca0ffd241f83fe/README.md",
+      "applicationTested": false
+    },
+    {
+      "variant": "jieqi",
+      "name": "PikaJieQi",
+      "version": "23b9466-classical-v1",
+      "fileName": "jieqi-pikafish-23b9466-classical-v1-windows-x64-sse41-popcnt.zip",
+      "size": 607139,
+      "sha256": "2f2c5eacd9b47482ced5601c303ecb1c4f8836846f2984b085c0306c89e891b6",
+      "entrypoint": "PikaJieQi.exe",
+      "sourceCommit": "23b9466c981f0f3a1133f92de1a6f86406c4eccc",
+      "requiresFeatures": [
+        "sse4.1",
+        "popcnt"
+      ],
+      "releaseTag": "engines-20261107.6",
+      "networkLicense": "not-applicable",
+      "id": "jieqi-classical-20261107",
+      "engineId": "pikafish",
+      "manifestSha256": "2caca9a56585dd118cd638d4f995cf836ebfb197cb979bfec5804df93e95423c",
+      "networkPath": null,
+      "sourceUrl": "https://github.com/official-pikafish/Pikafish/tree/23b9466c981f0f3a1133f92de1a6f86406c4eccc",
+      "licenseUrl": "https://github.com/official-pikafish/Pikafish/blob/23b9466c981f0f3a1133f92de1a6f86406c4eccc/Copying.txt",
+      "publicDownload": false,
+      "evaluation": "classical"
+    },
+    {
       "id": "jieqi-cloud-20261107",
       "variant": "jieqi",
       "engineId": "pikafish",
@@ -118,33 +169,6 @@
       "networkLicense": "CC0-1.0",
       "networkLicenseUrl": "https://github.com/official-pikafish/Networks/blob/a238f8da2df269c28fec0e2bd2ca0ffd241f83fe/README.md",
       "applicationTested": true
-    },
-    {
-      "id": "xiangqi-fairy-cloud-20261107",
-      "variant": "xiangqi",
-      "engineId": "fairy-stockfish",
-      "name": "Fairy-Stockfish NNUE",
-      "version": "nnue-c07e94a5-84dd49a4",
-      "fileName": "xiangqi-fairy-stockfish-nnue-c07e94a5-84dd49a4-windows-x64-sse41-popcnt.zip",
-      "size": 5814734,
-      "sha256": "bf276f77331fa167c5d2e01faab86de015a3adc219763192c4b1c5306f8850d9",
-      "manifestSha256": "caeac0df4f6a21eafd19ef6624d13fdcc640b8f189a6c715a8c29c74f36bad7e",
-      "entrypoint": "stockfish.exe",
-      "networkPath": "xiangqi-c07e94a5c7cb.nnue",
-      "sourceCommit": "84dd49a4bd00b9959b07e1b917d362c46e6f6d75",
-      "sourceUrl": "https://github.com/fairy-stockfish/Fairy-Stockfish/tree/84dd49a4bd00b9959b07e1b917d362c46e6f6d75",
-      "licenseUrl": "https://github.com/fairy-stockfish/Fairy-Stockfish/blob/84dd49a4bd00b9959b07e1b917d362c46e6f6d75/Copying.txt",
-      "requiresFeatures": [
-        "sse4.1",
-        "popcnt"
-      ],
-      "releaseTag": "engines-20261107.2",
-      "publicDownload": false,
-      "uciVariant": "xiangqi",
-      "uciProtocol": "ucicyclone",
-      "networkLicense": "CC0-1.0",
-      "networkLicenseUrl": "https://github.com/official-pikafish/Networks/blob/a238f8da2df269c28fec0e2bd2ca0ffd241f83fe/README.md",
-      "applicationTested": false
     }
   ]
 }

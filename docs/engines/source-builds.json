@@ -21,17 +21,16 @@
       "distribution": "pending-review"
     },
     "jieqi": {
-      "version": "jieqi-old-23b9466",
+      "version": "23b9466-classical-v1",
       "commit": "23b9466c981f0f3a1133f92de1a6f86406c4eccc",
       "executable": "PikaJieQi.exe",
-      "networkArchiveUrl": "https://github.com/official-pikafish/Pikafish/releases/download/Pikafish-2022-12-26/Pikafish.2022-12-26.zip",
-      "networkArchiveSha256": "1cbda939cff9a048d1b5987a3f212395d0ea5fc115d30a355f95b34af26298fc",
-      "networkLicenseUrl": "https://github.com/official-pikafish/Networks/blob/master/README.md",
       "applicationTestEvidence": {
-        "record": "docs/engines/acceptance.json#pc-pikafish-20261107-01",
-        "artifactSha256": "de5848b55ad8819222006efda494ccff5b175174f368b6fba33467aab3b3907d"
+        "record": "docs/engines/acceptance.json#pc-jieqi-classical-20261107",
+        "artifactSha256": "2f2c5eacd9b47482ced5601c303ecb1c4f8836846f2984b085c0306c89e891b6"
       },
-      "distribution": "pending-review"
+      "distribution": "approved",
+      "evaluation": "classical",
+      "networkLicense": "not-applicable"
     },
     "fairy-xiangqi": {
       "engineId": "fairy-stockfish",

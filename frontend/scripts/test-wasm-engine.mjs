@@ -14,6 +14,13 @@ const spec = { id: "wasm-browser-candidate", packageId: result.manifest.id, name
   releaseTag: "engines-20261107.3", fileName: result.fileName, size: result.size, sha256: result.sha256,
   manifestSha256: result.manifestSha256,
   url: `https://github.com/Simlym/qidao/releases/download/engines-20261107.3/${result.fileName}` };
+const published = process.argv.includes("--published");
+if (published) {
+  const catalog = JSON.parse(readFileSync(resolve("frontend/src/domain/xiangqi/engine/wasm-packages.json"), "utf8"));
+  const fixed = catalog.packages.find((item) => item.fileName === result.fileName && item.sha256 === result.sha256);
+  if (!fixed?.publicDownload) throw new Error("真实在线验收需要清单中已公开的准确附件");
+  Object.assign(spec, fixed, { published: true });
+}
 const vite = await createServer({ root: resolve("frontend"), server: { middlewareMode: true }, appType: "custom" });
 const server = httpServer(async (request, response) => {
   if (spec.threads) {
@@ -43,7 +50,7 @@ try {
     await ensureBrowserEngineStorage();
     const variant = spec.variant;
     const profile = await installBrowserEngine(spec, variant, {
-      deliveryUrl: () => "/candidate.zip", probe: local.probeBrowserEngineProfile,
+      ...(spec.published ? {} : { deliveryUrl: () => "/candidate.zip" }), probe: local.probeBrowserEngineProfile,
     });
     const worker = await local.getLocalEngine(variant);
     if (!worker) throw new Error("安装后的引擎无法启动");
@@ -132,7 +139,7 @@ try {
     await page.getByText("ZIP 引擎包已导入并启用，无需手动解压。", { exact: true }).waitFor({ timeout: 90000 });
     report.filePickerImport = true;
   }
-  writeFileSync(resolve(directory, "browser-test.json"), JSON.stringify(report, null, 2));
+  writeFileSync(resolve(directory, published ? "online-browser-test.json" : "browser-test.json"), JSON.stringify(report, null, 2));
   console.log(JSON.stringify({ ...report, transcript: undefined }));
 } finally {
   await browser?.close();

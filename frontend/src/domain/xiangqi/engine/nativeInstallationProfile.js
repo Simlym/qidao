@@ -4,10 +4,10 @@ export function nativeInstallationProfile(result, variant, { threads, hashMb }) 
   if (!receipt || !result.enginePath) throw new Error("引擎安装结果不完整");
   const actualVariant = receipt.variant || "xiangqi";
   if (actualVariant !== variant) throw new Error("安装结果与当前棋种不匹配");
-  if (result.package && !result.nnuePath) throw new Error("引擎包缺少匹配权重");
+  if (result.package?.networkPath && !result.nnuePath) throw new Error("引擎包缺少匹配权重");
   return {
     path: result.enginePath, nnuePath: result.nnuePath || null, args: [], threads, hashMb,
     uciVariant: receipt.uciVariant || null, uciProtocol: receipt.uciProtocol || null,
-    useNnue: result.package ? true : receipt.useNnue,
+    useNnue: result.package ? Boolean(result.nnuePath) : receipt.useNnue,
   };
 }

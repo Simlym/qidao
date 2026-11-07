@@ -84,7 +84,7 @@ export default function NativePackageInstaller({ variant, onActivate, onBusyChan
   const working = busy || info?.busy || externalBusy;
   return <section className="native-install-card" aria-label="棋岛引擎包安装">
     <h3>{variant === "jieqi" ? "揭棋" : "标准象棋"}引擎包</h3>
-    <p>程序和匹配权重一起安装，校验与试算通过后启用。仅保存在本设备，无需登录。</p>
+    <p>程序及所需资源一起安装，校验与试算通过后启用。仅保存在本设备，无需登录。</p>
     {!info && <p>{notice || "正在识别可安装版本…"}</p>}
     {info && <>
       {selectedPackage ? <>
@@ -95,7 +95,7 @@ export default function NativePackageInstaller({ variant, onActivate, onBusyChan
         <div className="native-install-links">
           <button type="button" onClick={() => openLink("source")}>对应版本源码</button>
           <button type="button" onClick={() => openLink("license")}>程序 GPL-3.0</button>
-          <button type="button" onClick={() => openLink("network")}>{selectedPackage.networkLicense ? `权重 ${selectedPackage.networkLicense}` : "权重许可说明"}</button>
+          {selectedPackage.networkPath ? <button type="button" onClick={() => openLink("network")}>{selectedPackage.networkLicense ? `权重 ${selectedPackage.networkLicense}` : "权重许可说明"}</button> : <span>传统评估 · 无需 NNUE 权重</span>}
         </div>
         {!selectedPackage.publicDownload && <p>此版本尚未公开下载，可导入已取得的 ZIP 测试包。</p>}
         <div className="native-install-actions">

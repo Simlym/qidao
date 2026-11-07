@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,8 +46,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--artifacts", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=ROOT / "dist-engine-site")
+    parser.add_argument("--download", action="store_true", help="通过 gh 下载固定公开 Releases 附件，再核验并准备 GitHub Pages")
     args = parser.parse_args()
-    prepare(json.loads(CATALOG.read_text(encoding="utf-8")), args.artifacts, args.output)
+    catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
+    if args.download:
+        args.artifacts.mkdir(parents=True, exist_ok=True)
+        for spec in catalog["packages"]:
+            if spec.get("publicDownload"):
+                subprocess.run(["gh", "release", "download", spec["releaseTag"], "--repo", "Simlym/qidao",
+                                "--pattern", spec["fileName"], "--dir", str(args.artifacts), "--skip-existing"], check=True)
+    prepare(catalog, args.artifacts, args.output)
 
 if __name__ == "__main__":
     main()

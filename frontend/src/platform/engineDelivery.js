@@ -1,9 +1,7 @@
-import { runtime, RUNTIME } from "./runtime.js";
-
-// Web 默认同源分发；安卓可指定同一静态站点。下载仍按固定 Release 的哈希验真。
+// GitHub Pages 提供可跨域读取的 Release 副本，Web/安卓均不占用业务站点带宽。
+export const GITHUB_ENGINE_BASE = "https://simlym.github.io/qidao/engine-releases";
 export function engineDeliveryUrl(spec, {
-  base = import.meta.env?.VITE_ENGINE_DOWNLOAD_BASE_URL || (runtime === RUNTIME.WEB && globalThis.location?.origin
-    ? `${location.origin}/engine-releases` : ""),
+  base = import.meta.env?.VITE_ENGINE_DOWNLOAD_BASE_URL || GITHUB_ENGINE_BASE,
   allowHttp = Boolean(import.meta.env?.DEV),
 } = {}) {
   if (!base) throw new Error("尚未配置 WASM 静态下载站点");

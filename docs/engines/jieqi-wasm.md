@@ -50,3 +50,6 @@ Android 17 / WebView 149 模拟器安装新版 APK 后，设置页揭棋 ZIP 导
 手机测试包为 `src-tauri/target/test-releases/QiDao-android-jieqi-wasm-test-arm64-v3.apk`，
 调试签名已核验，ARM64 / Android 7.0+；不捆绑任何引擎或权重。
 覆盖安装 v2 后，在“设置 → 揭棋引擎”选择上述 ZIP 导入。
+
+用户随后确认“上面的版本，可以正常走棋（未测试棋力）”，已单独登记用户走棋验收。
+该反馈未逐项说明平台及其他用例，不视为棋力评估、NNUE 或全部真机生命周期测试通过。

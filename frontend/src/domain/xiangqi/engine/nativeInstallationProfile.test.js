@@ -12,7 +12,13 @@ test("ZIP 安装将程序与匹配权重一起启用", () => {
 
 test("禁止将象棋安装结果写入揭棋配置，也拒绝缺失权重的引擎包", () => {
   assert.throws(() => nativeInstallationProfile({ package: { variant: "xiangqi" }, enginePath: "x.exe", nnuePath: "x.nnue" }, "jieqi", {}), /棋种不匹配/);
-  assert.throws(() => nativeInstallationProfile({ package: { variant: "xiangqi" }, enginePath: "x.exe" }, "xiangqi", {}), /匹配权重/);
+  assert.throws(() => nativeInstallationProfile({ package: { variant: "xiangqi", networkPath: "x.nnue" }, enginePath: "x.exe" }, "xiangqi", {}), /匹配权重/);
+});
+
+test("传统揭棋包无需权重并关闭 NNUE 配置", () => {
+  const profile = nativeInstallationProfile({ package: { variant: "jieqi", networkPath: null }, enginePath: "jieqi.exe", nnuePath: "" }, "jieqi", { threads: 2, hashMb: 128 });
+  assert.equal(profile.nnuePath, null);
+  assert.equal(profile.useNnue, false);
 });
 
 test("旧版 Fairy 安装仍保留坐标协议和关闭 NNUE 的参数", () => {

@@ -122,7 +122,8 @@ def smoke(executable, variant, network_file="pikafish.nnue", uci_options=None, u
             command(f"setoption name {name} value {str(value).lower() if isinstance(value, bool) else value}")
         command("setoption name Threads value 1")
         command("setoption name Hash value 32")
-        command(f"setoption name EvalFile value {executable.parent / network_file}")
+        if network_file:
+            command(f"setoption name EvalFile value {executable.parent / network_file}")
         command("isready")
         wait("readyok")
         command("ucinewgame")
@@ -153,8 +154,13 @@ def build(variant, config, toolchain, output, jobs):
     source = checkout(variant, spec, repository)
     variant = spec.get("variant", variant)
     engine_id = spec.get("engineId", "pikafish")
-    network_file = spec.get("networkFileName", "pikafish.nnue")
-    if spec.get("networkUrl"):
+    classical = spec.get("evaluation") == "classical"
+    network_file = None if classical else spec.get("networkFileName", "pikafish.nnue")
+    if classical:
+        if variant != "jieqi" or not re.search(r"#define\s+USE_NNUEEVAL\s+0\b", (source / "src/types.h").read_text(encoding="utf-8")):
+            raise ValueError("无权重构建仅适用于已确认关闭 NNUE 的揭棋源码")
+        network_source = None
+    elif spec.get("networkUrl"):
         download(spec["networkUrl"], BUILD / network_file, spec["networkSha256"])
         shutil.copyfile(BUILD / network_file, source / "src" / network_file)
         network_source = {"url": spec["networkUrl"], "sha256": spec["networkSha256"]}
@@ -187,7 +193,8 @@ def build(variant, config, toolchain, output, jobs):
     stage = output / name
     stage.mkdir(exist_ok=False)
     shutil.copyfile(binary, stage / spec["executable"])
-    shutil.copyfile(source / "src" / network_file, stage / network_file)
+    if network_file:
+        shutil.copyfile(source / "src" / network_file, stage / network_file)
     licenses = stage / "licenses"
     licenses.mkdir()
     shutil.copyfile(source / "Copying.txt", licenses / "GPL-3.0.txt")
@@ -209,7 +216,8 @@ def build(variant, config, toolchain, output, jobs):
                 "uciVariant": spec.get("uciOptions", {}).get("UCI_Variant"), "uciProtocol": spec.get("uciProtocol"),
                 "platform": "windows-x64", "requiresFeatures": ["sse4.1", "popcnt"],
                 "sourceUrl": repository, "sourceCommit": spec["commit"],
-                "engineLicense": "GPL-3.0", "networkLicenseUrl": spec["networkLicenseUrl"],
+                "engineLicense": "GPL-3.0", "networkLicenseUrl": spec.get("networkLicenseUrl"),
+                "evaluation": "classical" if classical else "nnue",
                 "distribution": spec["distribution"], "verification": {"status": "smoke-passed", "application": "pending-user-test"},
                 "build": {"compiler": compiler, "toolchain": config["toolchain"], "arguments": command[1:]},
                 "networkLicense": spec.get("networkLicense"), "networkSource": network_source,
@@ -219,8 +227,8 @@ def build(variant, config, toolchain, output, jobs):
     (stage / "SOURCE.md").write_text(
         f"# 源码构建测试包\n\n源码：{repository}\n\n提交：`{spec['commit']}`\n\n"
         f"对应源码附件：`{source_name}`\n\n编译器：{compiler}\n\n"
-        f"编译参数：`{' '.join(command[1:])}`\n\n权重来源：{network_source['url']}\n\n"
-        f"权重许可依据：{spec['networkLicenseUrl']}\n\n"
+        f"编译参数：`{' '.join(command[1:])}`\n\n权重来源：{network_source['url'] if network_source else '不适用；固定源码 USE_NNUEEVAL=0，采用传统评估，不附带权重'}\n\n"
+        f"权重许可依据：{spec.get('networkLicenseUrl', '不适用')}\n\n"
         "构建：将包内 qidao-build.mk 复制到源码 src，执行上述参数；覆盖文件关闭工具链不支持的 LTO，并统一 UTF-8 输出编码。\n\n"
         f"用途：客户端兼容性测试，分发状态为 {spec['distribution']}；实际许可见 licenses。完整构建步骤见棋岛 scripts/build_engines.py。\n",
         encoding="utf-8")
@@ -252,12 +260,12 @@ def main():
         parser.exit(1, "标签必须为 engines-YYYYMMDD.修订号\n")
     for variant in variants:
         spec = config["engines"][variant]
-        if not re.fullmatch(r"[0-9a-f]{40}", spec["commit"]) or not re.fullmatch(r"[0-9a-f]{64}", spec.get("networkSha256", spec.get("networkArchiveSha256")) or ""):
+        if not re.fullmatch(r"[0-9a-f]{40}", spec["commit"]) or (spec.get("evaluation") != "classical" and not re.fullmatch(r"[0-9a-f]{64}", spec.get("networkSha256", spec.get("networkArchiveSha256")) or "")):
             parser.exit(1, f"{variant} 必须固定源码提交和权重来源 SHA-256\n")
     if args.check_distribution:
         for variant in variants:
             spec = config["engines"][variant]
-            if spec["distribution"] != "approved" or not spec.get("networkLicenseEvidence") or not spec.get("applicationTestEvidence"):
+            if spec["distribution"] != "approved" or (spec.get("evaluation") != "classical" and not spec.get("networkLicenseEvidence")) or not spec.get("applicationTestEvidence"):
                 parser.exit(1, f"{variant} 尚未核准公开分发；可不带 --check-distribution 进行本地构建\n")
     if args.preflight:
         print("固定来源和请求的分发条件检查通过")
