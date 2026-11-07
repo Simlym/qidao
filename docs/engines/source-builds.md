@@ -73,7 +73,7 @@ python -m unittest discover -s scripts/tests -v
 工具 8 项回归、包内文件哈希、ZIP 校验清单和工作流 YAML 解析均通过。
 用户随后确认这两个包在 PC 客户端均可正常使用，已按 ZIP SHA-256 登记在
 [`acceptance.json`](acceptance.json)。软件版本、CPU 和逐项测试用例尚未提供，
-不扩大到其他平台或所有生命周期用例。GitHub 草稿工作流尚未在线执行。
+不扩大到其他平台或所有生命周期用例。GitHub 草稿构建结果见下节。
 
 | 包 | ZIP SHA-256 |
 | --- | --- |
@@ -82,3 +82,21 @@ python -m unittest discover -s scripts/tests -v
 
 该记录只指本次产物，不保证在另一编译环境重新构建会产生逐字节相同的二进制。
 重新构建产生不同 SHA-256 后需重新关联验收，不自动继承旧包的通过状态。
+
+## GitHub 草稿构建核验（2026-11-07）
+
+提交 `267473e540301021ce58ee1508f0bcadfc193369` 已推送至 `main`，
+[CI](https://github.com/Simlym/qidao/actions/runs/42346303974) 与
+[引擎源码构建及草稿上传](https://github.com/Simlym/qidao/actions/runs/42346327407)均成功。
+`engines-20261107.1` 草稿已有两个 Windows 引擎 ZIP、两份对应源码 ZIP、
+`engine-release.json` 和 `SHA256SUMS.txt`，合计六个附件。
+草稿仅维护者可见，尚未公开发布，不能作为匿名安装器的有效下载来源。
+
+全部附件已重新下载并核对 GitHub asset digest、总校验清单及程序包内文件校验值；
+下载后的两个程序均通过本地 UCI 握手、权重加载、深度 2 试算和正常退出。
+该核验属于协议级测试，不能替代用户对新云端产物的应用验收。
+
+| 云端程序包 | ZIP SHA-256 |
+| --- | --- |
+| 标准象棋 | `16b23ea34b83a0866d8a9c1150e66616494930b653cfec88a80fb085641473ec` |
+| 揭棋 | `b7f2d047547a8f95e1752bf7943e6f59be9614221e873c3facfbff155cac2d15` |
