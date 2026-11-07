@@ -2,6 +2,33 @@
   "schemaVersion": 1,
   "records": [
     {
+      "id": "jieqi-wasm-classical-20261107-01",
+      "reportedOn": "2026-11-07",
+      "platform": "linux-chromium/windows-chrome/android-emulator-x86_64",
+      "status": "automated-browser-passed",
+      "clientSourceCommit": "080d2f0",
+      "workflowUrl": "https://github.com/Simlym/qidao/actions/runs/42372289744",
+      "clientArtifact": {
+        "fileName": "QiDao-android-jieqi-wasm-test-arm64-v3.apk",
+        "sha256": "54646dce9fa334952b97cdcdcfc0b48ab061fd1563b0158f43e25fa4af531104",
+        "physicalDeviceTested": false
+      },
+      "scope": "无共享内存的揭棋传统评估候选通过 ZIP 安装、红黑着法、MultiPV、停止重开、被吃暗子限知 FEN 与连续六步合法性对照及离线重启。本机另通过真实设置页 ZIP 入口；Android 17/WebView 149 模拟器通过设置页导入、传统评估、红黑试算、停止和断网强制结束后重启，标准象棋 NNUE 缓存同时保持可用。安卓入口补齐应用构建资源转发后，保留缓存的离线覆盖升级也通过。不代表 ARM64 真机、棋力对赛或公开发行已验收",
+      "artifacts": [
+        {
+          "variant": "jieqi",
+          "fileName": "jieqi-pikajieqi-23b9466-classical-wasm-single-v1.zip",
+          "sha256": "7a7f0ff5e5a22a9f7e509643a0df3d17452c863e1319e841c6d8e0ae8b28edf9",
+          "manifestSha256": "73a3d5f8a228e2fe2dffe1c3714217e268e8073d012b8614565d9c1b90458ead",
+          "sourceCommit": "23b9466c981f0f3a1133f92de1a6f86406c4eccc",
+          "sourceModified": true,
+          "threads": false,
+          "evaluation": "classical",
+          "network": null
+        }
+      ]
+    },
+    {
       "id": "android-fairy-wasm-single-user-20261107-01",
       "reportedOn": "2026-11-07",
       "platform": "android-arm64",

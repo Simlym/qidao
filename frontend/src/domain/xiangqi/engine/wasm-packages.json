@@ -43,6 +43,29 @@
       "publicDownload": false,
       "browserTested": true,
       "androidTested": false
+    },
+    {
+      "id": "pikajieqi-wasm-single-20261107",
+      "packageId": "pikajieqi-23b9466-classical-wasm-single-v1",
+      "name": "PikaJieQi 浼犵粺璇勪及",
+      "version": "23b9466-classical-single-v1",
+      "variant": "jieqi",
+      "runtime": "wasm",
+      "threads": false,
+      "releaseTag": "engines-20261107.5",
+      "fileName": "jieqi-pikajieqi-23b9466-classical-wasm-single-v1.zip",
+      "url": "https://github.com/Simlym/qidao/releases/download/engines-20261107.5/jieqi-pikajieqi-23b9466-classical-wasm-single-v1.zip",
+      "size": 246508,
+      "sha256": "7a7f0ff5e5a22a9f7e509643a0df3d17452c863e1319e841c6d8e0ae8b28edf9",
+      "manifestSha256": "73a3d5f8a228e2fe2dffe1c3714217e268e8073d012b8614565d9c1b90458ead",
+      "engineLicense": "GPL-3.0",
+      "networkLicense": "not-applicable",
+      "evaluation": "classical",
+      "sourceCommit": "23b9466c981f0f3a1133f92de1a6f86406c4eccc",
+      "sourceModified": true,
+      "publicDownload": false,
+      "browserTested": true,
+      "androidTested": false
     }
   ]
 }

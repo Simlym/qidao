@@ -37,7 +37,7 @@ NNUE 启用、红黑坐标、多候选和停止分析等构建验收。
 ## 统一发布前仍需完成
 
 1. 标准象棋 Fairy + CC0 线程版与单线程版均已完成构建与浏览器验收。
-   揭棋仍需独立构建，并验证扩展 FEN 与限知协议，不复用普通象棋包。
+   揭棋传统评估单线程候选也已独立构建，验证范围见下节，不复用普通象棋包。
 2. 部署静态分发目录并验证 HTTPS 站点，见下节。浏览器不再直接依赖 GitHub 附件的 CORS；
    GitHub URL 保留为固定发行身份，实际下载文件仍须通过相同大小与 SHA-256 检查。
 3. 在实际 Web 部署验证缓存资源响应头、Worker 同源读取、离线重启和更新回退。
@@ -96,7 +96,8 @@ COOP/COEP，不改变应用标识、来源协议或既有存储目录。它只�
 安卓 Service Worker 使用独立的资源回调；现在在受版本管理的
 `src-tauri/android/MainActivity.kt` 中，通过
 [ServiceWorkerClientCompat](https://developer.android.com/reference/androidx/webkit/ServiceWorkerClientCompat)
-将本应用固定 `/sw.js` 的 GET 请求交给现有 Tauri/Wry 资源处理器。
+将本应用固定 `/sw.js`、入口和 `/assets/` 构建资源的 GET 请求交给现有 Tauri/Wry 资源处理器。
+仅接入脚本不足以支持离线覆盖升级：新哈希页面脚本也需通过同一处理器，避免落入网络而白屏。
 回调不代理业务 API 或外部来源，不改变应用标识与存储来源。
 `build.rs` 在安卓编译时同步入口到生成目录，重新初始化工程后仍能保留修复。
 
@@ -124,7 +125,7 @@ Service Worker 注册并接管、设置页单线程 ZIP 导入与 UCI 就绪、N
 
 候选保存为 GitHub Actions 测试产物，不创建正式 Release，不置为 Latest，也不改变现有 PC 引擎。
 WASM 包和源码附件的准确校验值见前端固定清单及 `acceptance.json`。
-待完成：安卓真机、实际 HTTPS 部署、揭棋 WASM 与统一公开发布。
+待完成：安卓剩余真机用例、实际 HTTPS 部署、揭棋候选真机验收与统一公开发布。
 
 最终文件位于本机 `dist-engines/wasm-20261107-01/`，可在支持跨源隔离的 Web 设置中
 点击“选择 ZIP 引擎包”直接导入，无需解压；也可使用已解压的 `package/` 子目录。

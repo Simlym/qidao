@@ -57,7 +57,7 @@ export default function BrowserEngineInstaller({ variant, manager, busy, onBusyC
       <select aria-label="WASM 发行版本" disabled={busy} value={spec.id} onChange={(event) => setSelected(event.target.value)}>
         {packages.map((item) => <option key={item.id} value={item.id}>{item.name} {item.version}{item.threads ? " · 多线程" : " · 单线程"}</option>)}
       </select>
-      <p>下载约 {(spec.size / 1024 / 1024).toFixed(1)} MB · 程序 {spec.engineLicense} · 权重 {spec.networkLicense || "无独立权重"}</p>
+      <p>下载约 {(spec.size / 1024 / 1024).toFixed(1)} MB · 程序 {spec.engineLicense} · {spec.networkLicense && spec.networkLicense !== "not-applicable" ? `权重 ${spec.networkLicense}` : "传统评估，无独立权重"}</p>
       {unavailable && <p>{unavailable}</p>}
       <button type="button" disabled={busy || Boolean(unavailable)} onClick={install}>下载并启用</button>
     </>}

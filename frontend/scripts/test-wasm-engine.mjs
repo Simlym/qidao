@@ -122,7 +122,10 @@ try {
   if (process.argv.includes("--ui-import")) {
     await context.setOffline(false);
     await page.reload();
-    await page.evaluate(() => import("/scripts/wasm-import-harness.jsx"));
+    await page.evaluate((variant) => {
+      window.__WASM_IMPORT_VARIANT__ = variant;
+      return import("/scripts/wasm-import-harness.jsx");
+    }, spec.variant);
     const picker = page.getByLabel("选择 ZIP 引擎包", { exact: true });
     if (await picker.getAttribute("webkitdirectory") !== null) throw new Error("ZIP 入口仍然只能选择目录");
     await picker.setInputFiles(resolve(directory, result.fileName));

@@ -83,4 +83,4 @@ Web / Android [WASM 在线安装](wasm-online-install.md)已接入设置页：�
 暂存缓存、候选握手、取消和失败保留旧引擎。标准象棋 Fairy 线程版与单线程版已完成真实 WASM 构建、
 浏览器试算和离线重新启动验证，同源静态分发也已通过 Docker/Nginx 测试。
 单线程版在无 SharedArrayBuffer 环境通过验证。推荐下载仍未开放；安卓真机、实际 HTTPS 部署
-与揭棋 WASM 待完成，后续统一发布。
+与[揭棋 WASM 候选真机验收](jieqi-wasm.md)待完成，后续统一发布。
