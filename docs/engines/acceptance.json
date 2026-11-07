@@ -24,6 +24,23 @@
           "sourceCommit": "23b9466c981f0f3a1133f92de1a6f86406c4eccc"
         }
       ]
+    },
+    {
+      "id": "pc-zip-installer-20261107-01",
+      "reportedOn": "2026-11-07",
+      "platform": "windows-x64",
+      "applicationVersion": "0.1.0-debug",
+      "clientSourceCommit": "1b88851953522510fd9089324f4330d13c2f8bdb",
+      "clientArtifact": {
+        "fileName": "QiDao-engine-install-test.exe",
+        "sha256": "d0b8fa5ad62bab55b0eb3bcf325860b5a3f19f0a8a519fa18fa9431e8bdda152",
+        "identifier": "com.xiangqidao.engine-test"
+      },
+      "cpu": null,
+      "status": "user-reported-passed",
+      "evidence": "用户在收到独立测试版及两个 ZIP 链接后确认：导入后，测试正常使用",
+      "scope": "PC 设置页 ZIP 导入及导入后使用通过用户验收；用户未逐个指明 ZIP 校验值和完整用例，不推定草稿在线下载、Web、Android 或全部生命周期用例通过",
+      "relatedEngineAcceptance": "pc-pikafish-20261107-01"
     }
   ]
 }
