@@ -1,5 +1,8 @@
 # Fairy-Stockfish 象棋 NNUE 候选验证
 
+> 当前公开版本、下载来源与验收结果见[2026-11-07 发布记录](release-20261107.md)。下方保留此前构建和候选验收过程；历史草稿状态不代表当前发布状态。
+
+
 ## 固定版本和许可
 
 - 引擎源码：[Fairy-Stockfish](https://github.com/fairy-stockfish/Fairy-Stockfish/tree/84dd49a4bd00b9959b07e1b917d362c46e6f6d75)，提交 `84dd49a4bd00b9959b07e1b917d362c46e6f6d75`。

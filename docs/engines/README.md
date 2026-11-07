@@ -1,19 +1,14 @@
 # 象棋引擎安装与导入
 
-棋岛安装包不包含第三方引擎或评估权重。Windows x64 标准象棋目前支持从 GitHub 上游直接下载固定版本的 Fairy-Stockfish；其他场景保留用户手动导入。目前尚未托管、镜像或代理下载引擎文件。
-
-已确定后续采用**同仓库、软件与引擎分别发布 Release** 的策略，见[发行方案与本地基线](releases.md)。用户已验证 PC Pikafish 象棋和揭棋正常使用；[Fairy-Stockfish + CC0 象棋 NNUE](fairy-nnue.md)也已完成协议、安装测试和 Windows 客户端用户验收，下一步核验 GitHub 草稿构建。
-
-第二阶段已提供[从固定 GitHub 源码构建 Windows 测试包](source-builds.md)的脚本，不再将旧本地引擎作为打包输入。新包已完成协议级试算，用户也已确认两个包在 PC 客户端均可正常使用，见[验收记录](acceptance.json)；默认下载源尚未修改。GitHub 草稿用于检查云端构建，不代表公开发布。
-
-第三阶段已接入 [PC ZIP 引擎包安装器](pc-package-installer.md)：两个棋种均可导入固定 ZIP、校验匹配权重、试算和启用，支持重新检测与回退。草稿版本的在线下载保持关闭，原有手动选择程序和 Fairy-Stockfish 上游安装保留。
+棋岛安装包不包含第三方引擎或评估权重。软件与引擎在[同仓库 Releases](https://github.com/Simlym/qidao/releases)分别发布；固定版本源码、构建适配、许可证和校验附件随引擎提供。2026-11-07 的兼容性预发布及验收范围见[发布记录](release-20261107.md)。
 
 ## 选择方式
 
-- Windows x64 标准象棋：优先使用“设置 → 标准象棋引擎 → 从 GitHub 安装并启用”，也可手动选择程序或目录。
-- 其他 PC 平台 / 揭棋：根据操作系统和 CPU 自行下载原生 UCI 引擎，在设置页手动选择程序或目录。
-- Web / Android：下载兼容的 WASM UCI 引擎包，解压后在设置页选择整个目录。
-- 自托管服务器：管理员自行把原生引擎放在服务器非公开目录，再填写绝对路径。
+- Windows x64：进入“设置 → 标准象棋引擎／揭棋引擎 → 引擎包 → 下载并启用”，客户端直接从固定 GitHub Releases 下载、校验、试算后启用，无需登录。
+- Web / Android：进入对应设置页的“在线安装 WASM 引擎 → 下载并启用”。由同仓库 GitHub Pages 下载与 Releases 字节一致的 ZIP，GitHub 承担带宽，业务站点不代理大文件。标准象棋推荐单线程版；多线程版需要跨源隔离支持。
+- 标准象棋：Fairy-Stockfish + 已固定的 CC0 象棋网络；揭棋：PikaJieQi 传统评估，不需要 `pikafish.nnue`。普通象棋网络不能据此当作揭棋权重。
+- 两端都保留 ZIP 手工导入；PC 也可选择引擎程序／目录，Web／安卓可选择规范目录。
+- 其他 PC 平台：按操作系统和 CPU 自行提供原生 UCI 引擎。自托管服务端引擎由管理员单独配置。
 
 标准象棋与揭棋使用独立配置。揭棋引擎必须明确支持暗子局面和项目使用的扩展 FEN。
 
@@ -58,7 +53,7 @@ cargo check --manifest-path src-tauri/Cargo.toml --locked
 
 ## 许可提醒
 
-引擎程序和评估权重可能使用不同许可证。Fairy-Stockfish 程序使用 GPL-3.0，安装目录保存许可正文，并提供对应版本的源码链接。当前默认不下载 NNUE。
+引擎程序和评估权重可能使用不同许可证。Fairy-Stockfish 程序使用 GPL-3.0，安装目录保存许可正文，并提供对应版本的源码链接。当前标准象棋推荐包附带已核验许可的指定 CC0 网络，揭棋推荐包采用传统评估，不附带权重。
 
 Pikafish 程序为 GPL-3.0，但[官方 NNUE 权重许可](https://github.com/official-pikafish/Networks/blob/master/README.md)禁止未经授权的商业使用。因此本项目不将该权重纳入默认安装流程；商业接入需另行取得许可。该说明同时明确，Pikafish 团队为 Fairy-Stockfish 象棋变体训练的网络采用 CC0；后续可在确认具体文件、版本兼容和许可依据后作为候选，不能将此结论套用到任意 NNUE 或历史揭棋权重。
 由用户提供文件并不会自动免除服务器运营方可能承担的许可义务。
@@ -79,8 +74,6 @@ local-engines/
 
 浏览器包格式见 [package-spec.md](package-spec.md)，推荐来源元数据见 [catalog.json](catalog.json)。
 
-Web / Android [WASM 在线安装](wasm-online-install.md)已接入设置页：固定包校验、
-暂存缓存、候选握手、取消和失败保留旧引擎。标准象棋 Fairy 线程版与单线程版已完成真实 WASM 构建、
-浏览器试算和离线重新启动验证，同源静态分发也已通过 Docker/Nginx 测试。
-单线程版在无 SharedArrayBuffer 环境通过验证。推荐下载仍未开放；安卓真机、实际 HTTPS 部署
-与[揭棋 WASM 候选真机验收](jieqi-wasm.md)待完成，后续统一发布。
+Web / Android [WASM 在线安装](wasm-online-install.md)已接入设置页，包含固定包校验、
+暂存缓存、候选握手、取消和失败保留旧引擎。公开下载由 GitHub Pages 提供；
+[发布记录](release-20261107.md)列明已通过的自动验证和仍需进行的真机、棋力验收。

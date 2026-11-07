@@ -22,11 +22,17 @@ A bundled copy is stored at [JieqiBox LICENSE](frontend/src/domain/xiangqi/jieqi
 
 ## Fairy-Stockfish（可选下载）
 
-Windows 客户端提供从 [Fairy-Stockfish 上游发布](https://github.com/fairy-stockfish/Fairy-Stockfish/releases/tag/fairy_sf_14)下载程序的入口；第三方程序与权重不包含在棋岛安装包中。默认安装项为 largeboard 构建，使用传统评估，不下载 NNUE。
+第三方程序与权重不包含在棋岛安装包中。推荐下载固定到[棋岛引擎 Releases](https://github.com/Simlym/qidao/releases)，Web／安卓由同仓库 GitHub Pages 分发字节一致的 WASM 包。旧版 Fairy-Stockfish 上游安装入口仍可选择。
 
-Fairy-Stockfish is Copyright (C) the Fairy-Stockfish and Stockfish contributors, licensed under GNU GPL version 3. 对应版本源码：[fairy_sf_14](https://github.com/fairy-stockfish/Fairy-Stockfish/tree/fairy_sf_14)。许可正文随安装记录保存为 `COPYING.txt`，仓库副本位于 `src-tauri/engine-installer/licenses/Fairy-Stockfish-GPL-3.0.txt`。
+Fairy-Stockfish is Copyright (C) the Fairy-Stockfish and Stockfish contributors, licensed under GNU GPL version 3. PC NNUE 对应源码为 `84dd49a4bd00b9959b07e1b917d362c46e6f6d75`；WASM 对应 `fairy-stockfish.wasm` 提交 `d062eec1681dc8c805fed80dfa0528eeb554312b`，平台适配补丁及构建源码随发行附件提供。每个引擎包保留 GPL 正文、AUTHORS 和完整来源说明；对应完整源码在同一 Release 的 source 附件中。
 
-新增的 Windows 标准象棋 NNUE 测试候选使用源码提交 `84dd49a4bd00b9959b07e1b917d362c46e6f6d75` 和 CC0 网络 `xiangqi-c07e94a5c7cb.nnue`。该候选仅作为单独引擎包提供，不随棋岛安装程序打包；程序和权重许可分别保存，完整来源与许可依据见 [Fairy 象棋网络说明](docs/licenses/Fairy-Xiangqi-NNUE.md)，CC0 正文见 [CC0-1.0.txt](docs/licenses/CC0-1.0.txt)。候选包附带对应源码，尚待客户端用户验收。
+标准象棋使用固定 CC0 网络 `xiangqi-c07e94a5c7cb.nnue`。完整来源与许可依据见 [Fairy 象棋网络说明](docs/licenses/Fairy-Xiangqi-NNUE.md)，CC0 正文见 [CC0-1.0.txt](docs/licenses/CC0-1.0.txt)。此许可说明不适用于 Pikafish 自身的 `pikafish.nnue`。
+
+## PikaJieQi（可选下载）
+
+揭棋使用 [official-pikafish/Pikafish](https://github.com/official-pikafish/Pikafish/tree/23b9466c981f0f3a1133f92de1a6f86406c4eccc) 的固定揭棋提交，Copyright (C) the Pikafish and Stockfish contributors，GPL-3.0。该固定版本 `USE_NNUEEVAL=0`，采用传统评估，公开 PC／WASM 包均不附带 NNUE 权重。
+
+程序包保留 GPL 正文和 AUTHORS，对应完整源码、Windows 构建适配或 WASM 补丁及构建源码均随同一引擎 Release 提供。具体附件、SHA-256 和验收范围见[发布记录](docs/engines/release-20261107.md)。
 
 ## Wukong Xiangqi 题库来源
 

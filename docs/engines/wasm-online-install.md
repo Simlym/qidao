@@ -1,8 +1,9 @@
 # Web / Android WASM 在线安装与候选验收
 
-客户端安装链路、同源分发和真实标准象棋 WASM 候选已完成浏览器自动验收，
-等待后续与 PC 一起发布。前端 [`wasm-packages.json`](../../frontend/src/domain/xiangqi/engine/wasm-packages.json)
-只登记准确候选，`publicDownload=false`，不把未发布构建显示为可下载版本。
+客户端安装链路与 GitHub Pages 分发已上线，固定公开清单 `publicDownload=true`。
+标准象棋线程版、单线程版及揭棋传统评估均通过真实公开下载、安装、试算和离线重新启动验证。
+安卓模拟器也已通过设置页匿名在线安装。实际 ARM64 新版 APK 验收与棋力测试仍需继续，
+完整附件及边界见[发布记录](release-20261107.md)。
 
 ## 已实现
 
@@ -34,16 +35,12 @@ Worker 必须把初始化、棋种及坐标转换封装好，支持逐行 UCI �
 Emscripten 胶水文件当作 Worker 入口。候选检测目前只证明握手就绪，不代替真实局面、
 NNUE 启用、红黑坐标、多候选和停止分析等构建验收。
 
-## 统一发布前仍需完成
+## 发布与后续验证
 
-1. 标准象棋 Fairy + CC0 线程版与单线程版均已完成构建与浏览器验收。
-   揭棋传统评估单线程候选也已独立构建，验证范围见下节，不复用普通象棋包。
-2. 将固定公开 Releases 附件通过 `engine-pages.yml` 发布到同仓库 GitHub Pages；
-   GitHub URL 保留为固定发行身份，Pages 提供字节完全相同的 ZIP 并允许浏览器跨域读取。
-3. 在实际 Web 部署验证缓存资源响应头、Worker 同源读取、离线重启和更新回退。
-4. 安卓真机验证自定义资源协议下的 Service Worker 与 CacheStorage；若不支持，需另行实现
-   原生文件存储和资源访问桥接。当前能力检测不等于已支持全部 Android WebView。
-5. 验收真实附件后填写清单，连同 PC 下载与新版软件统一发布。当前未发布软件或引擎。
+固定引擎 Releases 已公开；`engine-pages.yml` 已从公开附件构建下载站并部署成功。
+PC 原生下载、Web 三个 WASM 包、安卓模拟器的两棋种在线安装及断网冷启动均通过。
+仍需实际网站更新 Docker 前端容器，以及新版 ARM64 APK 的真机覆盖升级、后台恢复、完整走棋与棋力测试。
+模拟器和浅层试算不能替代这些验收。
 
 自动回归从 `frontend/` 执行 `npm run test:core`、`npm run test:config` 和 `npm run build`。
 单元测试使用本地构造 ZIP 和受控网络替身；另有下述真实 WASM 浏览器集成测试，

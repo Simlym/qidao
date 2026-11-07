@@ -2,6 +2,30 @@
   "schemaVersion": 1,
   "records": [
     {
+      "id": "public-engine-downloads-20261107",
+      "reportedOn": "2026-11-07",
+      "status": "automated-integration-passed",
+      "clientSourceCommit": "c03b66595f088c16d4a3e19ac66d796f33568103",
+      "pagesWorkflow": "https://github.com/Simlym/qidao/actions/runs/42375699139",
+      "ciWorkflow": "https://github.com/Simlym/qidao/actions/runs/42375695266",
+      "scope": "PC 安装器实际匿名 GitHub Releases 下载、安装、重验及篡改拒绝启用；Windows Chrome 从 GitHub Pages 下载三个 WASM 包，校验、NNUE或传统评估、红黑着法、MultiPV、停止、新局面与离线重启通过。揭棋另验证隐藏身份及连续六步合法性。Android 17/WebView 149 x86_64 模拟器新版 APK 设置页匿名在线安装两个棋种，确认请求均指向 GitHub Pages；断网并强制结束重开后两者继续试算。",
+      "limits": "不代表最新 ARM64 APK 真机、Windows 安装程序交互、后台恢复或棋力对赛已验收。实际业务网站仍需部署新版前端。",
+      "regression": {
+        "backendPassed": 206,
+        "backendSkipped": 3,
+        "frontendPassed": 92,
+        "configPassed": 5,
+        "frontendBuild": "passed",
+        "engineToolsPassed": 13,
+        "rustUnitPassed": 13,
+        "rustPublicDownloadPassed": 1
+      },
+      "androidDownloadRequests": [
+        "https://simlym.github.io/qidao/engine-releases/engines-20261107.4/xiangqi-fairy-stockfish-c07e94a5-d062eec1-wasm-single-v1.zip",
+        "https://simlym.github.io/qidao/engine-releases/engines-20261107.5/jieqi-pikajieqi-23b9466-classical-wasm-single-v1.zip"
+      ]
+    },
+    {
       "id": "pc-jieqi-classical-20261107",
       "reportedOn": "2026-11-07",
       "platform": "windows-x64",

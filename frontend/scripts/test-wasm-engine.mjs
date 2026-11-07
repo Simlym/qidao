@@ -21,7 +21,7 @@ if (published) {
   if (!fixed?.publicDownload) throw new Error("真实在线验收需要清单中已公开的准确附件");
   Object.assign(spec, fixed, { published: true });
 }
-const vite = await createServer({ root: resolve("frontend"), server: { middlewareMode: true }, appType: "custom" });
+const vite = await createServer({ root: resolve("frontend"), server: { middlewareMode: true, hmr: false }, appType: "custom" });
 const server = httpServer(async (request, response) => {
   if (spec.threads) {
     response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
@@ -29,7 +29,9 @@ const server = httpServer(async (request, response) => {
   }
   if (request.url === "/harness") {
     response.setHeader("Content-Type", "text/html");
-    response.end(await vite.transformIndexHtml("/harness", '<!doctype html><html><head><title>WASM 验收</title></head><body><div id="root"></div></body></html>'));
+    const html = '<!doctype html><html><head><title>WASM 验收</title></head><body><div id="root"></div></body></html>';
+    // 公开下载回归不需要热更新；避免并行验收时 Vite 客户端重连触发页面刷新。
+    response.end(published ? html : await vite.transformIndexHtml("/harness", html));
   }
   else if (request.url === "/candidate.zip") { response.setHeader("Content-Type", "application/zip"); response.end(archive); }
   else vite.middlewares(request, response, () => { response.writeHead(404); response.end(); });
