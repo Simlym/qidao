@@ -41,6 +41,31 @@
       "evidence": "用户在收到独立测试版及两个 ZIP 链接后确认：导入后，测试正常使用",
       "scope": "PC 设置页 ZIP 导入及导入后使用通过用户验收；用户未逐个指明 ZIP 校验值和完整用例，不推定草稿在线下载、Web、Android 或全部生命周期用例通过",
       "relatedEngineAcceptance": "pc-pikafish-20261107-01"
+    },
+    {
+      "id": "pc-fairy-nnue-20261107-01",
+      "reportedOn": "2026-11-07",
+      "platform": "windows-x64",
+      "applicationVersion": "0.1.0-debug",
+      "clientSourceCommit": "1b621206ac467769f9cf229bd206f53021fdbc93",
+      "clientArtifact": {
+        "fileName": "QiDao-fairy-nnue-test.exe",
+        "sha256": "ef19ab94db25f78ecb9b3c558b645a0c415a53b1a994ade456b45f4687068704",
+        "identifier": "com.xiangqidao.engine-test"
+      },
+      "cpu": null,
+      "status": "user-reported-passed",
+      "evidence": "用户在先前报告白屏后重新测试并确认：我测试了下，发现正常了，Fairy-Stockfish也测试通过了，可以提交一版代码。然后继续任务",
+      "scope": "本地 Fairy NNUE 包在该 Windows 客户端通过用户验收；用户未逐项报告用例。先前白屏未复现，未定位或声称修复原因。不推定 GitHub 重构建附件、在线下载、Web 或 Android 已验收",
+      "artifacts": [
+        {
+          "variant": "xiangqi",
+          "fileName": "xiangqi-fairy-stockfish-nnue-c07e94a5-84dd49a4-windows-x64-sse41-popcnt.zip",
+          "sha256": "f2b28a0741170d63e427394a1da072972a908ffd6a0c4bcccaa16dbc20bd225b",
+          "sourceCommit": "84dd49a4bd00b9959b07e1b917d362c46e6f6d75",
+          "makeOptions": ["largeboards=yes", "nnue=no"]
+        }
+      ]
     }
   ]
 }

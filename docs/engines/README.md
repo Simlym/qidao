@@ -2,7 +2,7 @@
 
 棋岛安装包不包含第三方引擎或评估权重。Windows x64 标准象棋目前支持从 GitHub 上游直接下载固定版本的 Fairy-Stockfish；其他场景保留用户手动导入。目前尚未托管、镜像或代理下载引擎文件。
 
-已确定后续采用**同仓库、软件与引擎分别发布 Release** 的策略，见[发行方案与本地基线](releases.md)。用户已验证 PC Pikafish 象棋和揭棋正常使用；[Fairy-Stockfish + CC0 象棋 NNUE 候选](fairy-nnue.md)已完成真实程序协议、安装测试，待客户端用户验收后再决定默认版本。
+已确定后续采用**同仓库、软件与引擎分别发布 Release** 的策略，见[发行方案与本地基线](releases.md)。用户已验证 PC Pikafish 象棋和揭棋正常使用；[Fairy-Stockfish + CC0 象棋 NNUE](fairy-nnue.md)也已完成协议、安装测试和 Windows 客户端用户验收，下一步核验 GitHub 草稿构建。
 
 第二阶段已提供[从固定 GitHub 源码构建 Windows 测试包](source-builds.md)的脚本，不再将旧本地引擎作为打包输入。新包已完成协议级试算，用户也已确认两个包在 PC 客户端均可正常使用，见[验收记录](acceptance.json)；默认下载源尚未修改。GitHub 草稿用于检查云端构建，不代表公开发布。
 

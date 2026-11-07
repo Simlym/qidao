@@ -47,10 +47,13 @@ ZIP 大小 5,814,717 字节；SHA-256 为
 - 原有 Pikafish 象棋、揭棋 ZIP 安装和旧 Fairy 14 EXE 的真实程序回归。
 - 前端核心及配置测试、构建、Rust 常规回归和客户端编译。
 
-这是新的客户端候选，不继承 Pikafish 的用户验收结果。`native-packages.json` 中已登记，
-状态为本地测试候选、`publicDownload=false`；源码配方为 `pending-application-test`。
+用户已重新测试并确认该客户端正常、Fairy-Stockfish 测试通过，见
+[`acceptance.json`](acceptance.json) 的 `pc-fairy-nnue-20261107-01`。
+先前报告的白屏未复现，尚未定位原因，不记为代码修复。
+`native-packages.json` 中该准确 ZIP 已标记 `applicationTested=true`、`publicDownload=false`。
+源码配方的分发状态后续结合云端构建审核更新；重新构建的附件需要独立核验，不能沿用本地 ZIP 的哈希。
 程序按引擎 ID 分目录安装，Pikafish 的已安装文件和配置仍可选择。
 
 用户验收：关闭上一份 PC 测试程序，打开新版测试程序；进入标准象棋设置，
 选择本次 ZIP，点击“导入 ZIP 并启用”，验证对弈、提示、评分、悔棋与停止分析。
-确认通过后再将此版本纳入默认发布候选，当前不自动替换现有引擎，不公开发布附件。
+本地验收已通过，下一步通过 GitHub 工作流构建独立草稿并核对附件；当前不自动替换现有引擎。
