@@ -6,6 +6,14 @@
     "beforeBuildCommand": "npm run build:android",
     "frontendDist": "../frontend/dist-tauri"
   },
+  "app": {
+    "security": {
+      "headers": {
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Embedder-Policy": "require-corp"
+      }
+    }
+  },
   "bundle": {
     "android": {
       "minSdkVersion": 24

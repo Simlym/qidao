@@ -73,6 +73,7 @@ export async function installBrowserEngine(spec, variant, {
     const manifest = JSON.parse(new TextDecoder().decode(files["engine-manifest.json"]));
     if (manifest.id !== spec.packageId || manifest.version !== spec.version || manifest.variant !== variant
         || manifest.runtime !== "wasm" || manifest.protocol !== "uci" || manifest.schemaVersion !== 1
+        || Boolean(manifest.threads) !== Boolean(spec.threads)
         || !safePath(manifest.entrypoint) || !Array.isArray(manifest.assets)) throw new Error("WASM 包身份不匹配");
     const expected = new Set(["engine-manifest.json"]);
     for (const asset of manifest.assets) {

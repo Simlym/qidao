@@ -1,4 +1,26 @@
 {
   "schemaVersion": 1,
-  "packages": []
+  "packages": [
+    {
+      "id": "fairy-xiangqi-wasm-cloud-20261107",
+      "packageId": "fairy-xiangqi-c07e94a5-wasm-threads",
+      "name": "Fairy-Stockfish NNUE",
+      "version": "c07e94a5-d062eec1",
+      "variant": "xiangqi",
+      "runtime": "wasm",
+      "threads": true,
+      "releaseTag": "engines-20261107.3",
+      "fileName": "xiangqi-fairy-stockfish-c07e94a5-d062eec1-wasm-threads.zip",
+      "url": "https://github.com/Simlym/qidao/releases/download/engines-20261107.3/xiangqi-fairy-stockfish-c07e94a5-d062eec1-wasm-threads.zip",
+      "size": 5497658,
+      "sha256": "50a5a24e73cede25218281d7a4e76ff2aea484bc6656f8d57cdc59906edc29b2",
+      "manifestSha256": "26f225eab76c871947b4fad3b15be028b305a922d16998f6701b2fbf2bf95f7e",
+      "engineLicense": "GPL-3.0",
+      "networkLicense": "CC0-1.0",
+      "sourceCommit": "d062eec1681dc8c805fed80dfa0528eeb554312b",
+      "publicDownload": false,
+      "browserTested": true,
+      "androidTested": false
+    }
+  ]
 }

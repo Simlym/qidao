@@ -1,6 +1,6 @@
 # 棋岛 WASM UCI 引擎包规范 v1
 
-本页描述当前已实现的手动导入格式。后续原生与 WASM 的 ZIP 发行布局、许可材料和固定版本下载清单见[发行方案](releases.md)；该方案尚未接入客户端在线安装，不改变本页的 v1 导入契约。
+本页描述当前已实现的手动导入格式。原生与 WASM 的 ZIP 发行布局、许可材料和固定版本下载清单见[发行方案](releases.md)；在线安装链路见 [WASM 安装与验收](wasm-online-install.md)，尚未公开发布，不改变本页的 v1 手动导入契约。
 
 引擎包应先解压为一个目录。目录根部必须包含 `engine-manifest.json`，入口必须是可由 Web Worker
 直接加载并通过 `postMessage` 接收、返回逐行 UCI 文本的 JavaScript 文件。入口使用相对路径加载的

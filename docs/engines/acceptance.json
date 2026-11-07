@@ -63,7 +63,29 @@
           "fileName": "xiangqi-fairy-stockfish-nnue-c07e94a5-84dd49a4-windows-x64-sse41-popcnt.zip",
           "sha256": "f2b28a0741170d63e427394a1da072972a908ffd6a0c4bcccaa16dbc20bd225b",
           "sourceCommit": "84dd49a4bd00b9959b07e1b917d362c46e6f6d75",
-          "makeOptions": ["largeboards=yes", "nnue=no"]
+          "makeOptions": [
+            "largeboards=yes",
+            "nnue=no"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "web-fairy-wasm-20261107-01",
+      "reportedOn": "2026-11-07",
+      "platform": "linux-chromium",
+      "clientSourceCommit": "3731096",
+      "status": "automated-browser-passed",
+      "workflowUrl": "https://github.com/Simlym/qidao/actions/runs/42364688124",
+      "scope": "真实 ZIP 下载校验、缓存安装、指定 NNUE 启用、红黑强制着法、MultiPV=3、停止与新局面、离线销毁后重新启动引擎通过；Docker/Nginx 静态分发与 404 行为通过。不代表安卓真机、单线程、揭棋或正式公开发布通过",
+      "artifacts": [
+        {
+          "variant": "xiangqi",
+          "fileName": "xiangqi-fairy-stockfish-c07e94a5-d062eec1-wasm-threads.zip",
+          "sha256": "50a5a24e73cede25218281d7a4e76ff2aea484bc6656f8d57cdc59906edc29b2",
+          "manifestSha256": "26f225eab76c871947b4fad3b15be028b305a922d16998f6701b2fbf2bf95f7e",
+          "sourceCommit": "d062eec1681dc8c805fed80dfa0528eeb554312b",
+          "threads": true
         }
       ]
     }
