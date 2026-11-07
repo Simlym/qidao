@@ -38,8 +38,8 @@ NNUE 启用、红黑坐标、多候选和停止分析等构建验收。
 
 1. 标准象棋 Fairy + CC0 线程版与单线程版均已完成构建与浏览器验收。
    揭棋传统评估单线程候选也已独立构建，验证范围见下节，不复用普通象棋包。
-2. 部署静态分发目录并验证 HTTPS 站点，见下节。浏览器不再直接依赖 GitHub 附件的 CORS；
-   GitHub URL 保留为固定发行身份，实际下载文件仍须通过相同大小与 SHA-256 检查。
+2. 将固定公开 Releases 附件通过 `engine-pages.yml` 发布到同仓库 GitHub Pages；
+   GitHub URL 保留为固定发行身份，Pages 提供字节完全相同的 ZIP 并允许浏览器跨域读取。
 3. 在实际 Web 部署验证缓存资源响应头、Worker 同源读取、离线重启和更新回退。
 4. 安卓真机验证自定义资源协议下的 Service Worker 与 CacheStorage；若不支持，需另行实现
    原生文件存储和资源访问桥接。当前能力检测不等于已支持全部 Android WebView。
@@ -51,10 +51,17 @@ NNUE 启用、红黑坐标、多候选和停止分析等构建验收。
 
 ## 静态分发与跨域
 
-Web 默认从当前站点的 `/engine-releases/<固定标签>/<文件名>` 下载。
-安卓通过公开构建参数 `VITE_ENGINE_DOWNLOAD_BASE_URL=https://站点/engine-releases` 指定同一目录；
-不绑定账号、会员或所选业务服务器。该参数不能包含凭据、查询参数或片段。
-前端目录中保留编译时固定清单，保证独立 `frontend/` Docker 构建无需读取容器外的 docs。
+Web 和安卓默认从 `https://simlym.github.io/qidao/engine-releases/<固定标签>/<文件名>` 下载，
+由 GitHub 承担文件带宽，业务站点不托管、不代理引擎 ZIP。PC 原生安装器直接下载固定 GitHub Releases 附件。
+Releases 与 Pages 的 ZIP 字节一致，客户端独立核验大小、包 SHA-256、清单 SHA-256 和所有资源。
+
+GitHub Releases 的浏览器附件响应目前缺少可用的 CORS 许可，不能仅将 fetch 地址改成 Release URL。
+同仓库 Pages 只发布引擎下载文件及说明，不替换 `xq.teanap.top` 上的应用。
+`.github/workflows/engine-pages.yml` 手动触发，下载清单中的固定公开附件、核验后部署，
+不使用 latest、不需要客户端携带 GitHub Token、不把大文件提交到应用源码仓库。
+仍可通过 `VITE_ENGINE_DOWNLOAD_BASE_URL` 显式选择自建静态站点，但官方默认不使用业务站点带宽。
+
+下面的本地静态目录准备方式仅供自部署者选用，不是官方在线安装的前置要求：
 
 正式 Release 附件下载到维护者机器后运行：
 

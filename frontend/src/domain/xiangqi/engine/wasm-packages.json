@@ -18,7 +18,7 @@
       "engineLicense": "GPL-3.0",
       "networkLicense": "CC0-1.0",
       "sourceCommit": "d062eec1681dc8c805fed80dfa0528eeb554312b",
-      "publicDownload": false,
+      "publicDownload": true,
       "browserTested": true,
       "androidTested": false,
       "sourceModified": true
@@ -40,14 +40,14 @@
       "engineLicense": "GPL-3.0",
       "networkLicense": "CC0-1.0",
       "sourceCommit": "d062eec1681dc8c805fed80dfa0528eeb554312b",
-      "publicDownload": false,
+      "publicDownload": true,
       "browserTested": true,
       "androidTested": false
     },
     {
       "id": "pikajieqi-wasm-single-20261107",
       "packageId": "pikajieqi-23b9466-classical-wasm-single-v1",
-      "name": "PikaJieQi 浼犵粺璇勪及",
+      "name": "PikaJieQi 传统评估",
       "version": "23b9466-classical-single-v1",
       "variant": "jieqi",
       "runtime": "wasm",
@@ -63,7 +63,7 @@
       "evaluation": "classical",
       "sourceCommit": "23b9466c981f0f3a1133f92de1a6f86406c4eccc",
       "sourceModified": true,
-      "publicDownload": false,
+      "publicDownload": true,
       "browserTested": true,
       "androidTested": false
     }

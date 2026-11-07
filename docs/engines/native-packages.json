@@ -22,7 +22,7 @@
         "popcnt"
       ],
       "releaseTag": "engines-20261107.2",
-      "publicDownload": false,
+      "publicDownload": true,
       "uciVariant": "xiangqi",
       "uciProtocol": "ucicyclone",
       "networkLicense": "CC0-1.0",
@@ -50,7 +50,7 @@
       "networkPath": null,
       "sourceUrl": "https://github.com/official-pikafish/Pikafish/tree/23b9466c981f0f3a1133f92de1a6f86406c4eccc",
       "licenseUrl": "https://github.com/official-pikafish/Pikafish/blob/23b9466c981f0f3a1133f92de1a6f86406c4eccc/Copying.txt",
-      "publicDownload": false,
+      "publicDownload": true,
       "evaluation": "classical"
     },
     {
