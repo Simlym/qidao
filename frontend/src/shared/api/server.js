@@ -1,4 +1,4 @@
-import { defaultApiBase, runtime } from "../../platform/runtime.js";
+import { defaultApiBase, runtime, isTauriRuntime } from "../../platform/runtime.js";
 
 export const SERVER_STORAGE_KEY = "xq_server_api_v1";
 export const API_VERSION = 1;
@@ -22,6 +22,8 @@ export const DEFAULT_API_BASE_URL = new URL(configured || defaultApiBase(runtime
 export const allowHttpServer = Boolean(import.meta.env?.DEV);
 
 function readServer() {
+  // Web 的后端由站点部署决定，忽略旧版本保存的客户端切换设置。
+  if (!isTauriRuntime(runtime)) return DEFAULT_API_BASE_URL;
   try {
     const saved = globalThis.localStorage?.getItem(SERVER_STORAGE_KEY);
     return saved ? normalizeServerAddress(saved, { allowHttp: allowHttpServer }) : DEFAULT_API_BASE_URL;
@@ -34,6 +36,7 @@ export const SERVER_ID = API_BASE_URL;
 export const connectionController = new AbortController();
 
 export function saveServerAddress(value) {
+  if (!isTauriRuntime(runtime)) throw new Error("仅 PC 和安卓客户端支持切换服务器。");
   const next = value === DEFAULT_API_BASE_URL
     ? DEFAULT_API_BASE_URL : normalizeServerAddress(value, { allowHttp: allowHttpServer });
   if (next === DEFAULT_API_BASE_URL) localStorage.removeItem(SERVER_STORAGE_KEY);
@@ -48,7 +51,7 @@ export function reloadForServerChange() {
 
 // 多个标签页共用同一设备设置，变化时同步终止旧请求并重载。
 globalThis.addEventListener?.("storage", (event) => {
-  if (event.key === SERVER_STORAGE_KEY || event.key === null) reloadForServerChange();
+  if (isTauriRuntime(runtime) && (event.key === SERVER_STORAGE_KEY || event.key === null)) reloadForServerChange();
 });
 
 export async function withApiConnection(run, callerSignal) {

@@ -9,7 +9,7 @@ import { evalPosition, evalJieqiPosition, getCosmetics, purchaseCosmetic } from 
 import { cosmeticPreferences, setCosmeticPreference } from "../../shared/preferences/cosmetics";
 import { playSound, soundMuted, setSoundMuted, soundTheme, setSoundTheme, soundThemeLabel } from "../../shared/sounds";
 import { analysisPreferences, saveAnalysisPreferences } from "../../shared/preferences/analysisPreferences";
-import { runtime, supportsNativeEngine } from "../../platform/runtime";
+import { runtime, supportsNativeEngine, isTauriRuntime } from "../../platform/runtime";
 
 const xiangqiEngine = createEngineManager({ remoteEvaluate: evalPosition });
 const jieqiEngine = createEngineManager({ variant: "jieqi", remoteEvaluate: evalJieqiPosition });
@@ -21,7 +21,7 @@ const SECTIONS = [
   { key: "appearance", label: "棋盘与外观", icon: "palette" },
   { key: "xiangqi", label: "标准象棋引擎", icon: "cpu" },
   { key: "jieqi", label: "揭棋引擎", icon: "spark" },
-];
+].filter((item) => item.key !== "server" || isTauriRuntime(runtime));
 const SECTION_ICONS = {
   account: <><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></>,
   feedback: <><path d="M21 11a8 8 0 0 1-8 8H7l-4 3V11a9 9 0 0 1 18 0Z"/><path d="M8 8h8M8 12h5"/></>,
@@ -220,7 +220,7 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
         {section === "account" && <AiUsage user={user} credits={credits} onRequireLogin={onRequireLogin} />}
         {section === "puzzle-feedback" && <MyPuzzleReports key={user?.username || "guest"} user={user} onRequireLogin={onRequireLogin} />}
 
-        {section === "server" && <ServerSettings />}
+        {section === "server" && isTauriRuntime(runtime) && <ServerSettings />}
 
         {section === "appearance" && (
           <div className="settings-group cosmetic-store">

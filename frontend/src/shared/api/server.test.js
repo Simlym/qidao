@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import {
-  normalizeServerAddress, probeServer, saveServerAddress,
-  API_BASE_URL, DEFAULT_API_BASE_URL, connectionController, SERVER_STORAGE_KEY,
+  normalizeServerAddress, probeServer,
+  API_BASE_URL, DEFAULT_API_BASE_URL, connectionController,
 } from "./server.js";
 import { createSessionStore, serverStorageKey } from "./session.js";
 import { request } from "./client.js";
@@ -104,7 +105,7 @@ test("普通和流式 API 均禁用缓存、cookie与重定向，使用当前实
   assert.equal((await streamEvalPosition("fen")).bestMove, "h2e2");
 });
 
-test("切换中断普通和流式请求，丢弃迟到结果；离线恢复默认不发网络请求", async (t) => {
+test("连接终止时中断普通和流式请求并丢弃迟到结果", async (t) => {
   const previousStorage = globalThis.localStorage;
   const previousFetch = globalThis.fetch;
   globalThis.localStorage = storage();
@@ -123,9 +124,7 @@ test("切换中断普通和流式请求，丢弃迟到结果；离线恢复默�
   const pending = request("/slow");
   const stream = streamEvalPosition("fen", { onUpdate() { updateCount++; } });
   await new Promise((resolve) => setTimeout(resolve, 0));
-  localStorage.setItem(SERVER_STORAGE_KEY, "https://custom.example/api");
-  saveServerAddress(DEFAULT_API_BASE_URL);
-  assert.equal(localStorage.getItem(SERVER_STORAGE_KEY), null);
+  connectionController.abort();
   assert.equal(connectionController.signal.aborted, true);
   assert.equal(requestSignal.aborted, true);
   finish();
@@ -139,4 +138,46 @@ test("切换中断普通和流式请求，丢弃迟到结果；离线恢复默�
   globalThis.fetch = async () => { throw new Error("已停止的连接不得继续发请求"); };
   await assert.rejects(request("/health"), { name: "AbortError" });
   await assert.rejects(streamEvalPosition("fen"), { name: "AbortError" });
+});
+
+test("Web 忽略旧自定义地址并禁止切换，PC 和安卓保留切换与离线恢复", () => {
+  for (const platform of ["web", "desktop", "android"]) {
+    // 独立进程模拟启动环境，验证模块初始化时的地址与事件绑定。
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", `
+      import assert from "node:assert/strict";
+      const platform = ${JSON.stringify(platform)};
+      if (platform !== "web") globalThis.window = { __TAURI_INTERNALS__: {} };
+      Object.defineProperty(globalThis, "navigator", { value: { userAgent: platform === "android" ? "Android" : "Windows" }, configurable: true });
+      globalThis.location = { href: "https://site.example/", reload() { reloads++; } };
+      let saved = "https://custom.example/api";
+      let reloads = 0;
+      globalThis.localStorage = {
+        getItem: () => saved,
+        setItem: (_, value) => { saved = value; },
+        removeItem: () => { saved = null; },
+      };
+      let storageListener;
+      globalThis.addEventListener = (_, listener) => { storageListener = listener; };
+      globalThis.fetch = () => { throw new Error("恢复默认不应发出网络请求"); };
+      const server = await import(${JSON.stringify(new URL("./server.js", import.meta.url).href)});
+      if (platform === "web") {
+        assert.equal(server.API_BASE_URL, "https://site.example/api");
+        assert.throws(() => server.saveServerAddress(saved), /仅 PC 和安卓/);
+        storageListener({ key: server.SERVER_STORAGE_KEY });
+        storageListener({ key: null });
+        assert.equal(reloads, 0);
+        assert.equal(server.connectionController.signal.aborted, false);
+      } else {
+        assert.equal(server.API_BASE_URL, saved);
+        server.saveServerAddress("https://other.example/api");
+        assert.equal(saved, "https://other.example/api");
+        assert.equal(server.connectionController.signal.aborted, true);
+        server.saveServerAddress(server.DEFAULT_API_BASE_URL);
+        assert.equal(saved, null);
+        storageListener({ key: server.SERVER_STORAGE_KEY });
+        assert.equal(reloads, 1);
+      }
+    `], { encoding: "utf8" });
+    assert.equal(result.status, 0, `${platform}: ${result.stderr || result.error || result.stdout}`);
+  }
 });
