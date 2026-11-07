@@ -4,7 +4,7 @@
   "engines": [
     {
       "id": "fairy-stockfish",
-      "name": "Fairy-Stockfish（默认 Windows 安装选项）",
+      "name": "Fairy-Stockfish（传统评估与 NNUE 候选）",
       "variant": "xiangqi",
       "protocol": "uci",
       "runtimes": [
@@ -13,7 +13,7 @@
       "projectUrl": "https://github.com/fairy-stockfish/Fairy-Stockfish",
       "engineLicense": "GPL-3.0",
       "installCatalog": "install-catalog.json",
-      "note": "使用 largeboard 构建、ucicyclone 坐标及传统评估，不下载 NNUE。"
+      "note": "旧 EXE 下载使用 largeboard、ucicyclone 坐标和传统评估；新增 CC0 象棋 NNUE 测试候选见 native-packages.json 与 fairy-nnue.md。"
     },
     {
       "id": "official-pikafish",

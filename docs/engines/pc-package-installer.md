@@ -7,12 +7,12 @@ Windows x64 的个人设置中，标准象棋和揭棋各自提供“引擎包�
 普通原生程序仍可手动选择，Fairy-Stockfish 的原有上游下载入口保留在标准象棋的“其他引擎”中。
 
 新安装器采用 [`native-packages.json`](native-packages.json) 中构建时固定的可信清单，
-包含本地已验收的 `test-20261107-03` 和 GitHub `engines-20261107.1` 草稿构建，
+包含本地已验收的 `test-20261107-03`、GitHub `engines-20261107.1` 草稿构建，以及 [Fairy NNUE 本地候选](fairy-nnue.md)，
 两者的 ZIP 及包内清单 SHA-256 分别固定，不能互相代替。
 选择文件后按大小和哈希自动识别，不依赖文件名；CPU 或棋种不匹配的包不会运行。
 清单以外的原生引擎可继续使用“选择程序”，不能通过 ZIP 安装器绕过固定版本校验。
 
-当前 Release 仍是草稿，所以四个安装项的 `publicDownload` 均为 `false`：
+当前固定清单的 `publicDownload` 均为 `false`：
 在线按钮不可用，原生接口也拒绝该下载请求。可导入已取得的 ZIP 包测试完整安装和启用。
 将来确认同仓库正式 Release 的附件及许可后，才更新该字段和对应固定元数据，
 在线安装将使用 `https://github.com/Simlym/qidao/releases/download/<固定标签>/<固定文件名>`，
@@ -30,7 +30,7 @@ Windows x64 的个人设置中，标准象棋和揭棋各自提供“引擎包�
    离开设置后到达的安装结果不会自动启用；多个启用事务串行处理，防止旧回滚覆盖新配置。
 6. “检测并启用”重新核验清单、每个资源及试算；损坏的权重不能通过重新启用。
 
-位置：`<app_local_data_dir>/engines/<xiangqi或jieqi>/pikafish/<版本>/<包ID>/`。
+位置：`<app_local_data_dir>/engines/<xiangqi或jieqi>/<引擎ID>/<版本>/<包ID>/`；原有 Pikafish 路径保持不变。
 不同包 ID 的版本互不覆盖，原有 Fairy-Stockfish 安装目录保持原位置。
 下载过程支持进度和取消；网络阻塞时需等待当前网络操作返回，总超时为 300 秒。
 离开页面后安装可能继续完成，返回可在已安装列表中重新检测并启用。

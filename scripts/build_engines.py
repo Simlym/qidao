@@ -80,7 +80,7 @@ def extract_network(archive, destination):
         raise ValueError("权重文件大小异常")
 
 
-def smoke(executable, variant):
+def smoke(executable, variant, network_file="pikafish.nnue", uci_options=None, uci_protocol=None):
     """逐条等待协议响应，避免提前 quit 导致假阳性；超时后终止进程。"""
     process = subprocess.Popen([str(executable)], cwd=executable.parent,
                                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -114,11 +114,15 @@ def smoke(executable, variant):
         raise ValueError(f"等待 {prefix} 超时")
 
     try:
+        if uci_protocol == "ucicyclone":
+            command("ucicyclone")
         command("uci")
         wait("uciok")
+        for name, value in (uci_options or {}).items():
+            command(f"setoption name {name} value {str(value).lower() if isinstance(value, bool) else value}")
         command("setoption name Threads value 1")
         command("setoption name Hash value 32")
-        command(f"setoption name EvalFile value {executable.parent / 'pikafish.nnue'}")
+        command(f"setoption name EvalFile value {executable.parent / network_file}")
         command("isready")
         wait("readyok")
         command("ucinewgame")
@@ -143,11 +147,22 @@ def smoke(executable, variant):
 
 
 def build(variant, config, toolchain, output, jobs):
+    build_key = variant
     spec = config["engines"][variant]
-    source = checkout(variant, spec, config["repository"])
-    archive = BUILD / spec["networkArchiveUrl"].rsplit("/", 1)[-1]
-    download(spec["networkArchiveUrl"], archive, spec["networkArchiveSha256"])
-    extract_network(archive, source / "src/pikafish.nnue")
+    repository = spec.get("repository", config["repository"])
+    source = checkout(variant, spec, repository)
+    variant = spec.get("variant", variant)
+    engine_id = spec.get("engineId", "pikafish")
+    network_file = spec.get("networkFileName", "pikafish.nnue")
+    if spec.get("networkUrl"):
+        download(spec["networkUrl"], BUILD / network_file, spec["networkSha256"])
+        shutil.copyfile(BUILD / network_file, source / "src" / network_file)
+        network_source = {"url": spec["networkUrl"], "sha256": spec["networkSha256"]}
+    else:
+        archive = BUILD / spec["networkArchiveUrl"].rsplit("/", 1)[-1]
+        download(spec["networkArchiveUrl"], archive, spec["networkArchiveSha256"])
+        extract_network(archive, source / "src" / network_file)
+        network_source = {"url": spec["networkArchiveUrl"], "sha256": spec["networkArchiveSha256"]}
     env = os.environ.copy()
     env["PATH"] = str(toolchain) + os.pathsep + env["PATH"]
     env["OS"] = "Windows_NT"
@@ -160,52 +175,59 @@ def build(variant, config, toolchain, output, jobs):
     make = (toolchain / "make.exe").as_posix()
     # 子 make 继续使用相同覆盖文件，避免重新引入 LTO。
     common = ["-f", "qidao-build.mk", f"ARCH={ARCH}", "COMP=mingw", "CXX=g++",
-              f'MAKE="{make}" -f qidao-build.mk']
+              f'MAKE="{make}" -f qidao-build.mk', *spec.get("makeOptions", [])]
     command = [make, f"-j{jobs}", "build", *common]
-    log = output / f"{variant}-build.log"
+    log = output / f"{build_key}-build.log"
     with log.open("w", encoding="utf-8") as stream:
         run([make, "objclean", *common], cwd=source / "src", env=env, stdout=stream, stderr=subprocess.STDOUT)
         run(command, cwd=source / "src", env=env, stdout=stream, stderr=subprocess.STDOUT)
     binary = source / "src" / spec["executable"]
     run([toolchain / "strip.exe", binary])
-    name = f"{variant}-pikafish-{spec['version']}-windows-x64-sse41-popcnt"
+    name = f"{variant}-{engine_id}-{spec['version']}-windows-x64-sse41-popcnt"
     stage = output / name
     stage.mkdir(exist_ok=False)
     shutil.copyfile(binary, stage / spec["executable"])
-    shutil.copyfile(source / "src/pikafish.nnue", stage / "pikafish.nnue")
+    shutil.copyfile(source / "src" / network_file, stage / network_file)
     licenses = stage / "licenses"
     licenses.mkdir()
     shutil.copyfile(source / "Copying.txt", licenses / "GPL-3.0.txt")
     if (source / "AUTHORS").exists():
         shutil.copyfile(source / "AUTHORS", licenses / "AUTHORS.txt")
+    for license_file in spec.get("licenseFiles", []):
+        shutil.copyfile(ROOT / license_file, licenses / Path(license_file).name)
     shutil.copyfile(overlay, stage / "qidao-build.mk")
-    report = smoke(stage / spec["executable"], variant)
+    report = smoke(stage / spec["executable"], variant, network_file, spec.get("uciOptions"), spec.get("uciProtocol"))
     (stage / "smoke-test.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if engine_id == "fairy-stockfish":
+        from engine_protocol import validate_fairy
+        protocol_report = validate_fairy(stage / spec["executable"], stage / network_file)
+        (stage / "protocol-test.json").write_text(json.dumps(protocol_report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     compiler = subprocess.check_output([str(toolchain / "g++.exe"), "--version"], text=True).splitlines()[0]
-    manifest = {"schemaVersion": 1, "id": name, "name": "Pikafish" if variant == "xiangqi" else "PikaJieQi",
+    manifest = {"schemaVersion": 1, "id": name, "name": spec.get("name", "Pikafish" if variant == "xiangqi" else "PikaJieQi"),
                 "version": spec["version"], "variant": variant, "runtime": "native", "protocol": "uci",
-                "entrypoint": spec["executable"], "coordinates": "a0-i9", "uciOptions": {},
+                "entrypoint": spec["executable"], "coordinates": "a0-i9", "uciOptions": spec.get("uciOptions", {}),
+                "uciVariant": spec.get("uciOptions", {}).get("UCI_Variant"), "uciProtocol": spec.get("uciProtocol"),
                 "platform": "windows-x64", "requiresFeatures": ["sse4.1", "popcnt"],
-                "sourceUrl": config["repository"], "sourceCommit": spec["commit"],
+                "sourceUrl": repository, "sourceCommit": spec["commit"],
                 "engineLicense": "GPL-3.0", "networkLicenseUrl": spec["networkLicenseUrl"],
                 "distribution": spec["distribution"], "verification": {"status": "smoke-passed", "application": "pending-user-test"},
                 "build": {"compiler": compiler, "toolchain": config["toolchain"], "arguments": command[1:]},
-                "networkSource": {"url": spec["networkArchiveUrl"], "sha256": spec["networkArchiveSha256"]},
+                "networkLicense": spec.get("networkLicense"), "networkSource": network_source,
                 "assets": []}
     source_name = name + "-source.zip"
     run(["git", "-C", source, "archive", "--format=zip", f"--output={output / source_name}", spec["commit"]])
     (stage / "SOURCE.md").write_text(
-        f"# 源码构建测试包\n\n源码：{config['repository']}\n\n提交：`{spec['commit']}`\n\n"
+        f"# 源码构建测试包\n\n源码：{repository}\n\n提交：`{spec['commit']}`\n\n"
         f"对应源码附件：`{source_name}`\n\n编译器：{compiler}\n\n"
-        f"编译参数：`{' '.join(command[1:])}`\n\n权重来源：{spec['networkArchiveUrl']}\n\n"
+        f"编译参数：`{' '.join(command[1:])}`\n\n权重来源：{network_source['url']}\n\n"
         f"权重许可依据：{spec['networkLicenseUrl']}\n\n"
         "构建：将包内 qidao-build.mk 复制到源码 src，执行上述参数；覆盖文件关闭工具链不支持的 LTO，并统一 UTF-8 输出编码。\n\n"
-        "用途：本地兼容性测试，尚未核准公开分发或商业使用。完整构建步骤见棋岛 scripts/build_engines.py。\n",
+        f"用途：客户端兼容性测试，分发状态为 {spec['distribution']}；实际许可见 licenses。完整构建步骤见棋岛 scripts/build_engines.py。\n",
         encoding="utf-8")
     for path in sorted(stage.rglob("*")):
         if path.is_file():
             manifest["assets"].append({"path": path.relative_to(stage).as_posix(), "size": path.stat().st_size,
-                                       "sha256": sha256(path), "role": "evaluation-network" if path.name == "pikafish.nnue" else "file"})
+                                       "sha256": sha256(path), "role": "evaluation-network" if path.name == network_file else "file"})
     (stage / "engine-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     with zipfile.ZipFile(output / (name + ".zip"), "w", zipfile.ZIP_DEFLATED) as package:
         for path in sorted(stage.rglob("*")):
@@ -216,7 +238,7 @@ def build(variant, config, toolchain, output, jobs):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--engine", choices=["xiangqi", "jieqi", "all"], default="all")
+    parser.add_argument("--engine", choices=["xiangqi", "jieqi", "fairy-xiangqi", "all"], default="all")
     parser.add_argument("--toolchain", type=Path, default=BUILD / "w64devkit/bin")
     parser.add_argument("--output", type=Path, required=True, help="新的输出目录，不覆盖已有测试包")
     parser.add_argument("--jobs", type=int, default=4)
@@ -230,8 +252,8 @@ def main():
         parser.exit(1, "标签必须为 engines-YYYYMMDD.修订号\n")
     for variant in variants:
         spec = config["engines"][variant]
-        if not re.fullmatch(r"[0-9a-f]{40}", spec["commit"]) or not re.fullmatch(r"[0-9a-f]{64}", spec["networkArchiveSha256"] or ""):
-            parser.exit(1, f"{variant} 必须固定源码提交和权重发布包 SHA-256\n")
+        if not re.fullmatch(r"[0-9a-f]{40}", spec["commit"]) or not re.fullmatch(r"[0-9a-f]{64}", spec.get("networkSha256", spec.get("networkArchiveSha256")) or ""):
+            parser.exit(1, f"{variant} 必须固定源码提交和权重来源 SHA-256\n")
     if args.check_distribution:
         for variant in variants:
             spec = config["engines"][variant]

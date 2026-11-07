@@ -147,9 +147,9 @@ pub fn open_engine_install_link(
         match link.as_str() {
             "source" => package.source_url,
             "license" => package.license_url,
-            "network" => {
+            "network" => package.network_license_url.unwrap_or_else(|| {
                 "https://github.com/official-pikafish/Networks/blob/master/README.md".into()
-            }
+            }),
             _ => return Err("未知的引擎链接".into()),
         }
     } else {
@@ -186,7 +186,7 @@ pub struct PackageInfo {
     busy: bool,
 }
 
-fn package_root(app: &tauri::AppHandle, variant: &str) -> Result<PathBuf, String> {
+fn package_base(app: &tauri::AppHandle, variant: &str) -> Result<PathBuf, String> {
     // 先由随包清单校验棋种，目录不接受前端自由拼接。
     installer::packages::catalog(variant)?;
     Ok(app
@@ -194,8 +194,7 @@ fn package_root(app: &tauri::AppHandle, variant: &str) -> Result<PathBuf, String
         .app_local_data_dir()
         .map_err(|e| e.to_string())?
         .join("engines")
-        .join(variant)
-        .join("pikafish"))
+        .join(variant))
 }
 
 #[tauri::command]
@@ -206,7 +205,13 @@ pub fn native_package_info(
 ) -> Result<PackageInfo, String> {
     let packages = installer::packages::catalog(&variant)?;
     let platform = super::platform_info();
-    let installed = installer::packages::installed(&package_root(&app, &variant)?, &packages);
+    let base = package_base(&app, &variant)?;
+    let installed = packages
+        .iter()
+        .flat_map(|p| {
+            installer::packages::installed(&base.join(&p.engine_id), std::slice::from_ref(p))
+        })
+        .collect();
     Ok(PackageInfo {
         packages: packages
             .into_iter()
@@ -242,7 +247,7 @@ pub async fn manage_native_package(
     if !matches!(action.as_str(), "import" | "download" | "verify") {
         return Err("未知的引擎包操作".into());
     }
-    let root = package_root(&app, &variant)?;
+    let base = package_base(&app, &variant)?;
     if state
         .busy
         .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
@@ -269,6 +274,7 @@ pub async fn manage_native_package(
         let report = |event| {
             let _ = progress.send(event);
         };
+        let root = base.join(&package.engine_id);
         match action.as_str() {
             "import" => installer::packages::install_archive(
                 &root,

@@ -9,8 +9,9 @@
 | --- | --- | --- |
 | 标准象棋 | Pikafish-2026-01-02，提交 `ce0679e00ee196f7ba17f6ec18941b9a5036f8cf` | 同版本官方 Release 的 7z 包 |
 | 揭棋 | jieqi_old，提交 `23b9466c981f0f3a1133f92de1a6f86406c4eccc` | Pikafish-2022-12-26 官方 Release 的 ZIP 包 |
+| Fairy 标准象棋候选 | 官方 NNUE 发布所指引擎提交 `84dd49a4bd00b9959b07e1b917d362c46e6f6d75` | 官方固定提交中的 CC0 `xiangqi-c07e94a5c7cb.nnue` |
 
-程序由源码重新编译，官方发布包只提取唯一的 `pikafish.nnue`，不使用其中的预编译程序。
+程序由源码重新编译；Pikafish 官方发布包只提取唯一的 `pikafish.nnue`，不使用其中的预编译程序。Fairy 候选单独下载其固定提交的 CC0 网络，详见 [Fairy NNUE 验证](fairy-nnue.md)。
 标准象棋发布包哈希同时核对了 GitHub API 的 digest；2022 历史发布包没有 API digest，
 其 SHA-256 来自本次官方 HTTPS 下载后计算，用于固定后续输入，不代表独立的作者签名验证。
 禁止使用会变化的 master-net。源码和权重分别锁定版本；不修改上游源码。
@@ -25,19 +26,19 @@ python scripts/build_engines.py --output dist-engines/test-001
 ```
 
 便携 w64devkit 2.11.0 下载后校验 SHA-256，解压至 `.engine-build/w64devkit`；
-不安装到系统，不修改系统 PATH。脚本构建两种引擎的 Windows x64 SSE4.1/POPCNT 版本，
+不安装到系统，不修改系统 PATH。脚本默认构建两个 Pikafish 包及 Fairy NNUE 候选的 Windows x64 SSE4.1/POPCNT 版本，
 不是所有 CPU 均可运行，也不代表较新指令集的最佳性能。固定架构不使用 `native`。
 不使用 PGO，后续性能优化另行验收。w64devkit 不支持 LTO，因此随包提供 `qidao-build.mk`
 过滤该优化标志；揭棋旧版的 GBK 输出参数改为 UTF-8，以适配该工具链和棋岛的 UTF-8 读取。
 上游源码保持不变，仍使用 `-O3` 和固定架构优化。
 
-可用 `--engine xiangqi` / `--engine jieqi` 单独构建，`--jobs 4` 控制并行数。
+可用 `--engine xiangqi` / `--engine jieqi` / `--engine fairy-xiangqi` 单独构建，`--jobs 4` 控制并行数。
 每次使用新的输出目录，失败时检查其中的 `<棋种>-build.log`，不覆盖旧测试包。
 构建与下载临时文件位于 `.engine-build`，测试包位于 `dist-engines`，均被 Git 忽略。
 
 ## 输出与测试
 
-- 两个可直接手动导入的解压目录：程序与 `pikafish.nnue` 同目录。
+- 每个所选构建都有可直接手动导入的解压目录，程序与匹配权重同目录；Fairy 候选建议通过 ZIP 安装器导入，以保留棋种和坐标协议配置。
 - 对应 ZIP 包、固定提交源码 ZIP、`engine-release.json`、`SHA256SUMS.txt`。
 - 包内 `engine-manifest.json` 记录工具链、编译参数、源码提交、权重来源及文件哈希。
 - `smoke-test.json` 保存 UCI 握手、权重加载、一步浅层试算输出；它不能替代棋岛完整回归。
@@ -52,7 +53,7 @@ python scripts/build_engines.py --output dist-engines/test-001
 构建和试算通过后，将程序包、源码包、发行清单及校验文件上传到同仓库的 Release 草稿，
 不公开发布、不设为软件 Latest，不覆盖已有同名 Release。
 
-当前两个构建均为 `pending-review`，允许为维护者构建未公开的 Release 草稿，
+Pikafish 构建仍为 `pending-review`，Fairy NNUE 候选为 `pending-application-test`；允许为维护者构建未公开的 Release 草稿，
 不上传可被其他仓库读者下载的 Actions 构建附件；在同一构建作业内直接上传草稿。
 草稿不代表公开分发审核通过。公开发布前必须运行 `--check-distribution --preflight`，
 在配置中记录实际权重的 `networkLicenseEvidence`、应用验收 `applicationTestEvidence`，

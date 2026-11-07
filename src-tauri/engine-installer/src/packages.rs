@@ -38,6 +38,12 @@ pub struct Package {
     pub requires_features: Vec<String>,
     pub release_tag: Option<String>,
     pub public_download: bool,
+    pub uci_variant: Option<String>,
+    pub uci_protocol: Option<String>,
+    pub network_license: Option<String>,
+    pub network_license_url: Option<String>,
+    #[serde(default)]
+    pub application_tested: bool,
 }
 
 #[derive(Deserialize)]
@@ -142,6 +148,8 @@ struct Manifest {
     coordinates: String,
     entrypoint: String,
     source_commit: String,
+    uci_variant: Option<String>,
+    uci_protocol: Option<String>,
     assets: Vec<Asset>,
 }
 #[derive(Debug, Deserialize)]
@@ -167,6 +175,8 @@ fn manifest(directory: &Path, package: &Package) -> Result<Manifest, String> {
         || m.coordinates != "a0-i9"
         || m.entrypoint != package.entrypoint
         || m.source_commit != package.source_commit
+        || m.uci_variant != package.uci_variant
+        || m.uci_protocol != package.uci_protocol
         || m.assets.is_empty()
         || m.assets.len() > 39
     {
@@ -399,7 +409,7 @@ pub fn verify_installation(
         cancel,
         Duration::from_secs(30),
         &p.variant,
-        false,
+        p.uci_protocol.as_deref() == Some("ucicyclone"),
         Some(&dir.join(&p.network_path)),
     )?;
     Ok(installation(root, p))
@@ -438,7 +448,7 @@ pub fn install_archive(
         cancel,
         Duration::from_secs(30),
         &p.variant,
-        false,
+        p.uci_protocol.as_deref() == Some("ucicyclone"),
         Some(&stage.path().join(&p.network_path)),
     )?;
     let receipt = Receipt {
@@ -596,7 +606,17 @@ mod tests {
     fn catalog_preserves_variant_and_cpu_boundaries() {
         for variant in ["xiangqi", "jieqi"] {
             let entries = catalog(variant).unwrap();
-            assert_eq!(entries.len(), 2);
+            assert!(entries.iter().any(|p| p.engine_id == "pikafish"));
+            if variant == "xiangqi" {
+                let fairy = entries
+                    .iter()
+                    .find(|p| p.engine_id == "fairy-stockfish")
+                    .unwrap();
+                assert_eq!(fairy.uci_protocol.as_deref(), Some("ucicyclone"));
+                assert_eq!(fairy.network_license.as_deref(), Some("CC0-1.0"));
+            } else {
+                assert!(!entries.iter().any(|p| p.engine_id == "fairy-stockfish"));
+            }
             assert!(entries
                 .iter()
                 .all(|p| p.variant == variant && !p.public_download));
@@ -758,5 +778,29 @@ mod tests {
                     .is_err()
             );
         }
+    }
+
+    #[test]
+    #[cfg(windows)]
+    #[ignore = "需要已构建的固定 Fairy-Stockfish NNUE 测试包"]
+    fn real_fairy_package_uses_nnue_and_zero_based_coordinates() {
+        let source = PathBuf::from(
+            std::env::var("QIDAO_TEST_FAIRY_PACKAGE_DIR")
+                .expect("设置 QIDAO_TEST_FAIRY_PACKAGE_DIR"),
+        );
+        let packages = catalog("xiangqi").unwrap();
+        let p = packages
+            .iter()
+            .find(|p| p.engine_id == "fairy-stockfish")
+            .unwrap();
+        let root = tempfile::tempdir().unwrap();
+        let cancel = AtomicBool::new(false);
+        let result =
+            install_archive(root.path(), p, &source.join(&p.file_name), &cancel, |_| {}).unwrap();
+        assert_eq!(result.package.uci_protocol.as_deref(), Some("ucicyclone"));
+        assert_eq!(result.package.network_license.as_deref(), Some("CC0-1.0"));
+        verify_installation(root.path(), p, &cancel).unwrap();
+        fs::write(&result.nnue_path, b"changed").unwrap();
+        assert!(verify_installation(root.path(), p, &cancel).is_err());
     }
 }

@@ -104,9 +104,12 @@ export class TauriEngineAdapter extends EngineAdapter {
     // Fairy-Stockfish 的普通 UCI 使用 1..10；ucicyclone 保留 UCI 命令并改用本项目的 0..9 坐标。
     if (profile.uciProtocol && supports("Protocol")) {
       await invoke("send_to_engine", { command: `setoption name Protocol value ${profile.uciProtocol}` });
+    } else if (profile.uciProtocol === "ucicyclone") {
+      // 新版官方构建没有 Protocol 选项，使用协议命令；旧版仍走上面的选项。
+      await invoke("send_to_engine", { command: "ucicyclone" });
     }
-    if (profile.useNnue === false && supports("Use NNUE")) {
-      await invoke("send_to_engine", { command: "setoption name Use NNUE value false" });
+    if (typeof profile.useNnue === "boolean" && supports("Use NNUE")) {
+      await invoke("send_to_engine", { command: `setoption name Use NNUE value ${profile.useNnue}` });
     }
     if (supports("Threads")) await invoke("send_to_engine", { command: `setoption name Threads value ${profile.threads}` });
     if (supports("Hash")) await invoke("send_to_engine", { command: `setoption name Hash value ${profile.hashMb}` });

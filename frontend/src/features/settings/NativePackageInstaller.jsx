@@ -53,6 +53,7 @@ export default function NativePackageInstaller({ variant, onActivate, onBusyChan
       }
       const result = await manageNativePackage({ variant, action, packageId, archivePath }, (event) => active() && setProgress(event));
       if (!active()) return;
+      setSelected(result.package.id);
       if (cancelled.current) { setNotice("已取消启用；安装完成的版本可稍后重新检测并启用。"); return; }
       setProgress({ phase: "activating", downloaded: 1, total: 1 });
       await onActivate(result);
@@ -88,13 +89,13 @@ export default function NativePackageInstaller({ variant, onActivate, onBusyChan
     {info && <>
       {selectedPackage ? <>
         <label>固定版本 <select value={selected} disabled={working} onChange={(e) => setSelected(e.target.value)}>
-          {info.packages.map((p) => <option key={p.id} value={p.id}>{p.name} · {p.version} · {p.releaseTag ? "GitHub 构建" : "本地已测试构建"}</option>)}
+          {info.packages.map((p) => <option key={p.id} value={p.id}>{p.name} · {p.version} · {p.releaseTag ? "GitHub 构建" : p.applicationTested ? "本地已验收构建" : "本地测试候选"}</option>)}
         </select></label>
         <p className="muted">Windows x64 · SSE4.1 / POPCNT · 约 {(selectedPackage.size / 1024 / 1024).toFixed(1)} MB</p>
         <div className="native-install-links">
           <button type="button" onClick={() => openLink("source")}>对应版本源码</button>
           <button type="button" onClick={() => openLink("license")}>程序 GPL-3.0</button>
-          <button type="button" onClick={() => openLink("network")}>权重许可说明</button>
+          <button type="button" onClick={() => openLink("network")}>{selectedPackage.networkLicense ? `权重 ${selectedPackage.networkLicense}` : "权重许可说明"}</button>
         </div>
         {!selectedPackage.publicDownload && <p>此版本尚未公开下载，可导入已取得的 ZIP 测试包。</p>}
         <div className="native-install-actions">

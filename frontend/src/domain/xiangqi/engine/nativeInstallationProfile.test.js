@@ -21,3 +21,11 @@ test("旧版 Fairy 安装仍保留坐标协议和关闭 NNUE 的参数", () => {
   assert.equal(profile.useNnue, false);
   assert.equal(profile.nnuePath, null);
 });
+
+test("Fairy NNUE 引擎包保留棋种、坐标协议和指定网络", () => {
+  const profile = nativeInstallationProfile({ package: { variant: "xiangqi", uciVariant: "xiangqi", uciProtocol: "ucicyclone" }, enginePath: "stockfish.exe", nnuePath: "xiangqi-c07.nnue" }, "xiangqi", { threads: 2, hashMb: 128 });
+  assert.equal(profile.uciVariant, "xiangqi");
+  assert.equal(profile.uciProtocol, "ucicyclone");
+  assert.equal(profile.nnuePath, "xiangqi-c07.nnue");
+  assert.equal(profile.useNnue, true);
+});

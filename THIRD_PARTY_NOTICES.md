@@ -21,6 +21,8 @@ Windows 客户端提供从 [Fairy-Stockfish 上游发布](https://github.com/fai
 
 Fairy-Stockfish is Copyright (C) the Fairy-Stockfish and Stockfish contributors, licensed under GNU GPL version 3. 对应版本源码：[fairy_sf_14](https://github.com/fairy-stockfish/Fairy-Stockfish/tree/fairy_sf_14)。许可正文随安装记录保存为 `COPYING.txt`，仓库副本位于 `src-tauri/engine-installer/licenses/Fairy-Stockfish-GPL-3.0.txt`。
 
+新增的 Windows 标准象棋 NNUE 测试候选使用源码提交 `84dd49a4bd00b9959b07e1b917d362c46e6f6d75` 和 CC0 网络 `xiangqi-c07e94a5c7cb.nnue`。该候选仅作为单独引擎包提供，不随棋岛安装程序打包；程序和权重许可分别保存，完整来源与许可依据见 [Fairy 象棋网络说明](docs/licenses/Fairy-Xiangqi-NNUE.md)，CC0 正文见 [CC0-1.0.txt](docs/licenses/CC0-1.0.txt)。候选包附带对应源码，尚待客户端用户验收。
+
 ## Wukong Xiangqi 题库来源
 
 内置 Wukong 衍生杀法题来自 [maksimKorzh/wukong-xiangqi](https://github.com/maksimKorzh/wukong-xiangqi)，上游仓库采用 MIT License，Copyright (c) 2021 Maksym Korzh。保留的许可正文见 [Wukong MIT](docs/licenses/Wukong-MIT.txt)。

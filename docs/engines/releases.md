@@ -80,7 +80,7 @@ WASM 继续遵守 [现有导入规范](package-spec.md)，发行元数据采用�
 只有来源明确、对应源码及许可材料齐全、允许目标使用和分发、并通过目标平台测试的包，
 才进入公开发行清单。当前三组 Pikafish 本地基线均为 `pending-review`，不生成公开下载项。
 Pikafish 历史揭棋权重需核实历史文件自己的许可，不能仅凭当前标准象棋权重说明作出结论。
-Fairy-Stockfish + 明确 CC0 的象棋网络是商业默认候选，完成版本选择及验证后单独登记。
+Fairy-Stockfish + 明确 CC0 的象棋网络已固定版本、完成协议及安装验证，并在 `native-packages.json` 单独登记；见 [NNUE 候选验证](fairy-nnue.md)，仍待客户端用户验收。
 
 后续顺序：打包脚本与草稿发布流程 → PC 下载安装 → Fairy-Stockfish/CC0 网络验证
 → Web/Android 下载、校验与缓存 → 软件发布和完整回归。

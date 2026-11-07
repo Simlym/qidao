@@ -66,7 +66,8 @@
         "popcnt"
       ],
       "releaseTag": null,
-      "publicDownload": false
+      "publicDownload": false,
+      "applicationTested": true
     },
     {
       "id": "xiangqi-local-tested-20261107",
@@ -88,7 +89,35 @@
         "popcnt"
       ],
       "releaseTag": null,
-      "publicDownload": false
+      "publicDownload": false,
+      "applicationTested": true
+    },
+    {
+      "id": "xiangqi-fairy-c07e94a5-20261107",
+      "variant": "xiangqi",
+      "engineId": "fairy-stockfish",
+      "name": "Fairy-Stockfish NNUE",
+      "version": "nnue-c07e94a5-84dd49a4",
+      "fileName": "xiangqi-fairy-stockfish-nnue-c07e94a5-84dd49a4-windows-x64-sse41-popcnt.zip",
+      "size": 5814717,
+      "sha256": "f2b28a0741170d63e427394a1da072972a908ffd6a0c4bcccaa16dbc20bd225b",
+      "manifestSha256": "69aa93e57f5175678016a3e68925d5cd3b1cbe3e8021dd26109d6bf9d9a28af5",
+      "entrypoint": "stockfish.exe",
+      "networkPath": "xiangqi-c07e94a5c7cb.nnue",
+      "sourceCommit": "84dd49a4bd00b9959b07e1b917d362c46e6f6d75",
+      "sourceUrl": "https://github.com/fairy-stockfish/Fairy-Stockfish/tree/84dd49a4bd00b9959b07e1b917d362c46e6f6d75",
+      "licenseUrl": "https://github.com/fairy-stockfish/Fairy-Stockfish/blob/84dd49a4bd00b9959b07e1b917d362c46e6f6d75/Copying.txt",
+      "requiresFeatures": [
+        "sse4.1",
+        "popcnt"
+      ],
+      "releaseTag": null,
+      "publicDownload": false,
+      "uciVariant": "xiangqi",
+      "uciProtocol": "ucicyclone",
+      "networkLicense": "CC0-1.0",
+      "networkLicenseUrl": "https://github.com/official-pikafish/Networks/blob/a238f8da2df269c28fec0e2bd2ca0ffd241f83fe/README.md",
+      "applicationTested": false
     }
   ]
 }

@@ -6,7 +6,7 @@ on:
       engine:
         description: 棋种
         type: choice
-        options: [all, xiangqi, jieqi]
+        options: [all, xiangqi, jieqi, fairy-xiangqi]
         default: all
       release_tag:
         description: 固定引擎标签，例如 engines-20261107.1

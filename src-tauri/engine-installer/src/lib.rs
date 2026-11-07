@@ -424,9 +424,21 @@ fn probe(
         let input = child.0.stdin.as_mut().ok_or("无法连接试运行输入")?;
         input.write_all(b"uci\n").map_err(|e| e.to_string())?;
         let deadline = Instant::now() + timeout;
-        wait_for(&receiver, "uciok", deadline, cancel)?;
+        let mut protocol_option = false;
+        wait_for_observing(&receiver, "uciok", deadline, cancel, |line| {
+            if line.starts_with("option name Protocol type ") {
+                protocol_option = true;
+            }
+        })?;
         if fairy {
-            input.write_all(b"setoption name UCI_Variant value xiangqi\nsetoption name Protocol value ucicyclone\nsetoption name Use NNUE value false\n").map_err(|e| e.to_string())?;
+            input
+                .write_all(if protocol_option {
+                    b"setoption name Protocol value ucicyclone\n"
+                } else {
+                    b"ucicyclone\n"
+                })
+                .map_err(|e| e.to_string())?;
+            input.write_all(format!("setoption name UCI_Variant value xiangqi\nsetoption name Use NNUE value {}\n", network.is_some()).as_bytes()).map_err(|e| e.to_string())?;
         }
         if let Some(network) = network {
             input
@@ -449,6 +461,21 @@ fn probe(
                 format!("position fen {fen}\ngo depth 1 searchmoves {expected}\n").as_bytes(),
             )
             .map_err(|e| e.to_string())?;
+        if fairy {
+            if let Some(network) = network {
+                let status = wait_for(&receiver, "info string ", deadline, cancel)?;
+                let file = network
+                    .file_name()
+                    .ok_or("缺少网络文件名")?
+                    .to_string_lossy();
+                if !status.starts_with("info string NNUE evaluation using ")
+                    || !status.contains(file.as_ref())
+                    || !status.ends_with(" enabled")
+                {
+                    return Err("引擎未启用已校验的 NNUE 网络".into());
+                }
+            }
+        }
         let line = wait_for(&receiver, "bestmove ", deadline, cancel)?;
         let best = line.split_whitespace().nth(1).unwrap_or("");
         let bytes = best.as_bytes();
@@ -475,14 +502,29 @@ fn wait_for(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> Result<String, String> {
+    wait_for_observing(receiver, prefix, deadline, cancel, |_| {})
+}
+
+fn wait_for_observing(
+    receiver: &mpsc::Receiver<String>,
+    prefix: &str,
+    deadline: Instant,
+    cancel: &AtomicBool,
+    mut observe: impl FnMut(&str),
+) -> Result<String, String> {
     loop {
         cancelled(cancel)?;
         if Instant::now() >= deadline {
             return Err(format!("引擎试算等待 {prefix} 超时"));
         }
         match receiver.recv_timeout(Duration::from_millis(100)) {
-            Ok(line) if line.starts_with(prefix) => return Ok(line),
-            Ok(_) | Err(mpsc::RecvTimeoutError::Timeout) => {}
+            Ok(line) => {
+                observe(&line);
+                if line.starts_with(prefix) {
+                    return Ok(line);
+                }
+            }
+            Err(mpsc::RecvTimeoutError::Timeout) => {}
             Err(_) => return Err("引擎在试算完成前退出".into()),
         }
     }

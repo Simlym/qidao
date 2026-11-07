@@ -2,7 +2,7 @@
 
 棋岛安装包不包含第三方引擎或评估权重。Windows x64 标准象棋目前支持从 GitHub 上游直接下载固定版本的 Fairy-Stockfish；其他场景保留用户手动导入。目前尚未托管、镜像或代理下载引擎文件。
 
-已确定后续采用**同仓库、软件与引擎分别发布 Release** 的策略，见[发行方案与本地基线](releases.md)。第一阶段仅登记本地版本和文件校验值，不改变当前下载入口。用户已验证 PC Pikafish 象棋和揭棋正常使用；Fairy-Stockfish 尚待实机验证，不能因已有安装器就视为推荐版本已验证。
+已确定后续采用**同仓库、软件与引擎分别发布 Release** 的策略，见[发行方案与本地基线](releases.md)。用户已验证 PC Pikafish 象棋和揭棋正常使用；[Fairy-Stockfish + CC0 象棋 NNUE 候选](fairy-nnue.md)已完成真实程序协议、安装测试，待客户端用户验收后再决定默认版本。
 
 第二阶段已提供[从固定 GitHub 源码构建 Windows 测试包](source-builds.md)的脚本，不再将旧本地引擎作为打包输入。新包已完成协议级试算，用户也已确认两个包在 PC 客户端均可正常使用，见[验收记录](acceptance.json)；默认下载源尚未修改。GitHub 草稿用于检查云端构建，不代表公开发布。
 
@@ -26,7 +26,7 @@
 
 目前仅引导安装 `Windows / x86_64`，按 CPU 指令集提供 BMI2、modern、generic 三种构建；不会把普通象棋引擎用于揭棋。默认固定 `fairy_sf_14`，不在每次启动时追踪 latest。下载源为 GitHub，中国地区加速暂未提供；GitHub 不可达时可手动导入。
 
-Fairy-Stockfish 是多棋种引擎，配置会自动指定 `UCI_Variant=xiangqi`、`Protocol=ucicyclone` 和 `Use NNUE=false`。`ucicyclone` 保留 UCI 命令格式并使用本项目的 `a0..i9` 坐标，避免普通 UCI 的 `1..10` 坐标造成错着。此默认方案采用传统评估，无需额外权重；若需要 Pikafish 等更强引擎，可继续手动导入。
+Fairy-Stockfish 是多棋种引擎，配置会自动指定 `UCI_Variant=xiangqi`，按握手选项选择旧版 `Protocol=ucicyclone` 或新版 `ucicyclone` 协议命令，确保使用本项目的 `a0..i9` 坐标。旧 EXE 下载方案设置 `Use NNUE=false`、采用传统评估；新增 NNUE ZIP 候选明确启用匹配的 CC0 网络，二者配置独立。
 
 程序通过 Rust 下载，不受浏览器 CORS 限制，也不经过所连接的业务后端。下载显示进度、支持取消；网络阻塞时取消需等待当前网络操作返回（总下载超时 120 秒）。离开设置页后任务可能继续，返回页面会显示后台状态和完成的版本；不会在页面已离开时自动切换原配置。
 
