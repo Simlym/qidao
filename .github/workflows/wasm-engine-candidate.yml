@@ -2,6 +2,11 @@ name: WASM 象棋候选构建
 on:
   workflow_dispatch:
     inputs:
+      variant:
+        description: 棋种
+        type: choice
+        options: [xiangqi, jieqi]
+        default: xiangqi
       flavor:
         description: WASM 运行时
         type: choice
@@ -51,7 +56,13 @@ jobs:
       - name: 固定上游源码与工具镜像构建
         env:
           FLAVOR: ${{ inputs.flavor }}
-        run: python scripts/build_wasm_engine.py --output dist-engines/wasm-candidate --flavor "$FLAVOR"
+          VARIANT: ${{ inputs.variant }}
+        run: |
+          if [ "$VARIANT" = jieqi ]; then
+            python scripts/build_jieqi_wasm.py --output dist-engines/wasm-candidate
+          else
+            python scripts/build_wasm_engine.py --output dist-engines/wasm-candidate --flavor "$FLAVOR"
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

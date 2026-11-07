@@ -10,7 +10,7 @@ const directory = resolve(process.argv[2]);
 const result = JSON.parse(readFileSync(resolve(directory, "build-result.json"), "utf8"));
 const archive = readFileSync(resolve(directory, result.fileName));
 const spec = { id: "wasm-browser-candidate", packageId: result.manifest.id, name: result.manifest.name,
-  version: result.manifest.version, variant: "xiangqi", runtime: "wasm", threads: Boolean(result.manifest.threads), publicDownload: true,
+  version: result.manifest.version, variant: result.manifest.variant, runtime: "wasm", threads: Boolean(result.manifest.threads), publicDownload: true,
   releaseTag: "engines-20261107.3", fileName: result.fileName, size: result.size, sha256: result.sha256,
   manifestSha256: result.manifestSha256,
   url: `https://github.com/Simlym/qidao/releases/download/engines-20261107.3/${result.fileName}` };
@@ -41,10 +41,11 @@ try {
     const { ensureBrowserEngineStorage } = await import("/src/platform/browserEngineStorage.js");
     if (!spec.threads && (crossOriginIsolated || typeof SharedArrayBuffer !== "undefined")) throw new Error("单线程测试必须在无共享内存环境执行");
     await ensureBrowserEngineStorage();
-    const profile = await installBrowserEngine(spec, "xiangqi", {
+    const variant = spec.variant;
+    const profile = await installBrowserEngine(spec, variant, {
       deliveryUrl: () => "/candidate.zip", probe: local.probeBrowserEngineProfile,
     });
-    const worker = await local.getLocalEngine("xiangqi");
+    const worker = await local.getLocalEngine(variant);
     if (!worker) throw new Error("安装后的引擎无法启动");
     const transcript = [];
     worker.addEventListener("message", (event) => { if (typeof event.data === "string") transcript.push(event.data); });
@@ -58,7 +59,9 @@ try {
       worker.addEventListener("message", listen);
       for (const command of commands) worker.postMessage(command);
     });
-    const red = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
+    const red = variant === "jieqi"
+      ? "xxxxkxxxx/9/1x5x1/x1x1x1x1x/9/9/X1X1X1X1X/1X5X1/9/XXXXKXXXX w A2B2N2R2C2P5a2b2n2r2c2p5 - 0 1"
+      : "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
     const black = red.replace(" w ", " b ");
     const redMove = await search([`position fen ${red}`, "go depth 3 searchmoves h2e2"]);
     const blackMove = await search([`position fen ${black}`, "go depth 3 searchmoves h7e7"]);
@@ -87,15 +90,16 @@ try {
       worker.addEventListener("message", listen);
       for (const command of [`position fen ${red}`, "go infinite searchmoves h2e2", "stop", "ucinewgame", `position fen ${black}`, "go depth 2 searchmoves h7e7"]) worker.postMessage(command);
     });
-    if (!transcript.some((line) => /NNUE evaluation using .* enabled/.test(line))) throw new Error("未确认 NNUE 启用");
-    return { status: "passed", profile, redMove, blackMove, multiPv: 3, stopAndReset: true, stopLatencyMs, queuedRestart: true, crossOriginIsolated, sharedArrayBuffer: typeof SharedArrayBuffer !== "undefined", nnue: true, transcript };
+    if (variant === "xiangqi" && !transcript.some((line) => /NNUE evaluation using .* enabled/.test(line))) throw new Error("未确认 NNUE 启用");
+    if (variant === "jieqi" && !transcript.some((line) => line.includes("Qidao classical evaluation enabled"))) throw new Error("未确认传统评估启用");
+    return { status: "passed", profile, redMove, blackMove, multiPv: 3, stopAndReset: true, stopLatencyMs, queuedRestart: true, crossOriginIsolated, sharedArrayBuffer: typeof SharedArrayBuffer !== "undefined", nnue: variant === "xiangqi", transcript };
   }, spec);
   await context.setOffline(true);
-  report.offlineRestart = await page.evaluate(async () => {
+  report.offlineRestart = await page.evaluate(async (variant) => {
     const local = await import("/src/domain/xiangqi/engine/localEngine.js");
-    local.resetLocalEngine("xiangqi");
-    return local.localEngineReady("xiangqi");
-  });
+    local.resetLocalEngine(variant);
+    return local.localEngineReady(variant);
+  }, spec.variant);
   if (!report.offlineRestart) throw new Error("离线重新启动失败");
   if (process.argv.includes("--ui-import")) {
     await context.setOffline(false);
