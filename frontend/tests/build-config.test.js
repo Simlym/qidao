@@ -52,6 +52,21 @@ test("接受实际 HTTPS 地址并规范化首尾空格及斜杠", () => {
   }
 });
 
+test("显式离线客户端无需域名且忽略本地模拟器地址，Web 仍保持正常配置", () => {
+  const files = { ".env": "VITE_OFFLINE_CLIENT=true", ".env.android.local": "VITE_API_BASE_URL=http://10.0.2.2:8000/api" };
+  for (const mode of ["android", "tauri"]) {
+    withEnv(files, undefined, () => {
+      const config = createConfig({ mode, command: "build" });
+      assert.equal(JSON.parse(config.define["import.meta.env.VITE_API_BASE_URL"]), "");
+      assert.equal(JSON.parse(config.define["import.meta.env.VITE_OFFLINE_CLIENT"]), true);
+    });
+  }
+  withEnv(files, "https://site.example/api", () => {
+    const config = createConfig({ mode: "production", command: "build" });
+    assert.equal(JSON.parse(config.define["import.meta.env.VITE_OFFLINE_CLIENT"]), false);
+  });
+});
+
 test("各端读取对应 mode 配置，进程环境变量优先于本地文件", () => {
   const files = {
     ".env.local": "VITE_API_BASE_URL=/api",

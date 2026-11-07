@@ -20,13 +20,14 @@ export default defineConfig(({ mode, command }) => {
   const tauriDevHost = process.env.TAURI_DEV_HOST;
   const apiBase = (env.VITE_API_BASE_URL || "").trim().replace(/\/+$/, "");
   const packagedClient = mode === "tauri" || mode === "android";
+  const offlineClient = packagedClient && env.VITE_OFFLINE_CLIENT === "true";
   // 原生客户端使用独立端口，允许与 Web 开发服务同时运行。
   const devPort = packagedClient ? 1420 : 5173;
   const label = mode === "android" ? "Android" : "PC";
   const configFile = mode === "android" ? ".env.android.local" : ".env.tauri.local";
   const release = command === "build";
 
-  if (packagedClient && (release || mode === "android" || apiBase)) {
+  if (!offlineClient && packagedClient && (release || mode === "android" || apiBase)) {
     let url;
     try { url = new URL(apiBase); } catch { /* 由下方统一给出配置错误 */ }
     const valid = url
@@ -42,7 +43,8 @@ export default defineConfig(({ mode, command }) => {
   return {
     plugins: [react(), excludeBundledEngines()],
     define: {
-      "import.meta.env.VITE_API_BASE_URL": JSON.stringify(apiBase),
+      "import.meta.env.VITE_API_BASE_URL": JSON.stringify(offlineClient ? "" : apiBase),
+      "import.meta.env.VITE_OFFLINE_CLIENT": JSON.stringify(offlineClient),
     },
     server: {
       port: devPort,

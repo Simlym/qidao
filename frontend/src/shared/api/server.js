@@ -17,7 +17,9 @@ export function normalizeServerAddress(value, { allowHttp = false } = {}) {
   return url.href;
 }
 
-const configured = (import.meta.env?.VITE_API_BASE_URL || defaultApiBase(runtime)).trim().replace(/\/+$/, "");
+// 离线默认值仅作存储命名空间；withApiConnection 会在发请求前直接返回离线提示。
+const offlineClient = import.meta.env?.VITE_OFFLINE_CLIENT === true;
+const configured = (offlineClient ? "https://offline.invalid/api" : (import.meta.env?.VITE_API_BASE_URL || defaultApiBase(runtime))).trim().replace(/\/+$/, "");
 export const DEFAULT_API_BASE_URL = new URL(configured || defaultApiBase(runtime), origin).href;
 export const allowHttpServer = Boolean(import.meta.env?.DEV);
 
@@ -32,6 +34,7 @@ function readServer() {
 
 // 每个页面生命周期固定连接；切换必须重新加载，防止旧回调使用新服务器的凭据。
 export const API_BASE_URL = readServer();
+export const isOfflineConnection = offlineClient && API_BASE_URL === DEFAULT_API_BASE_URL;
 export const SERVER_ID = API_BASE_URL;
 export const connectionController = new AbortController();
 
@@ -55,6 +58,7 @@ globalThis.addEventListener?.("storage", (event) => {
 });
 
 export async function withApiConnection(run, callerSignal) {
+  if (isOfflineConnection) throw new Error("当前为离线模式，请在设置中连接服务器后使用在线功能。");
   const controller = new AbortController();
   const abort = () => controller.abort();
   const signals = [connectionController.signal, callerSignal].filter(Boolean);
@@ -73,6 +77,7 @@ export async function withApiConnection(run, callerSignal) {
 }
 
 export async function probeServer(value, { signal, allowHttp = allowHttpServer, timeoutMs = 8000 } = {}) {
+  if (offlineClient && value === DEFAULT_API_BASE_URL) throw new Error("请填写要连接的服务器地址。");
   const base = value === DEFAULT_API_BASE_URL ? value : normalizeServerAddress(value, { allowHttp });
   const controller = new AbortController();
   const abort = () => controller.abort();

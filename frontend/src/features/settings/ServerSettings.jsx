@@ -1,10 +1,10 @@
 import React from "react";
 import {
-  API_BASE_URL, DEFAULT_API_BASE_URL, probeServer, saveServerAddress, reloadForServerChange,
+  API_BASE_URL, DEFAULT_API_BASE_URL, isOfflineConnection, probeServer, saveServerAddress, reloadForServerChange,
 } from "../../shared/api";
 
 export default function ServerSettings() {
-  const [address, setAddress] = React.useState(API_BASE_URL);
+  const [address, setAddress] = React.useState(isOfflineConnection ? "" : API_BASE_URL);
   const [busy, setBusy] = React.useState(false);
   const [notice, setNotice] = React.useState(null);
   const probe = React.useRef(null);
@@ -51,7 +51,7 @@ export default function ServerSettings() {
       </div>
       <div className="server-current-heading"><strong>服务地址</strong><span>{API_BASE_URL === DEFAULT_API_BASE_URL ? "使用默认服务" : "使用自定义服务"}</span></div>
       <dl className="server-addresses">
-        <dt>当前服务器</dt><dd>{API_BASE_URL}</dd>
+        <dt>当前服务器</dt><dd>{isOfflineConnection ? "离线模式 · 可导入本地引擎对弈" : API_BASE_URL}</dd>
       </dl>
       <p className="server-description">各服务器的账号、会员、训练进度和棋谱相互独立。切换不会迁移数据；返回原服务器可继续使用原账号。</p>
       <div className="server-edit-card">

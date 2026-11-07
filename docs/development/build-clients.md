@@ -106,6 +106,27 @@ npm run tauri build
 
 ## Android
 
+### 无服务器的本地引擎测试包
+
+可显式构建离线客户端，无需域名或运行电脑开发服务：
+
+```powershell
+$env:VITE_OFFLINE_CLIENT = "true"
+node frontend/node_modules/@tauri-apps/cli/tauri.js android build --debug --apk --target aarch64 --ci
+Remove-Item Env:VITE_OFFLINE_CLIENT
+```
+
+命令在仓库根目录运行。该开关忽略本地 API 默认地址，业务请求直接返回离线提示，
+不向模拟器地址或占位地址发送请求。用户仍可在“设置 → 服务器（高级）”连接 HTTPS 服务。
+不设置该开关时，原有发布地址校验继续生效。测试 APK 使用调试签名，不用于正式发布。
+
+真机验证：将 APK 和标准象棋单线程引擎 ZIP 复制到手机，安装后进入“设置 → 标准象棋引擎”，
+选择 ZIP 文件导入，等待明确的导入启用成功提示；随后进入人机对弈，分别执红、执黑走棋。
+继续测试悔棋、重新开局、分析停止，以及退到后台再返回。最后开启飞行模式，强制结束应用并
+重新打开，确认引擎设置仍在且能再次走棋。无需解压 ZIP，也不需要登录。
+如果出现缓存不支持、安装超时、白屏或引擎无法就绪，请记录手机型号、Android/WebView 版本、
+具体操作与错误原文；构建成功不能代替这些真机验收。
+
 安装 Android Studio 所需 SDK/NDK、JDK、Rust Android targets 及 [Tauri 移动端前置环境](https://v2.tauri.app/start/prerequisites/)。从仓库根目录执行：
 
 ```powershell

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import {
   normalizeServerAddress, probeServer,
   API_BASE_URL, DEFAULT_API_BASE_URL, connectionController,
@@ -17,6 +18,33 @@ function storage() {
     removeItem: (key) => values.delete(key),
   };
 }
+
+test("离线客户端不发业务请求，连接自建服务后恢复在线请求", () => {
+  const source = readFileSync(new URL("./server.js", import.meta.url), "utf8")
+    .replaceAll("import.meta.env", '({ VITE_OFFLINE_CLIENT: true })')
+    .replace('"../../platform/runtime.js"', JSON.stringify(new URL("../../platform/runtime.js", import.meta.url).href));
+  for (const saved of [null, "https://custom.example/api"]) {
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", `
+      import assert from "node:assert/strict";
+      globalThis.window = { __TAURI_INTERNALS__: {} };
+      globalThis.localStorage = { getItem: () => ${JSON.stringify(saved)} };
+      const server = await import(${JSON.stringify(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}`)});
+      let called = false;
+      const run = () => { called = true; return "ok"; };
+      if (${JSON.stringify(saved)} === null) {
+        assert.equal(server.isOfflineConnection, true);
+        await assert.rejects(server.withApiConnection(run), /离线模式/);
+        await assert.rejects(server.probeServer(server.DEFAULT_API_BASE_URL), /填写/);
+        assert.equal(called, false);
+      } else {
+        assert.equal(server.isOfflineConnection, false);
+        assert.equal(await server.withApiConnection(run), "ok");
+        assert.equal(called, true);
+      }
+    `], { encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+  }
+});
 
 test("地址规范化与 HTTPS 限制，开发允许 HTTP", () => {
   assert.equal(normalizeServerAddress(" https://CHESS.example:443/prefix/api/// "), "https://chess.example/prefix/api");

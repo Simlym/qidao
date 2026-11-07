@@ -90,6 +90,24 @@ Worker 中运行，使用 Asyncify 定期让出事件循环处理停止标志，
 COOP/COEP，不改变应用标识、来源协议或既有存储目录。它只提供隔离所需的响应头，
 不保证每个 WebView 支持线程或 Service Worker；本机 ADB 当前未连接设备，真机验收尚未完成。
 
+### 安卓 Service Worker 脚本分发修复
+
+首次真机测试在注册 `http://tauri.localhost/sw.js` 时报告脚本获取失败，尚未进入引擎试算。
+安卓 Service Worker 使用独立的资源回调；现在在受版本管理的
+`src-tauri/android/MainActivity.kt` 中，通过
+[ServiceWorkerClientCompat](https://developer.android.com/reference/androidx/webkit/ServiceWorkerClientCompat)
+将本应用固定 `/sw.js` 的 GET 请求交给现有 Tauri/Wry 资源处理器。
+回调不代理业务 API 或外部来源，不改变应用标识与存储来源。
+`build.rs` 在安卓编译时同步入口到生成目录，重新初始化工程后仍能保留修复。
+
+修复后，Pixel_10 / Android 17 / WebView 149 模拟器实际安装 APK 验证通过：
+Service Worker 注册并接管、设置页单线程 ZIP 导入与 UCI 就绪、NNUE 启用、红黑指定着法与停止；
+关闭模拟器 Wi-Fi 和移动数据并强制结束应用后，再次启动引擎并试算通过。
+协议复验脚本为 `frontend/scripts/test-android-wasm.mjs`，需通过 ADB 转发测试 APK WebView
+的调试端口，且先导入候选 ZIP；该脚本不进入应用产物。模拟器验证不替代用户 ARM64 真机复测。
+用户收到 ARM64 修复版 v2 后确认“测试了，走棋正常”，已登记真机走棋验收。
+真机断网冷启动、停止重开及正式在线下载仍待逐项确认。
+
 ## 浏览器与分发验证（2026-11-07）
 
 [最终候选构建与测试](https://github.com/Simlym/qidao/actions/runs/42364688124)（棋岛提交 `3731096`）通过：
@@ -131,4 +149,5 @@ Ubuntu / Chromium 与本机 Windows / Chrome 均在 `crossOriginIsolated=false` 
 SHA-256 `9b6c52ecdc7bae9c030b475c116347b5b86fd8aeefa1207dadce7f7d83d44f5a`；
 清单 SHA-256 `7b5fa96f49319d09cc5eae822ff40c6c79b3f169b233efe3570ff28db852a762`。
 该包登记在推荐列表首位，保留线程版供选择，现有已安装引擎不会自动替换。
+用户随后确认“单线程测试通过”，已单独记录用户验收；未指定测试平台，不视为安卓真机验收。
 `engines-20261107.4` 仅为计划发行标签，`publicDownload=false`；不创建公开 Release。

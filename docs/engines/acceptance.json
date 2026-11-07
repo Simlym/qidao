@@ -2,6 +2,28 @@
   "schemaVersion": 1,
   "records": [
     {
+      "id": "android-fairy-wasm-single-user-20261107-01",
+      "reportedOn": "2026-11-07",
+      "platform": "android-arm64",
+      "status": "user-reported-passed",
+      "evidence": "用户收到 Service Worker 修复版 v2 APK 后确认：测试了，走棋正常",
+      "scope": "安卓修复版使用单线程引擎走棋通过用户验收；未提供手机型号、系统版本及逐项用例，不推定真机断网冷启动、停止重开、线程版或在线下载已验收",
+      "clientArtifact": {
+        "fileName": "QiDao-android-wasm-test-arm64-v2.apk",
+        "sha256": "d667a5fa3fa711d7fb384344f24bc0529794e7751886b49ee40b5e85b4dbe78d"
+      },
+      "relatedEngineAcceptance": "web-fairy-wasm-single-20261107-01"
+    },
+    {
+      "id": "web-fairy-wasm-single-user-20261107-01",
+      "reportedOn": "2026-11-07",
+      "platform": "user-unspecified",
+      "status": "user-reported-passed",
+      "evidence": "用户收到单线程候选包后确认：单线程测试通过",
+      "scope": "单线程候选通过用户测试；未逐项报告平台、附件校验值或用例，不推定安卓真机、揭棋或正式在线下载已验收",
+      "relatedEngineAcceptance": "web-fairy-wasm-single-20261107-01"
+    },
+    {
       "id": "web-fairy-wasm-single-20261107-01",
       "reportedOn": "2026-11-07",
       "platform": "linux-chromium/windows-chrome",
