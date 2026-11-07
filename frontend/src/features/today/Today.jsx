@@ -24,8 +24,10 @@ export default function Today({ user, onNavigate, onPractice, onRequireLogin }) 
   if (!user) return <section className="panel today-hero">
     <div><span className="today-eyebrow">欢迎来到棋岛</span><h2>先下一盘，再开始系统训练</h2>
       <p>启用本地引擎即可离线对弈，对局自动保存到本机。题库训练、闯关、学习计划和 AI 功能需要注册登录并联网。</p>
-      <div className="btn-row"><button onClick={() => onNavigate?.("play")}>开始本地对弈</button>
-        <button onClick={onRequireLogin}>注册 / 登录，开始训练</button></div>
+      <div className="today-hero-actions">
+        <button className="today-primary" onClick={() => onNavigate?.("play")}>开始本地对弈 →</button>
+        <button className="today-primary today-secondary" onClick={onRequireLogin}>注册 / 登录，开始训练</button>
+      </div>
     </div>
   </section>;
   if (error) return <div className="panel import-error">{error}</div>;

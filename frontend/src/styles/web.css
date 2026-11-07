@@ -49,6 +49,10 @@
   font-weight: 800;
   cursor: pointer;
 }
+.today-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.today-hero .today-secondary { background: rgba(255,255,255,.08); color: inherit; border-color: rgba(255,255,255,.5); }
+.today-hero .today-secondary:hover { background: rgba(255,255,255,.16); border-color: currentColor; }
+.today-primary:focus-visible { outline: 3px solid #f0c5a8; outline-offset: 4px; }
 .today-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .today-metric { padding: 17px 19px; border-radius: 12px; background: #fff; border: 1px solid #e7e0d7; }
 .today-metric strong { display: block; font-size: 25px; line-height: 1.15; color: #332b24; }

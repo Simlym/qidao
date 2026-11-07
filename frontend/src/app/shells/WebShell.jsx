@@ -39,9 +39,9 @@ export default function WebShell({ user, navigation, secondaryNavigation, remind
         {navigation}
         <div className="user-box">
           <details className="web-account-menu" ref={accountMenuRef}>
-            <summary aria-label={user ? `${user.username}的账户菜单` : "账户菜单"}>
-              <span className="web-account-avatar" aria-hidden>{user?.username?.slice(0, 1) || "棋"}</span>
-              <span className="web-account-name">{user?.username || "我的账户"}</span>
+            <summary aria-label={user ? `${user.username}的账户菜单` : "未登录，打开登录与设置菜单"}>
+              <span className="web-account-avatar" aria-hidden>{user?.username?.slice(0, 1) || "客"}</span>
+              <span className="web-account-name">{user?.username || "未登录"}</span>
               <span className="web-account-arrow" aria-hidden>▾</span>
             </summary>
             <div className="web-account-popover" onClick={closeAfterAction}>
