@@ -11,7 +11,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 COMMIT = "d062eec1681dc8c805fed80dfa0528eeb554312b"
 REPO = "https://github.com/fairy-stockfish/fairy-stockfish.wasm.git"
-IMAGE = "emscripten/emsdk:2.0.26"
+IMAGE = "emscripten/emsdk@sha256:7b0cf19e492e5ea81db8a57b0c70ed2b4e1aec374add832b0104c25a18feafa9"  # 2.0.26
 NETWORK_SHA = "c07e94a5c7cbeae443ed79a8fa412875d833a7f8e04333815e39729c59d52e11"
 NETWORK_URL = "https://raw.githubusercontent.com/fairy-stockfish/Fairy-Stockfish-NNUE/5fbbb9e15fd882cec18a2a5c3d4bfa25dc07169b/xiangqi-c07e94a5c7cb.nnue"
 
@@ -32,9 +32,12 @@ def main():
     run("git", "-C", source, "checkout", "--detach", COMMIT)
     run("docker", "pull", IMAGE)
     image = subprocess.check_output(["docker", "image", "inspect", IMAGE, "--format", "{{index .RepoDigests 0}}"], text=True).strip()
-    arguments = ["make", "-C", "/src/src", "-j2", "emscripten_build", "ARCH=wasm", "largeboards=yes",
-                 "nnue=no", "embedded_nnue=no", "wasm_simd=no", "minify_js=no"]
+    arguments = ["make", "-C", "/src/src", "-j2", "build", "ARCH=wasm", "largeboards=yes",
+                 "nnue=no", "embedded_nnue=no", "wasm_simd=no", "minify_js=no", "EM_UPSTREAM=84dd49a4"]
     run("docker", "run", "--rm", "-v", f"{source}:/src", image, *arguments)
+    # 上游 emscripten_build 的两个前置目标没有先后依赖，不能在 -j 下同时构建和复制。
+    run("docker", "run", "--rm", "-v", f"{source}:/src", image,
+        *["emscripten_copy_files" if item == "build" else item for item in arguments])
     stage = output / "package"
     stage.mkdir()
     for name in ["stockfish.js", "stockfish.wasm", "stockfish.worker.js"]:
