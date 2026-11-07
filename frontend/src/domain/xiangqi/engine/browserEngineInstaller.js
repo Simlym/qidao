@@ -51,6 +51,19 @@ async function extract(bytes, signal) {
 }
 
 // 来源必须是客户端内嵌清单；测试可注入输送和试算，生产不接受用户填写 URL。
+export async function importBrowserEngineArchive(file, variant, { packages = [], ...options } = {}) {
+  if (!file || file.size < 1 || file.size > LIMIT) throw new Error("请选择不超过 256 MB 的 WASM ZIP 引擎包");
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  options.signal?.throwIfAborted();
+  const digest = await sha(bytes);
+  const spec = packages.find((item) => item.variant === variant && item.size === bytes.length && item.sha256 === digest);
+  if (!spec) throw new Error("该 ZIP 不在当前棋种的固定清单中或文件已损坏；自定义引擎包可解压后通过目录导入");
+  // 手动取得的候选允许离线导入；公开下载开关仅限制在线下载，不影响本地验收。
+  return installBrowserEngine({ ...spec, publicDownload: true }, variant, {
+    ...options, download: async () => bytes, deliveryUrl: () => spec.url,
+  });
+}
+
 export async function installBrowserEngine(spec, variant, {
   signal, onProgress, probe, beforeCommit = async () => {}, isCurrent = () => true,
   download = downloadEngineBytes, deliveryUrl = engineDeliveryUrl, capabilities = browserEngineCapabilities(),

@@ -15,10 +15,13 @@ const spec = { id: "wasm-browser-candidate", packageId: result.manifest.id, name
   manifestSha256: result.manifestSha256,
   url: `https://github.com/Simlym/qidao/releases/download/engines-20261107.3/${result.fileName}` };
 const vite = await createServer({ root: resolve("frontend"), server: { middlewareMode: true }, appType: "custom" });
-const server = httpServer((request, response) => {
+const server = httpServer(async (request, response) => {
   response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   response.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-  if (request.url === "/harness") { response.setHeader("Content-Type", "text/html"); response.end("<!doctype html><title>WASM 验收</title>"); }
+  if (request.url === "/harness") {
+    response.setHeader("Content-Type", "text/html");
+    response.end(await vite.transformIndexHtml("/harness", '<!doctype html><html><head><title>WASM 验收</title></head><body><div id="root"></div></body></html>'));
+  }
   else if (request.url === "/candidate.zip") { response.setHeader("Content-Type", "application/zip"); response.end(archive); }
   else vite.middlewares(request, response, () => { response.writeHead(404); response.end(); });
 });
@@ -75,6 +78,16 @@ try {
     return local.localEngineReady("xiangqi");
   });
   if (!report.offlineRestart) throw new Error("离线重新启动失败");
+  if (process.argv.includes("--ui-import")) {
+    await context.setOffline(false);
+    await page.reload();
+    await page.evaluate(() => import("/scripts/wasm-import-harness.jsx"));
+    const picker = page.getByLabel("选择 ZIP 引擎包", { exact: true });
+    if (await picker.getAttribute("webkitdirectory") !== null) throw new Error("ZIP 入口仍然只能选择目录");
+    await picker.setInputFiles(resolve(directory, result.fileName));
+    await page.getByText("ZIP 引擎包已导入并启用，无需手动解压。", { exact: true }).waitFor({ timeout: 90000 });
+    report.filePickerImport = true;
+  }
   writeFileSync(resolve(directory, "browser-test.json"), JSON.stringify(report, null, 2));
   console.log(JSON.stringify({ ...report, transcript: undefined }));
 } finally {

@@ -5,7 +5,10 @@ import {
   importBrowserEnginePackage,
   removeBrowserEnginePackage,
 } from "../../domain/xiangqi/engine/browserEnginePackages";
-import { localEngineReady, resetLocalEngine } from "../../domain/xiangqi/engine/localEngine";
+import { localEngineReady, probeBrowserEngineProfile, resetLocalEngine } from "../../domain/xiangqi/engine/localEngine";
+import { importBrowserEngineArchive } from "../../domain/xiangqi/engine/browserEngineInstaller.js";
+import catalog from "../../domain/xiangqi/engine/wasm-packages.json";
+import { ensureBrowserEngineStorage } from "../../platform/browserEngineStorage.js";
 import BrowserEngineInstaller from "./BrowserEngineInstaller.jsx";
 
 export default function BrowserEngineSettings({ manager, variant = "xiangqi" }) {
@@ -15,6 +18,45 @@ export default function BrowserEngineSettings({ manager, variant = "xiangqi" }) 
   const [error, setError] = React.useState("");
   const [engineReady, setEngineReady] = React.useState(null);
   const capabilities = browserEngineCapabilities();
+  const zipOperation = React.useRef(null);
+  const mounted = React.useRef(false);
+  React.useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; zipOperation.current?.abort(); };
+  }, [variant]);
+
+  async function importZip(event) {
+    const input = event.target;
+    const file = input.files?.[0];
+    if (!file || busy || zipOperation.current) return;
+    const controller = new AbortController();
+    zipOperation.current = controller;
+    const current = () => mounted.current && zipOperation.current === controller && !controller.signal.aborted;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await ensureBrowserEngineStorage(controller.signal);
+      const next = await importBrowserEngineArchive(file, variant, {
+        packages: catalog.packages, signal: controller.signal, isCurrent: current,
+        probe: probeBrowserEngineProfile,
+        beforeCommit: async () => { await manager.dispose(); resetLocalEngine(variant); },
+      });
+      if (current()) {
+        setProfile(next);
+        setEngineReady(true);
+        setMessage("ZIP 引擎包已导入并启用，无需手动解压。");
+      }
+    } catch (reason) {
+      if (current()) setError(reason.message || String(reason));
+    } finally {
+      input.value = "";
+      if (zipOperation.current === controller) {
+        zipOperation.current = null;
+        if (mounted.current) setBusy(false);
+      }
+    }
+  }
 
   React.useEffect(() => {
     let active = true;
@@ -89,7 +131,7 @@ export default function BrowserEngineSettings({ manager, variant = "xiangqi" }) 
         </span>
         <div>
           <h3>本地 WASM 引擎包</h3>
-          <p>选择符合棋岛规范的 WASM UCI 引擎目录。引擎仅保存在当前设备，不会上传。</p>
+          <p>可直接选择棋岛 WASM ZIP 引擎包，也可导入解压后的自定义引擎目录。文件仅保存在当前设备，不会上传。</p>
         </div>
       </div>
       <div className="engine-package-note">
@@ -99,8 +141,12 @@ export default function BrowserEngineSettings({ manager, variant = "xiangqi" }) 
       <div className="engine-package-actions">
         <div className="engine-action-buttons">
           <label className={`btn-import-submit ${busy ? "is-busy" : ""}`}>
+            {busy ? "处理中…" : "选择 ZIP 引擎包"}
+            <input aria-label="选择 ZIP 引擎包" type="file" accept=".zip,application/zip,application/x-zip-compressed" hidden disabled={busy} onChange={importZip} />
+          </label>
+          <label className={`btn-import-submit ${busy ? "is-busy" : ""}`}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
-            {busy ? "导入中…" : profile ? "更换引擎包" : "选择引擎包目录"}
+            {busy ? "处理中…" : "选择引擎包目录"}
             <input type="file" webkitdirectory="" multiple hidden disabled={busy} onChange={importFiles} />
           </label>
           {profile && <button className="engine-remove-btn" disabled={busy} onClick={remove}>移除</button>}

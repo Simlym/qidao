@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { zipSync, strToU8 } from "fflate";
-import { installBrowserEngine, validateWasmDownload } from "./browserEngineInstaller.js";
+import { importBrowserEngineArchive, installBrowserEngine, validateWasmDownload } from "./browserEngineInstaller.js";
 
 const hash = (data) => createHash("sha256").update(data).digest("hex");
 const capabilities = { webAssembly: true, worker: true, cacheStorage: true, threads: false };
@@ -35,6 +35,26 @@ function environment(t) {
   return { values, entries, cache, previous };
 }
 const options = (bytes, extra = {}) => ({ capabilities, deliveryUrl: (spec) => spec.url, download: async () => bytes, probe: async () => true, ...extra });
+
+test("手动 ZIP 可导入尚未公开的固定候选，且不发起网络请求", async (t) => {
+  environment(t);
+  const { bytes, spec } = fixture();
+  const next = await importBrowserEngineArchive(new File([bytes], "renamed.zip"), "xiangqi", {
+    packages: [{ ...spec, publicDownload: false }], capabilities, probe: async () => true,
+    download: async () => { throw new Error("不得访问网络"); },
+  });
+  assert.equal(next.id, "fixture");
+});
+
+test("ZIP 手动导入拒绝错误棋种和损坏文件并保留旧配置", async (t) => {
+  const { values, entries } = environment(t);
+  const { bytes, spec } = fixture();
+  await assert.rejects(importBrowserEngineArchive(new File([bytes], "engine.zip"), "jieqi", { packages: [spec] }), /当前棋种/);
+  bytes[0] ^= 1;
+  await assert.rejects(importBrowserEngineArchive(new File([bytes], "engine.zip"), "xiangqi", { packages: [spec] }), /损坏/);
+  assert.equal(JSON.parse(values.get("xq.browserEngine.xiangqi")).id, "old");
+  assert.equal(entries.size, 1);
+});
 
 test("在线 WASM 在全部校验和候选握手后才切换并清理旧包", async (t) => {
   const { values, entries, previous } = environment(t);
