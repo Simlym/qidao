@@ -17,6 +17,8 @@ def apply(source):
     replace(src / "thread.cpp", "void ThreadPool::set(size_t requested) {", "void ThreadPool::set(size_t requested) {\n  if (requested) requested = 1;")
     function(src / "tt.cpp", "void TranspositionTable::clear()", "  std::memset(table, 0, clusterCount * sizeof(Cluster));")
     replace(src / "ucioption.cpp", "Option(1, 1, 1024, on_threads)", "Option(1, 1, 1, on_threads)")
+    # 固定 Emscripten 2.0.26 的 libc++ 只在全局命名空间提供 aligned_alloc。
+    replace(src / "misc.cpp", "std::aligned_alloc(", "::aligned_alloc(")
     replace(src / "ucioption.cpp", '  o["EvalFile"]              << Option(EvalFileDefaultName, on_eval_file);', '  // 此候选只使用上游传统评估，不接受 NNUE 文件。')
     function(src / "evaluate.cpp", "void NNUE::init()", "  // 无权重候选不读取任何 NNUE 文件。")
     function(src / "evaluate.cpp", "void NNUE::verify()", '  sync_cout << "info string Qidao classical evaluation enabled" << sync_endl;')

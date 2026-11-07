@@ -92,7 +92,25 @@ try {
     });
     if (variant === "xiangqi" && !transcript.some((line) => /NNUE evaluation using .* enabled/.test(line))) throw new Error("未确认 NNUE 启用");
     if (variant === "jieqi" && !transcript.some((line) => line.includes("Qidao classical evaluation enabled"))) throw new Error("未确认传统评估启用");
-    return { status: "passed", profile, redMove, blackMove, multiPv: 3, stopAndReset: true, stopLatencyMs, queuedRestart: true, crossOriginIsolated, sharedArrayBuffer: typeof SharedArrayBuffer !== "undefined", nnue: variant === "xiangqi", transcript };
+    let limitedKnowledge = null;
+    if (variant === "jieqi") {
+      const rules = await import("/src/domain/xiangqi/jieqi/rules.js");
+      // 红方吃掉一个暗子；黑方视角不能知道被吃暗子的真实身份。
+      let authority = rules.applyJieqiMove(red, "h2h9Rp");
+      const moves = [];
+      for (let turn = 0; turn < 6; turn++) {
+        const side = authority.split(" ")[1];
+        const limited = rules.generateLimitedKnowledgeFen(authority, side);
+        if (turn === 0 && limited === authority) throw new Error("限知局面未隐藏被吃暗子身份");
+        const best = await search(["ucinewgame", `position fen ${limited}`, "go depth 2"]);
+        const move = best.split(" ")[1];
+        if (!rules.legalJieqiMoves(authority).includes(move.slice(0, 4))) throw new Error(`揭棋引擎与棋岛规则不一致：${move}`);
+        authority = rules.applyJieqiMove(authority, move, { perspective: side, random: () => 0 });
+        moves.push(move);
+      }
+      limitedKnowledge = { capturedIdentityHidden: true, legalPlies: moves.length, moves };
+    }
+    return { status: "passed", profile, redMove, blackMove, multiPv: 3, stopAndReset: true, stopLatencyMs, queuedRestart: true, crossOriginIsolated, sharedArrayBuffer: typeof SharedArrayBuffer !== "undefined", nnue: variant === "xiangqi", limitedKnowledge, transcript };
   }, spec);
   await context.setOffline(true);
   report.offlineRestart = await page.evaluate(async (variant) => {
