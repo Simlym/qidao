@@ -25,12 +25,12 @@ export function browserEngineCapabilities() {
 
 function safeRelativePath(file) {
   const raw = file.webkitRelativePath || file.name;
-  const parts = raw.replaceAll("\\", "/").split("/").filter(Boolean);
-  if (parts.some((part) => part === "..")) throw new Error("引擎包包含不安全路径");
+  const parts = raw.split("/");
+  if (parts.some((part) => !part || /[\\:%?#\u0000-\u001f]/.test(part) || part === ".." || part === ".")) throw new Error("引擎包包含不安全路径");
   return parts.length > 1 ? parts.slice(1).join("/") : parts[0];
 }
 
-export async function importBrowserEnginePackage(fileList, variant = "xiangqi") {
+export async function importBrowserEnginePackage(fileList, variant = "xiangqi", { staged = false } = {}) {
   const files = [...fileList];
   if (!files.length) throw new Error("请选择解压后的引擎包目录");
   if (files.length > 40) throw new Error("引擎包文件数量超过限制（40 个）");
@@ -38,6 +38,7 @@ export async function importBrowserEnginePackage(fileList, variant = "xiangqi") 
   if (total > 256 * 1024 * 1024) throw new Error("引擎包超过 256 MB 限制");
 
   const paths = new Map(files.map((file) => [safeRelativePath(file), file]));
+  if (paths.size !== files.length) throw new Error("引擎包包含重复路径");
   const manifestFile = paths.get("engine-manifest.json");
   if (!manifestFile) throw new Error("缺少 engine-manifest.json，请使用符合棋岛规范的 WASM 引擎包");
   let manifest;
@@ -56,35 +57,52 @@ export async function importBrowserEnginePackage(fileList, variant = "xiangqi") 
   }
 
   const packageId = String(manifest.id || "user-engine").replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 80);
-  const base = `${BASE_PREFIX}${variant}/${packageId}/`;
+  const base = `${BASE_PREFIX}${variant}/${packageId}/${crypto.randomUUID()}/`;
   const cache = await caches.open(CACHE_NAME);
   const previous = getBrowserEngineProfile(variant);
-  if (previous?.base) {
-    for (const request of await cache.keys()) if (new URL(request.url).pathname.startsWith(previous.base)) await cache.delete(request);
+  try {
+    for (const [path, file] of paths) {
+      const extension = path.split(".").pop()?.toLowerCase();
+      const fallbackType = extension === "js" ? "text/javascript"
+        : extension === "wasm" ? "application/wasm"
+          : extension === "json" ? "application/json" : "application/octet-stream";
+      await cache.put(`${base}${path}`, new Response(file, { headers: {
+        "Content-Type": file.type || fallbackType,
+        // 页面启用 COEP 以支持多线程 WASM；Worker 及其依赖也必须明确加入同一隔离策略。
+        "Cross-Origin-Embedder-Policy": "require-corp",
+        "Cross-Origin-Resource-Policy": "same-origin",
+      } }));
+    }
+    const profile = {
+      id: packageId,
+      name: String(manifest.name || packageId),
+      version: String(manifest.version || "unknown"),
+      variant,
+      base,
+      entrypoint: manifest.entrypoint,
+      network: (manifest.assets || []).find((item) => item.role === "evaluation-network")?.path || null,
+    };
+    if (!staged) {
+      localStorage.setItem(profileKey(variant), JSON.stringify(profile));
+      await discardBrowserEnginePackage(previous).catch(() => {});
+    }
+    return profile;
+  } catch (error) {
+    await discardBrowserEnginePackage({ base }).catch(() => {});
+    throw error;
   }
-  for (const [path, file] of paths) {
-    const extension = path.split(".").pop()?.toLowerCase();
-    const fallbackType = extension === "js" ? "text/javascript"
-      : extension === "wasm" ? "application/wasm"
-        : extension === "json" ? "application/json" : "application/octet-stream";
-    await cache.put(`${base}${path}`, new Response(file, { headers: {
-      "Content-Type": file.type || fallbackType,
-      // 页面启用 COEP 以支持多线程 WASM；Worker 及其依赖也必须明确加入同一隔离策略。
-      "Cross-Origin-Embedder-Policy": "require-corp",
-      "Cross-Origin-Resource-Policy": "same-origin",
-    } }));
+}
+
+export async function discardBrowserEnginePackage(profile) {
+  if (!profile?.base?.startsWith(BASE_PREFIX)) return;
+  const cache = await caches.open(CACHE_NAME);
+  for (const request of await cache.keys()) {
+    if (new URL(request.url).pathname.startsWith(profile.base)) await cache.delete(request);
   }
-  const profile = {
-    id: packageId,
-    name: String(manifest.name || packageId),
-    version: String(manifest.version || "unknown"),
-    variant,
-    base,
-    entrypoint: manifest.entrypoint,
-    network: (manifest.assets || []).find((item) => item.role === "evaluation-network")?.path || null,
-  };
-  localStorage.setItem(profileKey(variant), JSON.stringify(profile));
-  return profile;
+}
+
+export function commitBrowserEnginePackage(profile) {
+  localStorage.setItem(profileKey(profile.variant), JSON.stringify(profile));
 }
 
 export async function removeBrowserEnginePackage(variant = "xiangqi") {

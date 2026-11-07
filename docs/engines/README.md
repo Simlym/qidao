@@ -78,3 +78,7 @@ local-engines/
 固定层级为“棋种 → 运行时 → 引擎 → 版本 → 平台或构建目标”。`native` 用于 PC/服务器原生程序，`wasm` 用于 Web/Android 浏览器包；详细命名规则见 [`local-engines/README.md`](../../local-engines/README.md)。
 
 浏览器包格式见 [package-spec.md](package-spec.md)，推荐来源元数据见 [catalog.json](catalog.json)。
+
+Web / Android [WASM 在线安装第一部分](wasm-online-install.md)已接入设置页：固定包校验、
+暂存缓存、候选握手、取消和失败保留旧引擎。真实 WASM 构建、CORS 及安卓真机验证仍待完成，
+推荐清单暂为空，后续与 PC 部分统一发布。

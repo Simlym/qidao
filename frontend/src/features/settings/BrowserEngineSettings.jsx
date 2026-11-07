@@ -6,6 +6,7 @@ import {
   removeBrowserEnginePackage,
 } from "../../domain/xiangqi/engine/browserEnginePackages";
 import { localEngineReady, resetLocalEngine } from "../../domain/xiangqi/engine/localEngine";
+import BrowserEngineInstaller from "./BrowserEngineInstaller.jsx";
 
 export default function BrowserEngineSettings({ manager, variant = "xiangqi" }) {
   const [profile, setProfile] = React.useState(() => getBrowserEngineProfile(variant));
@@ -79,6 +80,8 @@ export default function BrowserEngineSettings({ manager, variant = "xiangqi" }) 
 
   return <div className="native-engine-settings">
     <strong>本设备 WASM 引擎</strong>
+    <BrowserEngineInstaller key={variant} variant={variant} manager={manager} busy={busy} onBusyChange={setBusy}
+      onInstalled={(next) => { setProfile(next); setEngineReady(true); setError(""); setMessage(""); }} />
     <div className="engine-package-card">
       <div className="engine-package-intro">
         <span className="engine-package-icon" aria-hidden="true">
@@ -100,7 +103,7 @@ export default function BrowserEngineSettings({ manager, variant = "xiangqi" }) 
             {busy ? "导入中…" : profile ? "更换引擎包" : "选择引擎包目录"}
             <input type="file" webkitdirectory="" multiple hidden disabled={busy} onChange={importFiles} />
           </label>
-          {profile && <button className="engine-remove-btn" onClick={remove}>移除</button>}
+          {profile && <button className="engine-remove-btn" disabled={busy} onClick={remove}>移除</button>}
         </div>
         <div className="engine-capabilities" aria-label="浏览器能力">
           {capabilityItems.map(([label, available]) => (

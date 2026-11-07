@@ -12,8 +12,7 @@ const runtimes = new Map();
 import { abortError, analysisResult, goCommand, parseUciInfo, redPerspective } from "./uci.js";
 import { getBrowserEngineProfile } from "./browserEnginePackages.js";
 
-function filesFor(variant) {
-  const profile = getBrowserEngineProfile(variant);
+function filesFor(variant, profile = getBrowserEngineProfile(variant)) {
   if (!profile) return null;
   return {
     js: `${profile.base}${profile.entrypoint}`,
@@ -28,9 +27,9 @@ function getRuntime(variant) {
 
 // 探测引擎文件是否就位。Android WebView 的自定义资源协议不一定实现 HEAD，
 // 因此读取很小的 Worker 脚本；SPA 兜底返回 HTML 时再由 Content-Type 排除。
-async function engineFilesPresent(engineJs) {
+async function engineFilesPresent(engineJs, signal) {
   try {
-    const r = await fetch(engineJs, { method: "GET" });
+    const r = await fetch(engineJs, { method: "GET", signal });
     if (!r.ok) return false;
     const ct = r.headers.get("content-type") || "";
     // 只检查响应头，避免探测时完整下载大型 WASM 文件。
@@ -42,9 +41,9 @@ async function engineFilesPresent(engineJs) {
 }
 
 // 启动 worker 并完成 UCI 握手，失败返回 null。
-function bootWorker(variant) {
+function bootWorker(variant, profile, signal) {
   return new Promise((resolve) => {
-    const files = filesFor(variant);
+    const files = filesFor(variant, profile);
     if (!files) { resolve(null); return; }
     let worker;
     try {
@@ -53,22 +52,26 @@ function bootWorker(variant) {
       resolve(null);
       return;
     }
-    const timer = setTimeout(() => {
-      worker.terminate();
-      resolve(null);
-    }, INIT_TIMEOUT);
+    const finish = (result) => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
+      worker.onmessage = null;
+      worker.onerror = null;
+      if (!result) worker.terminate();
+      resolve(result);
+    };
+    const abort = () => finish(null);
+    const timer = setTimeout(abort, INIT_TIMEOUT);
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) { abort(); return; }
     let uciok = false;
     const uciOptions = new Set();
     worker.onerror = () => {
-      clearTimeout(timer);
-      worker.terminate();
-      resolve(null);
+      finish(null);
     };
     worker.onmessage = (e) => {
       if (e.data?.type === "error") {
-        clearTimeout(timer);
-        worker.terminate();
-        resolve(null);
+        finish(null);
         return;
       }
       const line = typeof e.data === "string" ? e.data : "";
@@ -79,13 +82,21 @@ function bootWorker(variant) {
         if (files.nnue && uciOptions.has("evalfile")) worker.postMessage(`setoption name EvalFile value ${files.nnue}`);
         worker.postMessage("isready");
       } else if (uciok && line.startsWith("readyok")) {
-        clearTimeout(timer);
         worker.uciOptions = uciOptions;
-        resolve(worker);
+        finish(worker);
       }
     };
-    worker.postMessage("uci");
+    try { worker.postMessage("uci"); } catch { finish(null); }
   });
+}
+
+// 安装候选直接使用暂存路径握手，不提前覆盖当前配置或共享运行会话。
+export async function probeBrowserEngineProfile(profile, signal) {
+  signal?.throwIfAborted();
+  if (!(await engineFilesPresent(`${profile.base}${profile.entrypoint}`, signal))) return false;
+  const worker = await bootWorker(profile.variant, profile, signal);
+  worker?.terminate();
+  return Boolean(worker);
 }
 
 // 返回就绪的 worker 或 null（不可用）。整个会话只探测/启动一次。

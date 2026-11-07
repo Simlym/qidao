@@ -1,5 +1,10 @@
 # Third-party notices
 
+## fflate
+
+WASM 在线安装使用 [fflate](https://github.com/101arrowz/fflate) 0.8.3 解压 ZIP，采用 MIT License。
+许可正文见 [fflate MIT](docs/licenses/fflate-MIT.txt)。该依赖不包含象棋引擎或权重。
+
 ## JieqiBox
 
 Parts of the Jieqi rules, FEN conventions, interaction behavior, board and arrow styling,
