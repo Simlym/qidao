@@ -9,15 +9,7 @@ export default function PlaySetup({
   return (
       <div className="panel play-setup">
         <h2>人机对弈</h2>
-        <p className="muted">
-          和引擎下一盘完整对局。
-          {engineInfo && (
-            <>
-              当前引擎：
-              <strong>{engineInfo.label}</strong>
-            </>
-          )}
-        </p>
+        <p className="muted">选择先后手和难度，和引擎下一盘完整对局。</p>
         <div className="play-setup-row">
           <span className="play-setup-label">先后手</span>
           <div className="seg">

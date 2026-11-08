@@ -1,4 +1,24 @@
 /* 人机对弈 */
+/* 准备页统一约束内容宽度，避免本机对局随宽屏无限拉伸。 */
+.play-lobby {
+  width: 100%; max-width: 720px; margin: 18px auto 0;
+  display: grid; gap: 20px; align-items: start; min-width: 0;
+}
+.play-lobby-primary { display: grid; gap: 20px; min-width: 0; }
+.play-lobby .panel { min-width: 0; margin: 0; }
+.play-lobby .play-setup { width: 100%; max-width: none; margin: 0; }
+.play-lobby-analysis h3 { margin: 0; font-size: 18px; }
+.play-lobby-analysis p { line-height: 1.8; }
+@media (min-width: 1200px) {
+  .play-lobby:has(> .local-game-library) {
+    max-width: 1160px;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+  }
+}
+@media (max-width: 700px) {
+  .play-lobby, .play-lobby-primary { gap: 14px; }
+  .play-lobby { margin-top: 0; }
+}
 .play-setup h2 { margin: 0 0 6px; color: #8a5a2b; }
 .play-setup-row { display: flex; align-items: center; gap: 12px; margin: 14px 0; }
 .play-setup-label { width: 56px; color: #666; font-size: 14px; }

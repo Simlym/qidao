@@ -121,16 +121,18 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   // 初始进入选择界面
   if (!fen) {
     return (
-      <>
+      <div className="play-lobby">
+      <div className="play-lobby-primary">
       <PlaySetup
         engineInfo={engineInfo} humanSide={humanSide} onHumanSideChange={setHumanSide}
         level={level} onLevelChange={setLevel} localReady={localReady}
         localRuntime={localRuntime} onOpenSettings={onOpenSettings}
         onStart={start} thinking={thinking} startError={startError}
       />
+      {onFreeAnalysis && <section className="panel play-lobby-analysis"><h3>自由分析</h3><p className="muted">红黑双方都由你走棋，引擎只提供评分与候选线路。</p><button onClick={() => onFreeAnalysis()}>进入自由分析</button></section>}
+      </div>
       <LocalGameLibrary onRestore={restore} />
-      {onFreeAnalysis && <div className="panel"><strong>自由分析</strong><p className="muted">红黑双方都由你走棋，引擎只提供评分与候选线路。</p><button onClick={() => onFreeAnalysis()}>进入自由分析</button></div>}
-      </>
+      </div>
     );
   }
 

@@ -385,7 +385,7 @@ body.desktop-runtime {
 
 /* PC 工作区充分利用横向空间，业务组件仍与 Web 共用。 */
 .app-desktop .play,
-.app-desktop .play-setup,
+.app-desktop main > .play-setup,
 .app-desktop .coach,
 .app-desktop .stats,
 .app-desktop .challenge {
@@ -394,7 +394,8 @@ body.desktop-runtime {
   margin-left: auto;
   margin-right: auto;
 }
-.app-desktop .play-setup { max-width: 720px; margin-top: 18px; }
+/* 独立准备页保留居中布局；大厅内的卡片间距由大厅统一管理。 */
+.app-desktop main > .play-setup { max-width: 720px; margin-top: 18px; }
 .app-desktop .play-status-bar { margin-top: 0; padding: 12px 14px; }
 .app-desktop .play {
   max-width: none;
