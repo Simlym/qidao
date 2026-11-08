@@ -1,0 +1,158 @@
+[
+  {
+    "file": "xqwlight/move.wav",
+    "url": "https://raw.githubusercontent.com/xqbase/xqwlight/6221733f1f79b3acb44cce6f83dc6100443cb2c9/JavaScript/sounds/move.wav",
+    "sha256": "04ab3b2749c0bb22c893439b8e05ae7a4265a9dff78edd23034ef222930cc361",
+    "bytes": 1962
+  },
+  {
+    "file": "xqwlight/move2.wav",
+    "url": "https://raw.githubusercontent.com/xqbase/xqwlight/6221733f1f79b3acb44cce6f83dc6100443cb2c9/JavaScript/sounds/move2.wav",
+    "sha256": "bc89d0ab63baa5868a1465822090ffbbbd489d786ccd4b12b05006349646c9de",
+    "bytes": 1410
+  },
+  {
+    "file": "xqwlight/capture.wav",
+    "url": "https://raw.githubusercontent.com/xqbase/xqwlight/6221733f1f79b3acb44cce6f83dc6100443cb2c9/JavaScript/sounds/capture.wav",
+    "sha256": "6c0eb4ab6c881c3bcfec48c69f50d5d2018e4a4ba4aed047810b9037ef155062",
+    "bytes": 3450
+  },
+  {
+    "file": "xqwlight/capture2.wav",
+    "url": "https://raw.githubusercontent.com/xqbase/xqwlight/6221733f1f79b3acb44cce6f83dc6100443cb2c9/JavaScript/sounds/capture2.wav",
+    "sha256": "5b3ee56333a46b42b36712ec50fbfd11c3e26ffdf8536ac18880534fc1d8d207",
+    "bytes": 5802
+  },
+  {
+    "file": "xqwlight/check.wav",
+    "url": "https://raw.githubusercontent.com/xqbase/xqwlight/6221733f1f79b3acb44cce6f83dc6100443cb2c9/JavaScript/sounds/check.wav",
+    "sha256": "09bc4cceecc31bb159556ad4f8e6d93275f7d13fe2ab73989e1345309bdf715a",
+    "bytes": 12646
+  },
+  {
+    "file": "xqwlight/check2.wav",
+    "url": "https://raw.githubusercontent.com/xqbase/xqwlight/6221733f1f79b3acb44cce6f83dc6100443cb2c9/JavaScript/sounds/check2.wav",
+    "sha256": "86a97863d5f7c727b5bca1368624ca39e059eb00c010f7d71ce78b98e258745a",
+    "bytes": 11780
+  },
+  {
+    "file": "xqwlight/win.wav",
+    "url": "https://raw.githubusercontent.com/xqbase/xqwlight/6221733f1f79b3acb44cce6f83dc6100443cb2c9/JavaScript/sounds/win.wav",
+    "sha256": "84e629957b535dd0171821b8b8942cdc1226aaabefd4d737cf0285739a099c0c",
+    "bytes": 32122
+  },
+  {
+    "file": "xqwlight/loss.wav",
+    "url": "https://raw.githubusercontent.com/xqbase/xqwlight/6221733f1f79b3acb44cce6f83dc6100443cb2c9/JavaScript/sounds/loss.wav",
+    "sha256": "92b2044c766787b938efb5f0732ae0d4e86d468beab58e28bbb449d89430f30c",
+    "bytes": 8560
+  },
+  {
+    "file": "xqwlight/draw.wav",
+    "url": "https://raw.githubusercontent.com/xqbase/xqwlight/6221733f1f79b3acb44cce6f83dc6100443cb2c9/JavaScript/sounds/draw.wav",
+    "sha256": "909f7bdc89fc1fe3e9eb638d454c16c98fccab4fa2777c807b6c910cd9236cf9",
+    "bytes": 24444
+  },
+  {
+    "file": "xqwlight/newgame.wav",
+    "url": "https://raw.githubusercontent.com/xqbase/xqwlight/6221733f1f79b3acb44cce6f83dc6100443cb2c9/JavaScript/sounds/newgame.wav",
+    "sha256": "e8ef5184c9e3d2f89b4d04e0cb72eb6eb7b9cfc6a7b49cf0e885496a168bc249",
+    "bytes": 121720
+  },
+  {
+    "file": "xqwlight/click.wav",
+    "url": "https://raw.githubusercontent.com/xqbase/xqwlight/6221733f1f79b3acb44cce6f83dc6100443cb2c9/JavaScript/sounds/click.wav",
+    "sha256": "6ad269945c5a08f94e855e9ff2fec5e45b5722ddffac7a76407e45dd993438fd",
+    "bytes": 862
+  },
+  {
+    "file": "xqwlight/illegal.wav",
+    "url": "https://raw.githubusercontent.com/xqbase/xqwlight/6221733f1f79b3acb44cce6f83dc6100443cb2c9/JavaScript/sounds/illegal.wav",
+    "sha256": "33abd6109c7474eab69348561644a741eb22c1cbd22ba7dc6e1893cc3c66abd6",
+    "bytes": 6278
+  },
+  {
+    "file": "xqwlight/LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/xqbase/xqwlight/6221733f1f79b3acb44cce6f83dc6100443cb2c9/LICENSE",
+    "sha256": "a45d0bb572ed792ed34627a72621834b3ba92aab6e2cc4e04301dee7a728d753",
+    "bytes": 18027
+  },
+  {
+    "file": "gmchess/move.wav",
+    "url": "https://raw.githubusercontent.com/lerosua/gmchess/a532daf5edfdc8cc0f5b5d5415a79d0dcdef3181/data/sound/move.wav",
+    "sha256": "ed274d95cbc90c8270eb8b3351c08153dc3ca1f222916f97f30dfdff82856f88",
+    "bytes": 2182
+  },
+  {
+    "file": "gmchess/eat.wav",
+    "url": "https://raw.githubusercontent.com/lerosua/gmchess/a532daf5edfdc8cc0f5b5d5415a79d0dcdef3181/data/sound/eat.wav",
+    "sha256": "e463697ee143215e95d5e2191f3fad7ebc707ba3beb2edfbc194968f190c064d",
+    "bytes": 2162
+  },
+  {
+    "file": "gmchess/check.wav",
+    "url": "https://raw.githubusercontent.com/lerosua/gmchess/a532daf5edfdc8cc0f5b5d5415a79d0dcdef3181/data/sound/check.wav",
+    "sha256": "effe4127ac563a7f51b8e5d9d8ff6db1958a964a79b0b370d8dc92b937830a60",
+    "bytes": 49116
+  },
+  {
+    "file": "gmchess/win.wav",
+    "url": "https://raw.githubusercontent.com/lerosua/gmchess/a532daf5edfdc8cc0f5b5d5415a79d0dcdef3181/data/sound/win.wav",
+    "sha256": "74ef71c83d8d4660087b767af9aea6992a9c26e98bf165561bf478dc9e1f4b57",
+    "bytes": 11248
+  },
+  {
+    "file": "gmchess/loss.wav",
+    "url": "https://raw.githubusercontent.com/lerosua/gmchess/a532daf5edfdc8cc0f5b5d5415a79d0dcdef3181/data/sound/loss.wav",
+    "sha256": "92b2044c766787b938efb5f0732ae0d4e86d468beab58e28bbb449d89430f30c",
+    "bytes": 8560
+  },
+  {
+    "file": "gmchess/choose.wav",
+    "url": "https://raw.githubusercontent.com/lerosua/gmchess/a532daf5edfdc8cc0f5b5d5415a79d0dcdef3181/data/sound/choose.wav",
+    "sha256": "6914b091b303bc9b0e3006b6cc21e2950cb7f3f200d41e47695baed30bf8d035",
+    "bytes": 1860
+  },
+  {
+    "file": "gmchess/LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/lerosua/gmchess/a532daf5edfdc8cc0f5b5d5415a79d0dcdef3181/COPYING",
+    "sha256": "231f7edcc7352d7734a96eef0b8030f77982678c516876fcb81e25b32d68564c",
+    "bytes": 18002
+  },
+  {
+    "file": "stevenbaby/move.wav",
+    "url": "https://raw.githubusercontent.com/StevenBaby/chess/4da2d408852fbfa75d7ac3c90119c6292b975621/src/audios/move.wav",
+    "sha256": "04ab3b2749c0bb22c893439b8e05ae7a4265a9dff78edd23034ef222930cc361",
+    "bytes": 1962
+  },
+  {
+    "file": "stevenbaby/capture.wav",
+    "url": "https://raw.githubusercontent.com/StevenBaby/chess/4da2d408852fbfa75d7ac3c90119c6292b975621/src/audios/capture.wav",
+    "sha256": "6c0eb4ab6c881c3bcfec48c69f50d5d2018e4a4ba4aed047810b9037ef155062",
+    "bytes": 3450
+  },
+  {
+    "file": "stevenbaby/check.wav",
+    "url": "https://raw.githubusercontent.com/StevenBaby/chess/4da2d408852fbfa75d7ac3c90119c6292b975621/src/audios/check.wav",
+    "sha256": "09bc4cceecc31bb159556ad4f8e6d93275f7d13fe2ab73989e1345309bdf715a",
+    "bytes": 12646
+  },
+  {
+    "file": "stevenbaby/invalid.wav",
+    "url": "https://raw.githubusercontent.com/StevenBaby/chess/4da2d408852fbfa75d7ac3c90119c6292b975621/src/audios/invalid.wav",
+    "sha256": "33abd6109c7474eab69348561644a741eb22c1cbd22ba7dc6e1893cc3c66abd6",
+    "bytes": 6278
+  },
+  {
+    "file": "stevenbaby/newgame.wav",
+    "url": "https://raw.githubusercontent.com/StevenBaby/chess/4da2d408852fbfa75d7ac3c90119c6292b975621/src/audios/newgame.wav",
+    "sha256": "e8ef5184c9e3d2f89b4d04e0cb72eb6eb7b9cfc6a7b49cf0e885496a168bc249",
+    "bytes": 121720
+  },
+  {
+    "file": "stevenbaby/LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/StevenBaby/chess/4da2d408852fbfa75d7ac3c90119c6292b975621/LICENSE",
+    "sha256": "32741c5970878cb0b9ca9f38c7af1beea84a5cdfc66ddc5567635d7bf9fd246a",
+    "bytes": 1063
+  }
+]

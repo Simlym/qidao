@@ -1,4 +1,5 @@
 import React from "react";
+import { prepareSounds } from "../sounds";
 import { parseFen, toSquare } from "../../domain/xiangqi/xiangqi";
 import { useCosmeticPreferences } from "../preferences/cosmetics";
 
@@ -140,6 +141,7 @@ export default function Board({
 
   function handleClick(row, col) {
     if (disabled) return;
+    prepareSounds();
     const cell = board[row][col];
     const sq = toSquare(row, col);
     if (!from) {

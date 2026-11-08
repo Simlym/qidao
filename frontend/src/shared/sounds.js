@@ -1,22 +1,85 @@
-// 对弈音效：用 Web Audio 现场合成（无需音频资源文件，离线也可用）。
-// 提供多套可切换音色：木质（默认，滤波噪声模拟实木棋子落枰）、清脆、电子。
+// 木质与三套象棋主题使用随包采样，采样不可用时使用 Web Audio 合成。
 // 浏览器要求首次播放前有用户手势；棋类场景里走子本身就是点击，天然满足。
 
 let ctx = null;
 let noiseBuf = null;
+const samples = {
+  move: new URL("./audio/move.wav", import.meta.url),
+  capture: new URL("./audio/capture.wav", import.meta.url),
+  check: new URL("./audio/check.wav", import.meta.url),
+  win: new URL("./audio/win.wav", import.meta.url),
+  lose: new URL("./audio/lose.wav", import.meta.url),
+  draw: new URL("./audio/draw.wav", import.meta.url),
+};
+const wizardSamples = {
+  move: new URL("./audio/auditions/xqwlight/move.wav", import.meta.url),
+  capture: new URL("./audio/auditions/xqwlight/capture.wav", import.meta.url),
+  check: new URL("./audio/auditions/xqwlight/check.wav", import.meta.url),
+  win: new URL("./audio/auditions/xqwlight/win.wav", import.meta.url),
+  lose: new URL("./audio/auditions/xqwlight/loss.wav", import.meta.url),
+  draw: new URL("./audio/auditions/xqwlight/draw.wav", import.meta.url),
+};
+// 缺少的终局提示沿用象棋巫师，避免不同胜负事件落回通用电子音。
+const SAMPLED_THEMES = {
+  wood: samples,
+  xqwlight: wizardSamples,
+  gmchess: {
+    ...wizardSamples,
+    move: new URL("./audio/auditions/gmchess/move.wav", import.meta.url),
+    capture: new URL("./audio/auditions/gmchess/eat.wav", import.meta.url),
+    check: new URL("./audio/auditions/gmchess/check.wav", import.meta.url),
+    win: new URL("./audio/auditions/gmchess/win.wav", import.meta.url),
+    lose: new URL("./audio/auditions/gmchess/loss.wav", import.meta.url),
+  },
+  stevenbaby: {
+    ...wizardSamples,
+    move: new URL("./audio/auditions/stevenbaby/move.wav", import.meta.url),
+    capture: new URL("./audio/auditions/stevenbaby/capture.wav", import.meta.url),
+    check: new URL("./audio/auditions/stevenbaby/check.wav", import.meta.url),
+  },
+};
+const sampleBuffers = new Map();
+const loadingSamples = new Map();
+
+function preloadSamples(c, key = soundTheme()) {
+  for (const url of Object.values(SAMPLED_THEMES[key] || {})) {
+    if (sampleBuffers.has(url.href) || loadingSamples.has(url.href)) continue;
+    const request = (async () => {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) return;
+        sampleBuffers.set(url.href, await c.decodeAudioData(await response.arrayBuffer()));
+      } catch { /* 下载或解码失败时保留合成音，不延迟补播 */ }
+    })();
+    loadingSamples.set(url.href, request);
+    request.finally(() => loadingSamples.delete(url.href));
+  }
+}
 
 function audioCtx() {
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return null;
   if (!ctx) ctx = new AC();
-  if (ctx.state === "suspended") ctx.resume().catch(() => {});
   return ctx;
+}
+
+// 在选子或开局的用户手势中提前唤醒，避免第一步短音在恢复音频时丢失。
+export function prepareSounds() {
+  if (soundMuted()) return;
+  try {
+    const c = audioCtx();
+    if (c) preloadSamples(c);
+    if (c && c.state !== "running") c.resume().catch(() => {});
+  } catch { /* 音频不可用不影响走棋 */ }
 }
 
 const MUTE_KEY = "xq_sound_muted";
 const THEME_KEY = "xq_sound_theme";
 
 export const SOUND_THEMES = [
+  { key: "xqwlight", label: "象棋巫师" },
+  { key: "gmchess", label: "GMChess" },
+  { key: "stevenbaby", label: "StevenBaby 象棋" },
   { key: "wood", label: "木质" },
   { key: "crisp", label: "清脆" },
   { key: "beep", label: "电子" },
@@ -27,6 +90,7 @@ export const SOUND_THEMES = [
 ];
 const ALL_SOUND_KEYS = [...SOUND_THEMES.map((item) => item.key), "temple"];
 const SOUND_LABELS = {
+  xqwlight: "象棋巫师", gmchess: "GMChess", stevenbaby: "StevenBaby 象棋",
   wood: "木质", crisp: "清脆", beep: "电子", temple: "古寺梵音",
   clear: "清晰提示", arcade: "街机脉冲", bubble: "泡泡音符", soft: "轻触音",
 };
@@ -315,9 +379,29 @@ const THEMES = {
 // name: move | capture | check | win | lose | draw
 export function playSound(name) {
   if (soundMuted()) return;
-  const c = audioCtx();
-  if (!c) return;
-  const theme = THEMES[soundTheme()] || THEMES.wood;
-  const fn = theme[name];
-  if (fn) fn(c);
+  try {
+    const c = audioCtx();
+    if (!c) return;
+    const key = soundTheme();
+    const fallback = (THEMES[key] || THEMES.wood)[name];
+    if (!fallback) return;
+    preloadSamples(c, key);
+    const fn = () => {
+      const url = SAMPLED_THEMES[key]?.[name];
+      const buffer = url && sampleBuffers.get(url.href);
+      if (!buffer) return fallback(c);
+      const source = c.createBufferSource();
+      source.buffer = buffer;
+      source.connect(c.destination);
+      source.start();
+    };
+    if (c.state === "running") fn(c);
+    else {
+      const requestedAt = Date.now();
+      c.resume().then(() => {
+        // 恢复失败、切换音色、静音或长时间挂起后，不补播旧局面的声音。
+        if (c.state === "running" && Date.now() - requestedAt < 250 && !soundMuted() && soundTheme() === key) fn(c);
+      }).catch(() => {});
+    }
+  } catch { /* 设备不支持音频时仍可正常走棋 */ }
 }

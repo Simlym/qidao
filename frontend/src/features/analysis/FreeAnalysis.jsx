@@ -9,6 +9,8 @@ import { describeEval } from "../play/model";
 import EngineAnalysisView from "./EngineAnalysisView";
 import EngineSetupGuide from "../../shared/ui/EngineSetupGuide";
 import { analysisReducer, createAnalysis, recommendedMove } from "./freeAnalysisState.js";
+import { playSound } from "../../shared/sounds";
+import { isCapture } from "../play/model.js";
 import "./freeAnalysis.css";
 
 const engine = createEngineManager({ remoteEvaluate: evalPosition, remoteStream: streamEvalPosition });
@@ -42,6 +44,14 @@ export default function FreeAnalysis({ initialFen = INITIAL_FEN, onOpenSettings 
   }, []);
 
   function seek(cursor) { dispatch({ type: "seek", cursor }); }
+  function onMove(move) {
+    if (ended || !position.legal_moves.includes(move)) return;
+    const next = analysisReducer(state, { type: "move", move });
+    const nextPosition = getLocalPositionState(next.positions[next.cursor].fen);
+    dispatch({ type: "move", move });
+    playSound(!nextPosition.legal_moves.length ? "win"
+      : nextPosition.status === "check" ? "check" : isCapture(fen, move) ? "capture" : "move");
+  }
   async function copyFen() {
     try { await navigator.clipboard.writeText(fen); setCopied("局面已复制"); }
     catch { setCopied("复制失败，请检查剪贴板权限"); }
@@ -55,7 +65,7 @@ export default function FreeAnalysis({ initialFen = INITIAL_FEN, onOpenSettings 
       </div>
       <Board key={fen} fen={fen} lastMove={current.move} legalMoves={position.legal_moves}
         fitContainerHeight reservedBottomHeight={64} hintMove={showHint ? hintMove : null}
-        disabled={ended} flipped={flipped} onMove={(move) => dispatch({ type: "move", move })} />
+        disabled={ended} flipped={flipped} onMove={onMove} />
       <div className="btn-row free-analysis-navigation">
         <button disabled={!state.cursor} onClick={() => seek(0)}>回到起点</button>
         <button disabled={!state.cursor} onClick={() => seek(state.cursor - 1)}>上一步</button>
@@ -78,7 +88,7 @@ export default function FreeAnalysis({ initialFen = INITIAL_FEN, onOpenSettings 
       <div className="free-analysis-recommendation" role="status">
         <span>{red ? "红方" : "黑方"}推荐{evalLoading && hintMove ? " · 分析中" : ""}</span>
         <strong>{hintMove ? uciToChinese(fen, hintMove) : ended ? "已到终局" : !showEval ? "开启评分查看推荐" : evalLoading ? "正在寻找推荐着法…" : "暂无推荐着法"}</strong>
-        <button className="free-analysis-primary" disabled={!hintMove} onClick={() => hintMove && dispatch({ type: "move", move: hintMove })}>走推荐着法</button>
+        <button className="free-analysis-primary" disabled={!hintMove} onClick={() => hintMove && onMove(hintMove)}>走推荐着法</button>
       </div>
       {showEval && <section aria-label="引擎分析">
         <div className="eval-bar"><div className="eval-bar-red" style={{ width: `${info.redPct}%` }} /><span className="eval-bar-value">{ended ? "终局" : evalLoading && !evalData ? "…" : info.value}</span></div>

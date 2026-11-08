@@ -3,7 +3,7 @@ import { applyMove } from "../../../domain/xiangqi/xiangqi.js";
 import {
   newPlayGame, playMove, getPositionState, getPlayEngine,
 } from "../../../shared/api";
-import { playSound } from "../../../shared/sounds";
+import { playSound, prepareSounds } from "../../../shared/sounds";
 import { LEVELS, isCapture } from "../model.js";
 import { createPlayRound, resolvePlayTurn } from "../gameEngine.js";
 import { getLocalPositionState } from "../../../domain/xiangqi/rules.js";
@@ -144,6 +144,7 @@ export function usePlayGame({ engine, onCreditsChanged }) {
   }
 
   async function start(side, lvl) {
+    prepareSounds();
     stopSearch();
     const ticket = epoch.current.begin();
     localRecord.current = { id: newLocalGameId(), owner: localOwner(), playedOn: new Date().toLocaleDateString("sv-SE") };
@@ -219,7 +220,8 @@ export function usePlayGame({ engine, onCreditsChanged }) {
     moveTimes.current.push(humanMs);
     setMoveLog([...moves.current]);
     setTimesLog([...moveTimes.current]);
-    playSound(isCapture(fen, move) ? "capture" : "move");
+    const humanPosition = getLocalPositionState(afterHumanFen);
+    playSound(humanPosition.status === "check" ? "check" : isCapture(fen, move) ? "capture" : "move");
     const movedAt = Date.now();
     try {
       const t0 = Date.now();

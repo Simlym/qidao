@@ -4,10 +4,11 @@ import MyPuzzleReports from "../account/MyPuzzleReports";
 import ServerSettings from "./ServerSettings";
 import NativeEngineSettings from "./NativeEngineSettings";
 import BrowserEngineSettings from "./BrowserEngineSettings";
+import SoundAuditions from "./SoundAuditions";
 import { createEngineManager } from "../../domain/xiangqi/engine/createEngineManager";
 import { evalPosition, evalJieqiPosition, getCosmetics, purchaseCosmetic } from "../../shared/api";
 import { cosmeticPreferences, setCosmeticPreference } from "../../shared/preferences/cosmetics";
-import { playSound, soundMuted, setSoundMuted, soundTheme, setSoundTheme, soundThemeLabel } from "../../shared/sounds";
+import { playSound, prepareSounds, soundMuted, setSoundMuted, soundTheme, setSoundTheme, soundThemeLabel } from "../../shared/sounds";
 import { analysisPreferences, saveAnalysisPreferences } from "../../shared/preferences/analysisPreferences";
 import { runtime, supportsNativeEngine, isTauriRuntime } from "../../platform/runtime";
 
@@ -89,6 +90,7 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
   const [section, setSection] = React.useState(() => SECTIONS.some((item) => item.key === initialSection) ? initialSection : "general");
   const [muted, setMuted] = React.useState(soundMuted);
   const [theme, setTheme] = React.useState(soundTheme);
+  React.useEffect(() => { prepareSounds(); }, [theme, muted]);
   const [appearance, setAppearance] = React.useState(cosmeticPreferences);
   const [appearanceCategory, setAppearanceCategory] = React.useState("presets");
   const [catalog, setCatalog] = React.useState([]);
@@ -210,9 +212,12 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
               </div>
               <div className="settings-row settings-sound-preview">
                 <div><strong>当前音色 · {soundThemeLabel(theme)}</strong><p>在「棋盘与外观」中选择更多音色。</p></div>
-                <button className="settings-preview-button" disabled={muted} onClick={() => playSound("move")}>试听音效</button>
+                {[["move", "走子"], ["capture", "吃子"], ["check", "将军"], ["win", "胜利"], ["lose", "失败"], ["draw", "和棋"]].map(([name, label]) => (
+                  <button key={name} className="settings-preview-button" disabled={muted} onClick={() => playSound(name)}>试听{label}</button>
+                ))}
               </div>
             </section>
+            <SoundAuditions theme={theme} onUseTheme={changeTheme} />
             <p className="settings-save-note">偏好保存在本机，无需手动保存。</p>
           </div>
         )}

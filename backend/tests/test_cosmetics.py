@@ -50,6 +50,12 @@ def test_guest_catalog_marks_only_free_items_owned():
     assert next(item for item in items if item["key"] == "app_night")["owned"] is False
     assert next(item for item in items if item["key"] == "board_classic")["owned"] is True
     assert next(item for item in items if item["key"] == "board_jade")["owned"] is False
+    for theme in ("xqwlight", "gmchess", "stevenbaby"):
+        item = next(item for item in items if item["key"] == f"sound_{theme}")
+        assert item["theme"] == theme
+        assert item["type"] == "sound"
+        assert item["price"] == 0
+        assert item["owned"] is True
 
 
 def test_purchase_is_permanent_and_idempotent():
