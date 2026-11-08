@@ -75,7 +75,7 @@ export default function NativeEngineInstaller({ onActivate, onBusyChange, extern
   const working = busy || info?.busy || externalBusy;
   return (
     <section className="native-install-card" aria-label="引擎引导安装">
-      <h3>下载并安装标准象棋引擎</h3>
+      <h3>下载并安装象棋引擎</h3>
       <p>Fairy-Stockfish 使用本机算力，无需另下权重。安装完成后先进行象棋试算，再启用；你也可以继续手动导入其他 UCI 引擎。</p>
       {!info ? <p>{notice || "正在识别可安装版本…"}</p> : <>
         <p>固定版本：{info.catalog.version} · 来源：GitHub · 程序许可：{info.catalog.license}</p>

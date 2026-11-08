@@ -343,11 +343,15 @@ pub struct Installation {
 }
 
 fn directory(root: &Path, p: &Package) -> PathBuf {
-    root.join(&p.version).join(&p.id)
+    let date =
+        p.id.split('-')
+            .rev()
+            .find(|part| part.len() == 8 && part.bytes().all(|c| c.is_ascii_digit()))
+            .unwrap_or("build");
+    root.join(format!("{date}-{}", &p.sha256[..12]))
 }
-fn safe_destination(root: &Path, p: &Package) -> Result<PathBuf, String> {
-    let path = directory(root, p);
-    for current in [root.to_path_buf(), root.join(&p.version), path.clone()] {
+fn checked_directory(path: PathBuf) -> Result<PathBuf, String> {
+    for current in path.ancestors() {
         if let Ok(metadata) = fs::symlink_metadata(current) {
             if metadata.file_type().is_symlink() {
                 return Err("安装目录不能使用符号链接".into());
@@ -363,8 +367,18 @@ fn safe_destination(root: &Path, p: &Package) -> Result<PathBuf, String> {
     }
     Ok(path)
 }
-fn installation(root: &Path, p: &Package) -> Installation {
-    let dir = directory(root, p);
+fn safe_destination(root: &Path, p: &Package) -> Result<PathBuf, String> {
+    checked_directory(directory(root, p))
+}
+fn existing_directory(root: &Path, p: &Package) -> Result<PathBuf, String> {
+    let current = safe_destination(root, p)?;
+    if current.exists() {
+        return Ok(current);
+    }
+    // 旧版目录继续原位读取，不移动用户已有的引擎文件。
+    checked_directory(root.join(&p.version).join(&p.id))
+}
+fn installation(dir: &Path, p: &Package) -> Installation {
     Installation {
         package: p.clone(),
         engine_path: dir.join(&p.entrypoint).to_string_lossy().into(),
@@ -395,13 +409,12 @@ pub fn installed(root: &Path, packages: &[Package]) -> Vec<Installation> {
     packages
         .iter()
         .filter(|p| {
-            if safe_destination(root, p).is_err() {
+            let Ok(dir) = existing_directory(root, p) else {
                 return false;
-            }
-            let dir = directory(root, p);
+            };
             receipt_matches(&dir, p) && regular_file(&dir, &p.entrypoint).is_ok()
         })
-        .map(|p| installation(root, p))
+        .map(|p| installation(&existing_directory(root, p).unwrap(), p))
         .collect()
 }
 
@@ -410,7 +423,7 @@ pub fn verify_installation(
     p: &Package,
     cancel: &AtomicBool,
 ) -> Result<Installation, String> {
-    let dir = safe_destination(root, p)?;
+    let dir = existing_directory(root, p)?;
     if !receipt_matches(&dir, p) {
         return Err("引擎安装记录不匹配".into());
     }
@@ -426,7 +439,7 @@ pub fn verify_installation(
             .map(|path| dir.join(path))
             .as_deref(),
     )?;
-    Ok(installation(root, p))
+    Ok(installation(&dir, p))
 }
 
 pub fn install_archive(
@@ -485,7 +498,20 @@ pub fn install_archive(
         downloaded: p.size,
         total: p.size,
     });
-    Ok(installation(root, p))
+    Ok(installation(&destination, p))
+}
+
+pub fn download_url(p: &Package) -> Result<String, String> {
+    if !p.public_download {
+        return Err("该引擎包尚未公开发布，请本地导入".into());
+    }
+    let tag = p.release_tag.as_ref().ok_or("缺少固定发行标签")?;
+    let url = format!(
+        "https://github.com/Simlym/qidao/releases/download/{tag}/{}",
+        p.file_name
+    );
+    validate_url(&url, &HOSTS.iter().map(|s| (*s).into()).collect::<Vec<_>>())?;
+    Ok(url)
 }
 
 pub fn download_install(
@@ -495,19 +521,11 @@ pub fn download_install(
     mut progress: impl FnMut(Progress),
 ) -> Result<Installation, String> {
     cancelled(cancel)?;
-    if !p.public_download {
-        return Err("该引擎包尚未公开发布，请先下载测试包后本地导入".into());
-    }
+    let url = download_url(p)?;
     if safe_destination(root, p)?.exists() {
         return verify_installation(root, p, cancel);
     }
-    let tag = p.release_tag.as_ref().ok_or("缺少固定发行标签")?;
     let hosts: Vec<String> = HOSTS.iter().map(|s| (*s).into()).collect();
-    let url = format!(
-        "https://github.com/Simlym/qidao/releases/download/{tag}/{}",
-        p.file_name
-    );
-    validate_url(&url, &hosts)?;
     let client = reqwest::blocking::Client::builder()
         .connect_timeout(Duration::from_secs(15))
         .timeout(Duration::from_secs(300))
@@ -622,6 +640,57 @@ mod tests {
         p.sha256 = hash(&bytes);
         p.manifest_sha256 = hash(&manifest);
         (root, archive, p)
+    }
+
+    #[test]
+    fn short_directories_preserve_build_identity_and_legacy_installations() {
+        let (root, archive, p) = fixture(None, "xiangqi");
+        let short = directory(root.path(), &p);
+        assert_eq!(short.parent(), Some(root.path()));
+        assert!(!short.to_string_lossy().contains(&p.version));
+        let mut other = p.clone();
+        other.sha256 = "0".repeat(64);
+        assert_ne!(short, directory(root.path(), &other));
+
+        let old = root.path().join(&p.version).join(&p.id);
+        fs::create_dir_all(&old).unwrap();
+        unpack(&archive, &old, &p, &AtomicBool::new(false)).unwrap();
+        fs::write(
+            old.join("installation.json"),
+            serde_json::to_vec(&Receipt {
+                package_id: p.id.clone(),
+                sha256: p.sha256.clone(),
+            })
+            .unwrap(),
+        )
+        .unwrap();
+        let found = installed(root.path(), std::slice::from_ref(&p));
+        assert_eq!(found.len(), 1);
+        assert_eq!(Path::new(&found[0].engine_path), old.join(&p.entrypoint));
+
+        fs::rename(&old, &short).unwrap();
+        let found = installed(root.path(), std::slice::from_ref(&p));
+        assert_eq!(found.len(), 1);
+        assert_eq!(Path::new(&found[0].engine_path), short.join(&p.entrypoint));
+        fs::write(short.join("installation.json"), b"{}").unwrap();
+        assert!(installed(root.path(), &[p]).is_empty());
+    }
+
+    #[test]
+    fn browser_download_uses_the_same_pinned_package_as_installer() {
+        let packages = catalog("xiangqi").unwrap();
+        let mut p = packages.into_iter().find(|p| p.public_download).unwrap();
+        let url = download_url(&p).unwrap();
+        assert_eq!(
+            url,
+            format!(
+                "https://github.com/Simlym/qidao/releases/download/{}/{}",
+                p.release_tag.as_ref().unwrap(),
+                p.file_name
+            )
+        );
+        p.public_download = false;
+        assert!(download_url(&p).is_err());
     }
 
     #[test]

@@ -1,46 +1,72 @@
-/* 本地引擎安装：优先展示操作引导，技术信息按需展开。 */
-.native-engine-settings .engine-setup-status { display: flex; align-items: flex-start; gap: 12px; padding: 16px 18px; background: #f6f3ee; border-radius: 12px; }
-.native-engine-settings .engine-setup-status strong { font-size: 15px; }
-.native-engine-settings .engine-setup-status p { margin: 5px 0 0; color: #786f65; font-size: 13px; line-height: 1.7; }
-.engine-setup-status-dot { width: 8px; height: 8px; flex: 0 0 8px; margin-top: 7px; background: #b78a4e; border-radius: 50%; }
-.is-configured .engine-setup-status-dot { background: #388454; }
-.native-engine-settings .engine-setup-card, .native-engine-settings .engine-manual-card { padding: 24px; margin: 18px 0; border: 1px solid #ded5c9; border-radius: 14px; background: #fffdfa; }
-.native-engine-settings .engine-setup-card { border-color: #c6ac88; background: linear-gradient(125deg, #fffaf1, #fffdfa 70%); }
-.engine-setup-heading { display: flex; align-items: flex-start; gap: 13px; }
-.engine-setup-heading > div { min-width: 0; }
-.engine-setup-icon { display: grid; place-items: center; flex: 0 0 38px; height: 38px; border-radius: 11px; background: #efe5d5; color: #81572e; font-size: 24px; }
-.native-engine-settings .engine-setup-heading h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 8px; font-size: 19px; }
-.native-engine-settings .engine-setup-heading p { margin: 0; color: #786f65; line-height: 1.7; font-size: 14px; }
-.engine-setup-badge { padding: 3px 8px; border-radius: 5px; background: #ede3d0; color: #805725; font-size: 11px; font-weight: 500; }
-.native-engine-settings .engine-download-summary { margin-top: 20px; font-size: 14px; color: #625545; }
-.native-engine-settings .engine-setup-footnote { margin: 10px 0; color: #83796c; font-size: 12px; line-height: 1.8; }
-.native-engine-settings .native-install-actions { margin: 16px 0 12px; }
-.native-engine-settings button.native-install-primary { min-width: 180px; min-height: 44px; font-weight: 600; }
-.native-engine-settings button[aria-busy="true"]::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; vertical-align: -2px; animation: engine-install-spin .8s linear infinite; }
+/* 引擎设置围绕当前状态展示一个主要操作区。 */
+.engine-settings-v2 { color: #423b34; }
+.engine-settings-v2 .engine-main-card { display: flex; align-items: flex-start; gap: 22px; padding: 30px; margin: 4px 0 24px; background: #fffcf6; border: 1px solid #e3d7c5; border-radius: 16px; }
+.engine-main-icon { flex: 0 0 54px; display: grid; place-items: center; height: 54px; border-radius: 16px; background: #f0e5d4; color: #8a5a2b; font-size: 32px; }
+.engine-main-icon.is-ready { color: #36764b; background: #e9f2e9; font-size: 26px; }
+.engine-main-content { flex: 1; min-width: 0; }
+.engine-settings-v2 .engine-main-content h3 { margin: 2px 0 12px; font-size: 22px; line-height: 1.4; }
+.engine-settings-v2 .engine-main-description { margin: 0 0 26px; font-size: 14px; line-height: 1.8; color: #786f65; }
+.engine-settings-v2 button, .engine-import-dialog button { padding: 10px 16px; border: 1px solid #d8cec2; border-radius: 8px; background: #fffdfa; color: #714521; font: inherit; font-size: 14px; cursor: pointer; }
+.engine-settings-v2 button.native-install-primary, .engine-import-dialog button.native-install-primary { background: #8b5d31; border-color: #8b5d31; color: #fff; font-weight: 600; }
+.engine-settings-v2 button:disabled, .engine-import-dialog button:disabled { opacity: .5; cursor: default; }
+.engine-settings-v2 button.engine-text-button, .engine-import-dialog button.engine-text-button { padding: 4px 0; background: transparent; border-color: transparent; color: #8b5d31; font-size: 13px; }
+.engine-settings-v2 button:focus-visible, .engine-import-dialog button:focus-visible, .engine-settings-v2 summary:focus-visible, .engine-import-dialog summary:focus-visible { outline: 2px solid #8b5d31; outline-offset: 3px; }
+.engine-settings-v2 button:hover:enabled, .engine-import-dialog button:hover:enabled { filter: brightness(.95); }
+.engine-main-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.engine-settings-v2 .engine-fine-print, .engine-import-dialog .engine-fine-print { margin: 12px 0 0; color: #8b8073; font-size: 12px; line-height: 1.8; }
+.engine-settings-v2 .engine-browser-download { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin: 22px 0 0; color: #8b8073; font-size: 12px; }
+.engine-current-info { display: grid; gap: 12px; margin: 0 0 24px; font-size: 14px; }
+.engine-current-info > div { display: flex; align-items: baseline; gap: 18px; }
+.engine-current-info dt { color: #8b8073; flex-shrink: 0; }
+.engine-current-info dd { display: flex; align-items: baseline; flex-wrap: wrap; gap: 16px; margin: 0; overflow-wrap: anywhere; }
+.engine-settings-v2 .engine-settings-disclosure { border-top: 1px solid #e8e0d5; padding: 16px 0; font-size: 13px; }
+.engine-settings-disclosure > summary { cursor: pointer; width: fit-content; color: #786b5a; padding: 4px 0; }
+.engine-settings-disclosure[open] > summary { margin-bottom: 16px; }
+.engine-settings-v2 .engine-package-details label { display: grid; gap: 8px; }
+.engine-package-details select { width: 100%; max-width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d8cec2; border-radius: 6px; background: #fffdfa; color: #625545; }
+.engine-settings-v2 .engine-path, .engine-import-dialog .engine-path { overflow-wrap: anywhere; white-space: pre-wrap; color: #817365; font-size: 12px; line-height: 1.8; }
+.engine-settings-v2 .engine-feedback, .engine-import-dialog .engine-feedback { margin-top: 20px; padding: 12px 14px; border: 1px solid #d9dfd3; border-radius: 8px; background: #f2f6ee; font-size: 13px; }
+.engine-settings-v2 .engine-feedback.is-error, .engine-import-dialog .engine-feedback.is-error { border-color: #ecd1c7; background: #fff4ef; color: #9b4936; }
+.engine-settings-v2 .engine-feedback p, .engine-import-dialog .engine-feedback p { margin: 0; line-height: 1.8; }
+.engine-feedback details { margin-top: 8px; }
+.engine-feedback summary { width: fit-content; cursor: pointer; font-size: 12px; }
+.engine-install-progress { margin: 24px 0 8px; }
+.engine-progress-label { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 14px; color: #714521; }
+.engine-progress-label strong { display: flex; align-items: center; gap: 10px; }
+.engine-settings-v2 progress, .engine-import-dialog progress { display: block; width: 100%; height: 8px; margin: 16px 0 10px; accent-color: #8b5d31; }
+.engine-progress-footer { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; font-size: 12px; color: #8b8073; line-height: 1.8; }
+.engine-spinner { display: inline-block; flex: 0 0 14px; height: 14px; box-sizing: border-box; border: 2px solid #cfb58f; border-right-color: #8b5d31; border-radius: 50%; animation: engine-install-spin .8s linear infinite; }
 @keyframes engine-install-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .native-engine-settings button[aria-busy="true"]::before { animation: none; } }
-.native-engine-settings .engine-setup-details { margin-top: 18px; font-size: 13px; }
-.engine-setup-details > summary { cursor: pointer; color: #786b5a; padding: 8px 0; width: fit-content; }
-.engine-setup-details[open] > summary { margin-bottom: 12px; }
-.native-engine-settings .engine-setup-details select { max-width: 100%; margin: 8px 0; font-size: 13px; }
-.native-engine-settings .engine-package-import { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; border-top: 1px solid #e6ded2; margin-top: 20px; padding-top: 20px; }
-.engine-package-import > div { flex: 1 1 280px; }
-.engine-package-import strong { font-size: 14px; }
-.native-engine-settings .engine-package-import p { margin: 6px 0 0; color: #83796c; font-size: 12px; line-height: 1.8; }
-.engine-package-import button { flex-shrink: 0; min-height: 40px; }
-.engine-import-steps { margin: 18px 0 12px; padding-left: 20px; color: #786f65; line-height: 1.9; font-size: 13px; }
-.native-engine-settings .native-engine-input { flex-wrap: wrap; margin: 18px 0 12px; }
-.settings-content .native-engine-input .engine-folder-button { background: #faf7f1; color: #714521; border: 1px solid #d8cec2; }
-.engine-selected-file { display: grid; gap: 7px; color: #83796c; font-size: 12px; }
-.native-engine-settings .engine-selected-file input { width: 100%; min-width: 0; box-sizing: border-box; padding: 10px 12px; border: 1px solid #e4ddd2; border-radius: 7px; color: #786f65; background: #f9f7f3; font-size: 12px; text-overflow: ellipsis; }
-.native-engine-settings .engine-install-progress { padding: 14px; margin: 14px 0; background: #f4ede1; border-radius: 8px; font-size: 14px; color: #714521; }
-.native-engine-settings progress { accent-color: #8b5d31; }
-.native-engine-settings > .engine-advanced-settings { border-top: 1px solid #e6ded2; padding-top: 12px; }
-.native-engine-settings .engine-status-ok, .native-engine-settings .engine-status-error { padding: 10px 12px; border-radius: 8px; font-size: 13px; overflow-wrap: anywhere; }
-.engine-setup-card button:focus-visible, .engine-manual-card button:focus-visible, .engine-setup-details summary:focus-visible { outline: 2px solid #8b5d31; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .engine-spinner { animation: none; } }
+.engine-import-dialog { width: min(560px, calc(100vw - 40px)); max-height: calc(100dvh - 48px); box-sizing: border-box; padding: 26px; border: 1px solid #e3d7c5; border-radius: 16px; background: #fffdfa; color: #423b34; box-shadow: 0 24px 80px #33231533; overflow-y: auto; }
+.engine-import-dialog::backdrop { background: #241b1459; }
+.engine-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.engine-dialog-heading h3 { margin: 0 0 8px; font-size: 20px; }
+.engine-import-dialog p { color: #817365; font-size: 13px; line-height: 1.8; margin: 6px 0 0; }
+.engine-import-dialog .engine-dialog-heading > button { font-size: 24px; line-height: 1; padding: 0 4px; }
+.engine-import-option { display: flex; align-items: center; gap: 18px; padding: 20px 0; border-top: 1px solid #e8e0d5; }
+.engine-import-option > div { flex: 1; }
+.engine-import-option > button { flex-shrink: 0; }
+.engine-import-option strong { font-size: 14px; }
+.engine-import-option .engine-text-button { margin-top: 6px; }
+.engine-import-candidate { background: #f5f1e9; padding: 14px; border-radius: 8px; font-size: 13px; }
+.engine-import-candidate details { margin-top: 10px; }
+.engine-import-candidate summary { color: #8b8073; cursor: pointer; font-size: 12px; }
+.engine-browser-download a { color: #8b5d31; text-decoration: underline; text-underline-offset: 3px; padding: 4px 0; }
+.engine-browser-version { display: grid; gap: 8px; }
+.engine-browser-version select { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; padding: 8px; font-size: 13px; }
+.engine-custom-directory { border-top: 1px solid #e8e0d5; padding: 16px 0; }
+.engine-custom-directory summary { cursor: pointer; font-size: 13px; color: #786b5a; }
+.engine-custom-directory button { margin-top: 12px; }
+.engine-import-dialog .engine-import-candidate { margin-top: 18px; }
+.engine-browser-remove { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e8e0d5; }
+.engine-dialog-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
 @media (max-width: 600px) {
-  .native-engine-settings .engine-setup-card, .native-engine-settings .engine-manual-card { padding: 18px 16px; }
-  .native-engine-settings .engine-setup-heading h3 { font-size: 17px; }
-  .native-engine-settings .native-install-actions > button, .engine-package-import button { width: 100%; }
-  .native-engine-settings .native-engine-input > button { flex: 1 1 130px; }
+  .engine-settings-v2 .engine-main-card { padding: 22px 18px; gap: 14px; }
+  .engine-main-icon { flex-basis: 38px; height: 38px; border-radius: 11px; font-size: 24px; }
+  .engine-settings-v2 .engine-main-content h3 { font-size: 18px; }
+  .engine-main-actions > button { width: 100%; }
+  .engine-current-info > div { flex-wrap: wrap; gap: 6px 12px; }
+  .engine-import-dialog { padding: 20px; }
+  .engine-import-option { flex-wrap: wrap; }
 }

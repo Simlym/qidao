@@ -19,7 +19,7 @@ const SECTIONS = [
   { key: "puzzle-feedback", label: "我的题目反馈", icon: "feedback" },
   { key: "server", label: "服务器（高级）", icon: "server" },
   { key: "appearance", label: "棋盘与外观", icon: "palette" },
-  { key: "xiangqi", label: "标准象棋引擎", icon: "cpu" },
+  { key: "xiangqi", label: "象棋引擎", icon: "cpu" },
   { key: "jieqi", label: "揭棋引擎", icon: "spark" },
 ].filter((item) => item.key !== "server" || isTauriRuntime(runtime));
 const SECTION_ICONS = {
@@ -300,7 +300,7 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
 
         {section === "xiangqi" && (
           <div className="settings-group">
-            <div className="settings-heading"><h2>标准象棋引擎</h2><p>用于人机对弈、局面评分和着法提示。</p></div>
+            <div className="settings-heading"><h2>象棋引擎</h2><p>用于人机对弈、局面评分和着法提示。</p></div>
             {supportsNativeEngine(runtime)
               ? <NativeEngineSettings key="xiangqi" manager={xiangqiEngine} />
               : <BrowserEngineSettings manager={xiangqiEngine} />}
@@ -338,7 +338,7 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
               </div>
             </section>
             {supportsNativeEngine(runtime)
-              ? <NativeEngineSettings key="jieqi" manager={jieqiEngine} variant="jieqi" label="揭棋 UCI 引擎" />
+              ? <NativeEngineSettings key="jieqi" manager={jieqiEngine} variant="jieqi" />
               : <BrowserEngineSettings manager={jieqiEngine} variant="jieqi" />}
           </div>
         )}

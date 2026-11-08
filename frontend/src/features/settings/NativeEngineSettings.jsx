@@ -1,179 +1,119 @@
 import React from "react";
-import NativeEngineInstaller from "./NativeEngineInstaller";
-import NativePackageInstaller from "./NativePackageInstaller";
+import { useNativePackageInstaller, NativeInstallProgress, NativePackageDetails } from "./NativePackageInstaller";
 import { nativeInstallationProfile } from "../../domain/xiangqi/engine/nativeInstallationProfile";
 import { activateNativeEngine } from "../../domain/xiangqi/engine/activateNativeEngine";
-import {
-  getNativeEngineProfile,
-  saveNativeEngineProfile,
-  removeNativeEngineProfile,
-} from "../../domain/xiangqi/engine/TauriEngineAdapter";
+import { getNativeEngineProfile, saveNativeEngineProfile, removeNativeEngineProfile } from "../../domain/xiangqi/engine/TauriEngineAdapter";
+import { openNativeEngineFolder } from "../../platform/nativeEngineInstaller";
 import { runtime, supportsNativeEngine } from "../../platform/runtime";
+import ImportDialog, { EngineMessage } from "./NativeEngineImportDialog";
 import "./native-engine-settings.css";
 
-export default function NativeEngineSettings({
-  manager,
-  onReady,
-  variant = "xiangqi",
-  label = "标准象棋 UCI 引擎",
-}) {
-  const initial = React.useMemo(() => getNativeEngineProfile(variant), [variant]);
-  const [path, setPath] = React.useState(() => initial?.path || "");
-  const [threads, setThreads] = React.useState(() => initial?.threads || 2);
-  const [hashMb, setHashMb] = React.useState(() => initial?.hashMb || 256);
-  const [installingSources, setInstallingSources] = React.useState({ package: false, legacy: false });
-  const installing = installingSources.package || installingSources.legacy;
-  const packageBusy = React.useCallback((value) => setInstallingSources((s) => ({ ...s, package: value })), []);
-  const legacyBusy = React.useCallback((value) => setInstallingSources((s) => ({ ...s, legacy: value })), []);
-  const [checking, setChecking] = React.useState(false);
-  const [statuses, setStatuses] = React.useState(null);
-  const [platform, setPlatform] = React.useState(null);
-  const [configured, setConfigured] = React.useState(Boolean(initial?.path));
-  const activationEpoch = React.useRef(0);
-  React.useEffect(() => () => { activationEpoch.current++; }, []);
+const filename = (path) => path?.split(/[\\/]/).pop() || "本地引擎";
 
+export default function NativeEngineSettings({ manager, onReady, variant = "xiangqi" }) {
+  const [profile, setProfile] = React.useState(() => getNativeEngineProfile(variant));
+  const [threads, setThreads] = React.useState(() => profile?.threads || 2);
+  const [hashMb, setHashMb] = React.useState(() => profile?.hashMb || 256);
+  const [ready, setReady] = React.useState(false);
+  const [changing, setChanging] = React.useState(false);
+  const [checking, setChecking] = React.useState(false);
+  const [importing, setImporting] = React.useState(false);
+  const [candidate, setCandidate] = React.useState(null);
+  const [message, setMessage] = React.useState(null);
+  const [platform, setPlatform] = React.useState(null);
+  const epoch = React.useRef(0);
+  const running = React.useRef(false);
+  React.useEffect(() => () => { epoch.current++; }, []);
   React.useEffect(() => {
-    if (!supportsNativeEngine(runtime)) return;
-    import("@tauri-apps/api/core").then(({ invoke }) => invoke("platform_info")).then(setPlatform).catch(() => {});
+    let active = true;
+    if (supportsNativeEngine(runtime)) import("@tauri-apps/api/core").then(({ invoke }) => invoke("platform_info")).then((value) => active && setPlatform(value)).catch(() => {});
+    return () => { active = false; };
   }, []);
 
-  if (!supportsNativeEngine(runtime)) return null;
-
-  async function inspectPath(selectedPath) {
-    const { invoke } = await import("@tauri-apps/api/core");
-    const result = await invoke("inspect_engine_path", { path: selectedPath });
-    if (result.enginePath) setPath(result.enginePath);
-    setStatuses({
-      program: result.enginePath
-        ? { ok: true, text: "已找到引擎程序，点击「检测并启用」即可使用。" }
-        : { ok: false, text: "未在所选目录中找到可执行程序（Windows 下为 .exe 文件）" },
-      nnue: result.nnuePath
-        ? { ok: true, text: "已找到配套的分析资源文件。" }
-        : { ok: true, text: "未发现独立资源文件；部分引擎已内置，可直接尝试启用。" },
-    });
-    return result;
-  }
-
-  async function choosePath(directory) {
-    try {
-      const { open } = await import("@tauri-apps/plugin-dialog");
-      const selected = await open(directory
-        ? { directory: true, multiple: false, title: "选择引擎所在文件夹" }
-        : { directory: false, multiple: false, title: "选择引擎程序", filters: [{ name: "引擎程序", extensions: ["exe", "bin", "appimage"] }] });
-      if (!selected) return;
-      await inspectPath(selected);
-    } catch (error) {
-      setStatuses({ program: { ok: false, text: String(error) }, nnue: null });
-    }
-  }
-
-  async function activateProfile(profile) {
-    const current = activationEpoch.current;
-    await activateNativeEngine(profile, {
-      manager,
-      readProfile: () => getNativeEngineProfile(variant),
-      writeProfile: (value) => saveNativeEngineProfile(value, variant),
-      removeProfile: () => removeNativeEngineProfile(variant),
-      isCurrent: () => current === activationEpoch.current,
-    });
-  }
-
-  async function activateInstallation(result) {
-    await activateProfile(nativeInstallationProfile(result, variant, { threads, hashMb }));
-    setPath(result.enginePath);
-    setConfigured(true);
-    setStatuses({ program: { ok: true, text: "引擎已启用，可以开始对弈和分析了。" }, nnue: null });
+  async function activateProfile(next) {
+    const current = epoch.current;
+    await activateNativeEngine(next, { manager, readProfile: () => getNativeEngineProfile(variant),
+      writeProfile: (value) => saveNativeEngineProfile(value, variant), removeProfile: () => removeNativeEngineProfile(variant),
+      isCurrent: () => current === epoch.current });
+    if (current !== epoch.current) return;
+    setProfile(next); setReady(true); setChanging(false); setImporting(false); setCandidate(null); setMessage(null);
     onReady?.(true, "native");
   }
+  const installer = useNativePackageInstaller({ variant, externalBusy: checking, onActivate: (result) => activateProfile(nativeInstallationProfile(result, variant, { threads, hashMb })),
+    onImport: (result) => setCandidate({ name: result.package.name, installation: result }) });
+  const busy = checking || installer.busy;
+  const packageSupported = platform?.os === "windows" && Boolean(installer.info?.packages.length);
+  const selected = installer.selectedPackage;
+  const matched = installer.info?.installed.find((item) => item.enginePath === profile?.path);
+  const managed = profile?.managed || Boolean(matched);
+  const name = profile?.engineName || matched?.package.name || filename(profile?.path);
+  const showSetup = !profile || changing;
+  const feedback = installer.error ? { ...installer.error, error: true } : installer.notice ? { summary: installer.notice } : message;
 
-  async function saveAndCheck() {
-    const normalized = path.trim();
-    if (!normalized) {
-      setStatuses({ program: { ok: false, text: "请先选择 UCI 引擎程序或所在目录" }, nnue: null });
-      return;
-    }
-    setChecking(true);
+  async function choosePath(directory) {
+    if (running.current || busy) return;
+    running.current = true;
+    const current = epoch.current;
+    setChecking(true); setCandidate(null); setMessage(null); installer.clearMessages();
     try {
-      const inspected = await inspectPath(normalized);
-      if (!inspected.enginePath) return;
-      const previous = getNativeEngineProfile(variant);
-      // 同一路径保存参数时保留多棋种引擎的 UCI 选项；换手动引擎时不继承。
-      await activateProfile({ ...(previous?.path === inspected.enginePath ? previous : {}),
-        path: inspected.enginePath, nnuePath: inspected.nnuePath || null, args: [], threads, hashMb });
-      const kinds = await manager.availableKinds();
-      const ready = kinds.includes("native");
-      setConfigured(ready);
-      const detail = manager.errorFor?.("native");
-      setStatuses((current) => ({
-        ...current,
-        program: ready
-          ? { ok: true, text: "引擎已启用，可以开始对弈和分析了。" }
-          : { ok: false, text: `程序加载失败，将自动使用云端引擎${detail ? `：${detail}` : ""}` },
-        nnue: inspected.nnuePath
-          ? { ok: ready, text: ready ? "配套资源文件已找到。" : "资源文件已找到，但引擎启动失败。" }
-          : null,
-      }));
-      onReady?.(ready, ready ? "native" : null);
-    } catch (error) {
-      setStatuses({ program: { ok: false, text: String(error) }, nnue: null });
-    } finally {
-      setChecking(false);
-    }
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      if (current !== epoch.current) return;
+      const path = await open(directory ? { directory: true, multiple: false, title: "选择引擎所在文件夹" }
+        : { multiple: false, title: "选择引擎程序", filters: [{ name: "引擎程序", extensions: ["exe", "bin", "appimage"] }] });
+      if (!path || current !== epoch.current) return;
+      const { invoke } = await import("@tauri-apps/api/core");
+      const result = await invoke("inspect_engine_path", { path });
+      if (current !== epoch.current) return;
+      if (!result.enginePath) throw new Error("未找到引擎程序，请选择解压后的文件夹或其中的 .exe 文件。");
+      setCandidate({ name: filename(result.enginePath), profile: { ...(profile?.path === result.enginePath ? profile : {}), path: result.enginePath, nnuePath: result.nnuePath || null, args: [], managed: false } });
+    } catch (e) {
+      if (current === epoch.current) setMessage({ error: true, summary: "未能识别引擎，请重新选择程序或文件夹。", detail: String(e.message || e) });
+    } finally { running.current = false; if (current === epoch.current) setChecking(false); }
   }
-
-  return (
-    <div className="native-engine-settings">
-      <div className={`engine-setup-status${configured ? " is-configured" : ""}`}>
-        <span className="engine-setup-status-dot" aria-hidden="true" />
-        <div><strong>{configured ? "已配置本地引擎" : "还未配置本地引擎"}</strong>
-          <p>{configured ? "可重新安装或导入其他引擎，启用成功后会替换当前配置。" : "安装后，让这台电脑为你计算走法。选择下面任意一种方式即可。"}</p></div>
+  async function enable(value = profile) {
+    if (!value || running.current || busy) return;
+    running.current = true;
+    const current = epoch.current;
+    setChecking(true); setMessage(null); installer.clearMessages();
+    try {
+      const next = value.installation ? nativeInstallationProfile(value.installation, variant, { threads, hashMb }) : { ...(value.profile || value), threads, hashMb };
+      await activateProfile(next);
+    } catch (e) {
+      if (current === epoch.current) {
+        if (value === profile) setReady(false);
+        setMessage({ error: true, summary: "引擎未能启用，原配置已保留。请检查配套文件是否完整。", detail: String(e.message || e) });
+      }
+    } finally { running.current = false; if (current === epoch.current) setChecking(false); }
+  }
+  function openImport() { installer.clearMessages(); setMessage(null); setCandidate(null); setImporting(true); }
+  async function openFolder() {
+    try { await openNativeEngineFolder(profile.path); }
+    catch (e) { setMessage({ error: true, summary: "未能打开引擎文件夹。", detail: String(e.message || e) }); }
+  }
+  if (!supportsNativeEngine(runtime)) return null;
+  return <div className="native-engine-settings engine-settings-v2">
+    <section className="engine-main-card" aria-label="本地引擎设置" aria-busy={busy}>
+      <div className={`engine-main-icon${ready && !showSetup ? " is-ready" : ""}`} aria-hidden="true">{ready && !showSetup ? "✓" : "棋"}</div>
+      <div className="engine-main-content">
+        <h3>{showSetup ? "让电脑帮你分析棋局" : ready ? `${variant === "jieqi" ? "揭棋" : "象棋"}引擎已就绪` : "已配置引擎，等待检测"}</h3>
+        <p className="engine-main-description">{showSetup ? variant === "jieqi" ? "安装揭棋专用引擎，用于暗子局面的对弈和分析。" : "安装象棋引擎，用于人机对弈、局面评分和走法提示。" : ready ? "可用于人机对弈、棋局分析和走法提示。" : "检测通过后，即可在这台电脑上使用。"}</p>
+        {!showSetup && <dl className="engine-current-info"><div><dt>当前引擎</dt><dd>{name}</dd></div><div><dt>安装位置</dt><dd>{managed ? "由棋岛管理" : "自定义位置"}<button type="button" className="engine-text-button" onClick={openFolder}>打开文件夹</button></dd></div></dl>}
+        {installer.busy ? <NativeInstallProgress progress={installer.progress} onCancel={installer.cancel} /> : checking ? <NativeInstallProgress progress={{ phase: "testing" }} /> : <>
+          <div className="engine-main-actions">
+            {showSetup ? <>
+              {platform?.os === "windows" && <button type="button" className="native-install-primary" disabled={!selected?.publicDownload || !installer.info} onClick={() => installer.run("download")}>{!installer.info ? "正在查找适配版本…" : selected?.publicDownload ? installer.error ? "重试下载" : "下载并安装" : "暂无适配的在线安装包"}</button>}
+              <button type="button" onClick={openImport}>已有文件，手动导入</button>
+              {profile && <button type="button" className="engine-text-button" onClick={() => { setChanging(false); installer.clearMessages(); }}>返回当前引擎</button>}
+            </> : <><button type="button" className={ready ? "" : "native-install-primary"} onClick={() => enable()}>{ready ? "重新检测" : "检测并启用"}</button><button type="button" className="engine-text-button" onClick={() => setChanging(true)}>更换引擎</button></>}
+          </div>
+          {showSetup && <p className="engine-fine-print">{selected?.publicDownload ? `已为这台电脑选择适配版本 · 约 ${(selected.size / 1048576).toFixed(1)} MB · 无需登录` : "已有引擎可直接导入，启用成功后再替换当前配置。"}</p>}
+        </>}
+        {selected?.publicDownload && (showSetup || installer.error || installer.progress?.phase === "preparing") && <p className="engine-browser-download">下载不顺畅？<button type="button" className="engine-text-button" onClick={() => installer.openLink("download")}>用浏览器下载</button><span>下载后选择「手动导入」。</span></p>}
+        {feedback && !importing && <EngineMessage message={feedback} />}
       </div>
-      {variant === "jieqi" && <p className="muted">请使用揭棋专用引擎，普通象棋引擎无法分析暗子局面。</p>}
-      {platform?.os === "windows" && <NativePackageInstaller key={variant} variant={variant} externalBusy={checking || installingSources.legacy} onActivate={activateInstallation} onBusyChange={packageBusy} />}
-      <section className="engine-manual-card" aria-label="导入已有文件">
-      <div className="engine-setup-heading"><span className="engine-setup-icon" aria-hidden="true">↑</span><div>
-        <h3>导入已有文件</h3>
-        <p>已经下载过引擎？选择电脑上的程序，也可以选择解压后的文件夹。</p>
-      </div></div>
-      <ol className="engine-import-steps"><li>如果下载的是压缩包，请先解压，并保留里面的配套文件。</li><li>选择引擎程序（Windows 通常为 .exe），再点击「检测并启用」。</li></ol>
-      <p className="engine-setup-footnote">请使用{label}。{platform?.os === "windows" && "棋岛 ZIP 引擎包可直接使用上方的导入按钮。"}</p>
-      <div className="native-engine-input">
-        <button type="button" onClick={() => choosePath(false)} disabled={checking || installing}>选择引擎程序</button>
-        <button type="button" className="engine-folder-button" onClick={() => choosePath(true)} disabled={checking || installing}>选择文件夹</button>
-        <button type="button" onClick={saveAndCheck} disabled={!path || checking || installing}>
-          {checking ? "正在检测…" : "检测并启用"}
-        </button>
-      </div>
-      <label className="engine-selected-file">已选程序
-        <input
-          value={path}
-          readOnly
-          placeholder="尚未选择，请点击上方按钮"
-          title={path}
-          spellCheck={false}
-        />
-      </label>
-      </section>
-      {statuses && <div className="native-engine-statuses" aria-live="polite">
-        {statuses.program && <div className={statuses.program.ok ? "engine-status-ok" : "engine-status-error"}>
-          <strong>{statuses.program.ok ? "✓ 提示" : "✕ 未能启用"}</strong><span>{statuses.program.text}</span>
-        </div>}
-        {statuses.nnue && <div className={statuses.nnue.ok ? "engine-status-ok" : "engine-status-error"}>
-          <strong>{statuses.nnue.ok ? "✓ 资源" : "✕ 资源"}</strong><span>{statuses.nnue.text}</span>
-        </div>}
-      </div>}
-      <details className="engine-setup-details engine-advanced-settings"><summary>高级设置与其他下载方式</summary>
-        <p className="engine-setup-footnote">一般无需修改。调整性能参数后，点击下方按钮保存并重新启用。</p>
-        <div className="native-engine-limits">
-          <label>计算线程 <input type="number" disabled={checking || installing} min="1" max="8" value={threads} onChange={(event) => setThreads(Number(event.target.value))} /></label>
-          <label>分析内存（MB） <input type="number" disabled={checking || installing} min="32" max="2048" step="32" value={hashMb} onChange={(event) => setHashMb(Number(event.target.value))} /></label>
-        </div>
-        <p className="engine-setup-footnote">建议保留一半处理器资源给界面和系统。</p>
-        <button type="button" onClick={saveAndCheck} disabled={!path || checking || installing}>{checking ? "正在检测…" : "保存参数并启用"}</button>
-        {platform && <p className="engine-setup-footnote">设备信息：{platform.os} / {platform.arch} · {platform.cpuCount} 线程{platform.features?.length ? ` · ${platform.features.join(" / ")}` : ""}</p>}
-        <p className="engine-setup-footnote">手动下载时请选择适合本机系统的版本，并确认程序及资源文件的许可。</p>
-        {variant === "xiangqi" && platform?.os === "windows" && <NativeEngineInstaller externalBusy={checking || installingSources.package} onActivate={activateInstallation} onBusyChange={legacyBusy} />}
-      </details>
-    </div>
-  );
+    </section>
+    <details className="engine-settings-disclosure"><summary>性能设置</summary><p className="engine-fine-print">一般无需修改。参数会在下次安装或启用时生效。</p><div className="native-engine-limits"><label>计算线程<input type="number" min="1" max="8" disabled={busy} value={threads} onChange={(e) => setThreads(Math.max(1, Math.min(8, Number(e.target.value) || 1)))} /></label><label>分析内存（MB）<input type="number" min="32" max="2048" step="32" disabled={busy} value={hashMb} onChange={(e) => setHashMb(Math.max(32, Math.min(2048, Number(e.target.value) || 32)))} /></label></div><p className="engine-fine-print">建议保留一半处理器资源给界面和系统。</p>{profile && <button type="button" disabled={busy} onClick={() => enable()}>保存参数并启用</button>}</details>
+    <details className="engine-settings-disclosure"><summary>引擎详情</summary>{profile && <><p>当前引擎：{name}{profile.engineVersion ? ` · ${profile.engineVersion}` : ""}</p><p className="engine-path">{profile.path}</p></>}<NativePackageDetails installer={installer} disabled={busy} />{platform && <p className="engine-fine-print">设备：{platform.os} / {platform.arch} · {platform.cpuCount} 线程 · {platform.features?.join(" / ")}</p>}</details>
+    {importing && <ImportDialog variant={variant} busy={busy} candidate={candidate} message={feedback} progress={installer.progress} onCancel={installer.busy ? installer.cancel : null} packageSupported={packageSupported} onChoose={choosePath} onImport={() => { setCandidate(null); installer.run("import"); }} onActivate={() => enable(candidate)} onClose={() => { setImporting(false); setCandidate(null); setMessage(null); installer.clearMessages(); }} />}
+  </div>;
 }

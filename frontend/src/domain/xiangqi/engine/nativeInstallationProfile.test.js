@@ -35,3 +35,14 @@ test("Fairy NNUE 引擎包保留棋种、坐标协议和指定网络", () => {
   assert.equal(profile.nnuePath, "xiangqi-c07.nnue");
   assert.equal(profile.useNnue, true);
 });
+
+test("托管安装保存展示名称和完整版本，文件路径不承担版本展示职责", () => {
+  const profile = nativeInstallationProfile({
+    package: { variant: "xiangqi", name: "Fairy-Stockfish NNUE", version: "nnue-c07e94a5-84dd49a4" },
+    enginePath: "C:/Users/test/AppData/Local/QiDao/engines/xiangqi/fairy-stockfish/20261107-bf276f77331f/stockfish.exe",
+  }, "xiangqi", { threads: 2, hashMb: 256 });
+  assert.equal(profile.managed, true);
+  assert.equal(profile.engineName, "Fairy-Stockfish NNUE");
+  assert.equal(profile.engineVersion, "nnue-c07e94a5-84dd49a4");
+  assert.equal(profile.threads, 2);
+});

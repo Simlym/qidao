@@ -9,5 +9,6 @@ export function nativeInstallationProfile(result, variant, { threads, hashMb }) 
     path: result.enginePath, nnuePath: result.nnuePath || null, args: [], threads, hashMb,
     uciVariant: receipt.uciVariant || null, uciProtocol: receipt.uciProtocol || null,
     useNnue: result.package ? Boolean(result.nnuePath) : receipt.useNnue,
+    managed: true, engineName: receipt.name || "Fairy-Stockfish", engineVersion: receipt.version || "",
   };
 }

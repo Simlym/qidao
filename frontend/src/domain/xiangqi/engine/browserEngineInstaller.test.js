@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { zipSync, strToU8 } from "fflate";
-import { importBrowserEngineArchive, installBrowserEngine, validateWasmDownload } from "./browserEngineInstaller.js";
+import { importBrowserEngineArchive, installBrowserEngine, installBrowserEngineDirectory, validateWasmDownload } from "./browserEngineInstaller.js";
 
 const hash = (data) => createHash("sha256").update(data).digest("hex");
 const capabilities = { webAssembly: true, worker: true, cacheStorage: true, threads: false };
@@ -17,7 +17,7 @@ function fixture(change = () => {}) {
     threads: false, publicDownload: true, releaseTag: "engines-20261107.9", fileName: "fixture.zip", size: bytes.length,
     sha256: hash(bytes), manifestSha256: hash(files["engine-manifest.json"]),
     url: "https://github.com/Simlym/qidao/releases/download/engines-20261107.9/fixture.zip" };
-  return { bytes, spec };
+  return { bytes, spec, files };
 }
 function environment(t) {
   const storage = globalThis.localStorage, caches = globalThis.caches;
@@ -35,6 +35,23 @@ function environment(t) {
   return { values, entries, cache, previous };
 }
 const options = (bytes, extra = {}) => ({ capabilities, deliveryUrl: (spec) => spec.url, download: async () => bytes, probe: async () => true, ...extra });
+
+test("目录导入在试算通过前保留旧配置，失败和取消后清理暂存文件", async (t) => {
+  const { values, entries } = environment(t);
+  const { files } = fixture();
+  const selected = Object.entries(files).map(([name, data]) => new File([data], `custom/${name}`));
+  await assert.rejects(installBrowserEngineDirectory(selected, "xiangqi", { probe: async () => false }), /启动失败/);
+  assert.equal(JSON.parse(values.get("xq.browserEngine.xiangqi")).id, "old");
+  assert.equal(entries.size, 1);
+  const controller = new AbortController();
+  await assert.rejects(installBrowserEngineDirectory(selected, "xiangqi", { signal: controller.signal, probe: async () => { controller.abort(); return true; } }), { name: "AbortError" });
+  assert.equal(entries.size, 1);
+  const next = await installBrowserEngineDirectory(selected, "xiangqi", { probe: async () => {
+    assert.equal(JSON.parse(values.get("xq.browserEngine.xiangqi")).id, "old");
+    return true;
+  } });
+  assert.equal(JSON.parse(values.get("xq.browserEngine.xiangqi")).base, next.base);
+});
 
 test("手动 ZIP 可导入尚未公开的固定候选，且不发起网络请求", async (t) => {
   environment(t);

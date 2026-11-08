@@ -1,171 +1,46 @@
 import React from "react";
-import {
-  browserEngineCapabilities,
-  getBrowserEngineProfile,
-  importBrowserEnginePackage,
-  removeBrowserEnginePackage,
-} from "../../domain/xiangqi/engine/browserEnginePackages";
-import { localEngineReady, probeBrowserEngineProfile, resetLocalEngine } from "../../domain/xiangqi/engine/localEngine";
-import { importBrowserEngineArchive } from "../../domain/xiangqi/engine/browserEngineInstaller.js";
-import catalog from "../../domain/xiangqi/engine/wasm-packages.json";
-import { ensureBrowserEngineStorage } from "../../platform/browserEngineStorage.js";
-import BrowserEngineInstaller from "./BrowserEngineInstaller.jsx";
+import { useBrowserEngineInstaller } from "./BrowserEngineInstaller";
+import BrowserEngineImportDialog from "./BrowserEngineImportDialog";
+import EngineInstallProgress from "./EngineInstallProgress";
+import EngineMessage from "./EngineSetupFeedback";
+import "./native-engine-settings.css";
 
 export default function BrowserEngineSettings({ manager, variant = "xiangqi" }) {
-  const [profile, setProfile] = React.useState(() => getBrowserEngineProfile(variant));
-  const [busy, setBusy] = React.useState(false);
-  const [message, setMessage] = React.useState("");
-  const [error, setError] = React.useState("");
-  const [engineReady, setEngineReady] = React.useState(null);
-  const capabilities = browserEngineCapabilities();
-  const zipOperation = React.useRef(null);
-  const mounted = React.useRef(false);
-  React.useEffect(() => {
-    mounted.current = true;
-    return () => { mounted.current = false; zipOperation.current?.abort(); };
-  }, [variant]);
-
-  async function importZip(event) {
-    const input = event.target;
-    const file = input.files?.[0];
-    if (!file || busy || zipOperation.current) return;
-    const controller = new AbortController();
-    zipOperation.current = controller;
-    const current = () => mounted.current && zipOperation.current === controller && !controller.signal.aborted;
-    setBusy(true);
-    setError("");
-    setMessage("");
-    try {
-      await ensureBrowserEngineStorage(controller.signal);
-      const next = await importBrowserEngineArchive(file, variant, {
-        packages: catalog.packages, signal: controller.signal, isCurrent: current,
-        probe: probeBrowserEngineProfile,
-        beforeCommit: async () => { await manager.dispose(); resetLocalEngine(variant); },
-      });
-      if (current()) {
-        setProfile(next);
-        setEngineReady(true);
-        setMessage("ZIP 引擎包已导入并启用，无需手动解压。");
-      }
-    } catch (reason) {
-      if (current()) setError(reason.message || String(reason));
-    } finally {
-      input.value = "";
-      if (zipOperation.current === controller) {
-        zipOperation.current = null;
-        if (mounted.current) setBusy(false);
-      }
-    }
-  }
-
-  React.useEffect(() => {
-    let active = true;
-    if (!profile) {
-      setEngineReady(null);
-      return () => { active = false; };
-    }
-    localEngineReady(variant)
-      .then((ready) => { if (active) setEngineReady(ready); })
-      .catch(() => { if (active) setEngineReady(false); });
-    return () => { active = false; };
-  }, [profile, variant]);
-
-  async function importFiles(event) {
-    const files = event.target.files;
-    if (!files?.length) return;
-    setBusy(true);
-    setError("");
-    setMessage("");
-    try {
-      if (!("serviceWorker" in navigator) || !capabilities.cacheStorage) {
-        throw new Error("当前 WebView 不支持本地引擎包存储，请使用远程引擎或升级客户端");
-      }
-      await navigator.serviceWorker.register("/sw.js");
-      await navigator.serviceWorker.ready;
-      const next = await importBrowserEnginePackage(files, variant);
-      resetLocalEngine(variant);
-      await manager.dispose();
-      setProfile(next);
-      setEngineReady(null);
-      if (!navigator.serviceWorker.controller) {
-        // 首次安装 Service Worker 时，当前页面未必能立刻通过虚拟路径读取引擎文件。
-        // 刷新后由 Service Worker 接管，再由上面的 effect 做真实 UCI 握手检测。
-        window.location.reload();
-        return;
-      }
-      const ready = await localEngineReady(variant);
-      setEngineReady(ready);
-      if (ready) setMessage("本地 WASM 引擎已就绪，对弈和分析将优先使用本地引擎。");
-      else setError("引擎包已保存，但启动或 UCI 握手失败；对弈将继续使用云端引擎。");
-    } catch (reason) {
-      setError(reason.message || String(reason));
-    } finally {
-      event.target.value = "";
-      setBusy(false);
-    }
-  }
-
-  async function remove() {
-    await manager.dispose();
-    resetLocalEngine(variant);
-    await removeBrowserEnginePackage(variant);
-    setProfile(null);
-    setEngineReady(null);
-    setMessage("本设备上的引擎包已移除");
-  }
-
-  const capabilityItems = [
-    ["WASM", capabilities.webAssembly],
-    ["Worker", capabilities.worker],
-    ["多线程", capabilities.threads],
-  ];
-
-  return <div className="native-engine-settings">
-    <strong>本设备 WASM 引擎</strong>
-    <BrowserEngineInstaller key={variant} variant={variant} manager={manager} busy={busy} onBusyChange={setBusy}
-      onInstalled={(next) => { setProfile(next); setEngineReady(true); setError(""); setMessage(""); }} />
-    <div className="engine-package-card">
-      <div className="engine-package-intro">
-        <span className="engine-package-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M12 3 4.5 7v10l7.5 4 7.5-4V7L12 3Z"/><path d="m4.5 7 7.5 4 7.5-4M12 11v10"/></svg>
-        </span>
-        <div>
-          <h3>本地 WASM 引擎包</h3>
-          <p>可直接选择棋岛 WASM ZIP 引擎包，也可导入解压后的自定义引擎目录。文件仅保存在当前设备，不会上传。</p>
-        </div>
+  const installer = useBrowserEngineInstaller({ manager, variant });
+  const { profile, ready, busy, spec, progress, message, changing, importing, options, capabilities } = installer;
+  const [removing, setRemoving] = React.useState(false);
+  const setup = !profile || changing;
+  const insecure = globalThis.isSecureContext === false;
+  const unsupported = insecure ? "当前网址无法保存本地引擎，请通过 HTTPS 或本机 localhost 打开棋岛。"
+    : !spec ? "当前浏览器暂不支持在线安装。请使用支持本地存储的新版浏览器，或导入兼容的引擎包。" : "";
+  return <div className="native-engine-settings engine-settings-v2">
+    <section className="engine-main-card" aria-label="浏览器引擎设置" aria-busy={busy}>
+      <div className={`engine-main-icon${ready && !setup ? " is-ready" : ""}`} aria-hidden="true">{ready && !setup ? "✓" : "棋"}</div>
+      <div className="engine-main-content">
+        <h3>{setup ? "让这台设备帮你分析棋局" : ready ? `${variant === "jieqi" ? "揭棋" : "象棋"}引擎已就绪` : "已保存引擎，等待检测"}</h3>
+        <p className="engine-main-description">{setup ? variant === "jieqi" ? "安装浏览器专用的揭棋引擎，用于暗子局面的对弈和分析。" : "安装后可在这台设备上计算走法，用于对弈和棋局分析。" : ready ? "可用于人机对弈、棋局分析和走法提示。" : "检测通过后，即可使用保存在本设备的引擎。"}</p>
+        {!setup && <dl className="engine-current-info"><div><dt>当前引擎</dt><dd>{profile.name}</dd></div><div><dt>保存位置</dt><dd>当前浏览器的本机存储</dd></div></dl>}
+        {busy ? <EngineInstallProgress progress={progress} onCancel={installer.cancel} /> : <>
+          <div className="engine-main-actions">{setup ? <>
+            <button type="button" className="native-install-primary" disabled={!spec || insecure} onClick={() => installer.run("download")}>{message?.error ? "重试下载" : "下载并安装"}</button>
+            <button type="button" disabled={insecure} onClick={installer.openImport}>已有文件，手动导入</button>
+            {profile && <button type="button" className="engine-text-button" onClick={() => { installer.setChanging(false); installer.setMessage(null); }}>返回当前引擎</button>}
+          </> : <><button type="button" className={ready ? "" : "native-install-primary"} onClick={() => installer.run("test")}>{ready ? "重新检测" : "检测并启用"}</button><button type="button" className="engine-text-button" onClick={() => { installer.setChanging(true); installer.setMessage(null); }}>更换引擎</button></>}</div>
+          {setup && <p className="engine-fine-print">{unsupported || `已为这台设备选择适配版本 · 约 ${(spec.size / 1048576).toFixed(1)} MB · 无需登录`}</p>}
+        </>}
+        {spec && (setup || message?.error) && <p className="engine-browser-download">下载不顺畅？<a href={spec.url} target="_blank" rel="noreferrer">单独下载安装包</a><span>下载后选择「手动导入」。</span></p>}
+        {message && !importing && <EngineMessage message={message} />}
+        {message?.code === "STORAGE_NOT_READY" && !importing && <button type="button" disabled={busy} onClick={() => window.location.reload()}>刷新页面</button>}
       </div>
-      <div className="engine-package-note">
-        <span aria-hidden="true">i</span>
-        上游原生版本不能直接在浏览器运行，需使用作者提供或自行编译的 WASM 版本。
-      </div>
-      <div className="engine-package-actions">
-        <div className="engine-action-buttons">
-          <label className={`btn-import-submit ${busy ? "is-busy" : ""}`}>
-            {busy ? "处理中…" : "选择 ZIP 引擎包"}
-            <input aria-label="选择 ZIP 引擎包" type="file" accept=".zip,application/zip,application/x-zip-compressed" hidden disabled={busy} onChange={importZip} />
-          </label>
-          <label className={`btn-import-submit ${busy ? "is-busy" : ""}`}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
-            {busy ? "处理中…" : "选择引擎包目录"}
-            <input type="file" webkitdirectory="" multiple hidden disabled={busy} onChange={importFiles} />
-          </label>
-          {profile && <button className="engine-remove-btn" disabled={busy} onClick={remove}>移除</button>}
-        </div>
-        <div className="engine-capabilities" aria-label="浏览器能力">
-          {capabilityItems.map(([label, available]) => (
-            <span className={available ? "available" : "unavailable"} key={label}>
-              <i aria-hidden="true">{available ? "✓" : "—"}</i>{label}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-    {profile && <div className={`engine-profile-status ${engineReady === false ? "is-error" : engineReady === true ? "is-ready" : "is-checking"}`}>
-      <span className="engine-status-dot" aria-hidden="true" />
-      <div><strong>{engineReady === true ? "引擎已就绪" : engineReady === false ? "引擎启动失败" : "正在检测引擎"}</strong>
-      <span>{profile.name} {profile.version}</span></div>
-    </div>}
-    {error && <div className="import-error">{error}</div>}
-    {message && <div className="import-ok">{message}</div>}
+    </section>
+    <details className="engine-settings-disclosure"><summary>引擎详情与兼容性</summary>
+      {profile && <p>当前引擎：{profile.name} · {profile.version}</p>}
+      <label className="engine-browser-version">下载版本<select aria-label="浏览器引擎下载版本" value={spec?.id || ""} disabled={busy} onChange={(event) => installer.setSelected(event.target.value)}>{!spec && <option value="">暂无适配版本</option>}{options.map(({ spec: item, available }) => <option key={item.id} value={item.id} disabled={!available}>{item.name} · {item.version} · {item.threads ? "多线程" : "单线程（推荐）"}{available ? "" : "（当前设备不可用）"}</option>)}</select></label>
+      {spec && <p className="engine-fine-print">程序许可：{spec.engineLicense} · 资源许可：{spec.networkLicense === "not-applicable" ? "无需独立资源" : spec.networkLicense}</p>}
+      <p className="engine-fine-print">本地计算：{capabilities.webAssembly && capabilities.worker ? "支持" : "不支持"} · 本机存储：{capabilities.cacheStorage ? "支持" : "不支持"} · 多线程：{capabilities.threads ? "支持" : "使用兼容的单线程版本"}</p>
+      <p className="engine-fine-print">引擎保存在当前浏览器中，不会上传。清除网站数据或更换浏览器后，需要重新安装。</p>
+      {profile && <div className="engine-browser-remove">{removing ? <><p>确认移除这台设备保存的引擎？之后可重新下载或导入。</p><div className="engine-main-actions"><button type="button" disabled={busy} onClick={() => { setRemoving(false); installer.run("remove"); }}>确认移除</button><button type="button" disabled={busy} onClick={() => setRemoving(false)}>保留引擎</button></div></> : <button type="button" disabled={busy} onClick={() => setRemoving(true)}>移除本地引擎</button>}</div>}
+    </details>
+    {importing && <BrowserEngineImportDialog installer={installer} variant={variant} />}
   </div>;
 }

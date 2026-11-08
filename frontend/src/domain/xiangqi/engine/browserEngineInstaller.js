@@ -64,6 +64,37 @@ export async function importBrowserEngineArchive(file, variant, { packages = [],
   });
 }
 
+// 自定义目录也先暂存并握手，成功后才切换配置，失败时清理候选文件。
+export async function installBrowserEngineDirectory(files, variant, {
+  signal, probe, beforeCommit = async () => {}, isCurrent = () => true, onProgress,
+} = {}) {
+  const check = () => {
+    signal?.throwIfAborted();
+    if (!isCurrent()) throw new DOMException("安装会话已结束", "AbortError");
+  };
+  let candidate;
+  try {
+    check();
+    onProgress?.({ phase: "saving" });
+    candidate = await importBrowserEnginePackage(files, variant, { staged: true });
+    check();
+    onProgress?.({ phase: "testing" });
+    if (typeof probe !== "function" || !await probe(candidate, signal)) throw new Error("引擎启动失败，请确认目录包含完整的浏览器引擎文件");
+    check();
+    await beforeCommit();
+    check();
+    const previous = getBrowserEngineProfile(variant);
+    commitBrowserEnginePackage(candidate);
+    const committed = candidate;
+    candidate = null;
+    void discardBrowserEnginePackage(previous).catch(() => {});
+    return committed;
+  } catch (error) {
+    if (candidate) await discardBrowserEnginePackage(candidate).catch(() => {});
+    throw error;
+  }
+}
+
 export async function installBrowserEngine(spec, variant, {
   signal, onProgress, probe, beforeCommit = async () => {}, isCurrent = () => true,
   download = downloadEngineBytes, deliveryUrl = engineDeliveryUrl, capabilities = browserEngineCapabilities(),

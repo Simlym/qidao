@@ -22,6 +22,10 @@ impl Drop for BusyGuard {
 }
 
 fn root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    Ok(package_base(app, "xiangqi")?.join("fairy-stockfish"))
+}
+
+fn legacy_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(app
         .path()
         .app_local_data_dir()
@@ -57,7 +61,10 @@ pub fn native_engine_install_info(
         recommended_artifact_id: supported_artifacts
             .first()
             .map(|artifact| artifact.id.clone()),
-        installed: installer::installed(&root(&app)?)?,
+        installed: [root(&app)?, legacy_root(&app)?]
+            .iter()
+            .flat_map(|path| installer::installed(path).unwrap_or_default())
+            .collect(),
         catalog,
         supported_artifacts,
         busy: state.busy.load(Ordering::Acquire),
@@ -124,7 +131,17 @@ pub async fn verify_native_engine_installation(
     let state = state.inner().clone();
     let guard = BusyGuard(state.clone());
     state.cancel.store(false, Ordering::Relaxed);
-    let root = root(&app)?;
+    let root = [root(&app)?, legacy_root(&app)?]
+        .into_iter()
+        .find(|path| {
+            installer::installed(path)
+                .unwrap_or_default()
+                .iter()
+                .any(|item| {
+                    item.receipt.version == version && item.receipt.artifact_id == artifact_id
+                })
+        })
+        .ok_or("未找到已安装的引擎，请重新安装")?;
     tauri::async_runtime::spawn_blocking(move || {
         let _guard = guard;
         installer::verify_installation(&root, &version, &artifact_id, &state.cancel)
@@ -145,6 +162,7 @@ pub fn open_engine_install_link(
             .find(|p| p.id == id)
             .ok_or("未知的引擎包")?;
         match link.as_str() {
+            "download" => installer::packages::download_url(&package)?,
             "source" => package.source_url,
             "license" => package.license_url,
             "network" => package.network_license_url.unwrap_or_else(|| {
@@ -191,10 +209,44 @@ fn package_base(app: &tauri::AppHandle, variant: &str) -> Result<PathBuf, String
     installer::packages::catalog(variant)?;
     Ok(app
         .path()
+        .local_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("QiDao")
+        .join("engines")
+        .join(variant))
+}
+
+fn legacy_package_base(app: &tauri::AppHandle, variant: &str) -> Result<PathBuf, String> {
+    Ok(app
+        .path()
         .app_local_data_dir()
         .map_err(|e| e.to_string())?
         .join("engines")
         .join(variant))
+}
+
+#[tauri::command]
+pub fn open_native_engine_folder(path: String) -> Result<(), String> {
+    let file = std::path::Path::new(&path);
+    if !file.is_absolute() || !file.is_file() {
+        return Err("引擎文件不存在，请重新选择或安装".into());
+    }
+    let parent = file.parent().ok_or("引擎文件位置无效")?;
+    #[cfg(target_os = "windows")]
+    {
+        use super::WindowsCommandExt;
+        std::process::Command::new("explorer.exe")
+            .arg(parent)
+            .creation_flags_for_windows()
+            .spawn()
+            .map_err(|e| format!("打开文件夹失败：{e}"))?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = parent;
+        Err("当前系统暂不支持打开文件夹".into())
+    }
 }
 
 #[tauri::command]
@@ -206,12 +258,18 @@ pub fn native_package_info(
     let packages = installer::packages::catalog(&variant)?;
     let platform = super::platform_info();
     let base = package_base(&app, &variant)?;
-    let installed = packages
+    let legacy = legacy_package_base(&app, &variant)?;
+    let mut installed: Vec<installer::packages::Installation> = packages
         .iter()
         .flat_map(|p| {
-            installer::packages::installed(&base.join(&p.engine_id), std::slice::from_ref(p))
+            [base.join(&p.engine_id), legacy.join(&p.engine_id)]
+                .iter()
+                .flat_map(|root| installer::packages::installed(root, std::slice::from_ref(p)))
+                .collect::<Vec<_>>()
         })
         .collect();
+    let mut seen = std::collections::HashSet::new();
+    installed.retain(|item| seen.insert(item.package.id.clone()));
     Ok(PackageInfo {
         packages: packages
             .into_iter()
@@ -248,6 +306,7 @@ pub async fn manage_native_package(
         return Err("未知的引擎包操作".into());
     }
     let base = package_base(&app, &variant)?;
+    let legacy = legacy_package_base(&app, &variant)?;
     if state
         .busy
         .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
@@ -274,7 +333,17 @@ pub async fn manage_native_package(
         let report = |event| {
             let _ = progress.send(event);
         };
-        let root = base.join(&package.engine_id);
+        let root = if action == "verify"
+            && installer::packages::installed(
+                &base.join(&package.engine_id),
+                std::slice::from_ref(&package),
+            )
+            .is_empty()
+        {
+            legacy.join(&package.engine_id)
+        } else {
+            base.join(&package.engine_id)
+        };
         match action.as_str() {
             "import" => installer::packages::install_archive(
                 &root,

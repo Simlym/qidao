@@ -232,7 +232,7 @@ const ENGINE_GUIDES = {
   },
   jieqi: {
     title: "揭棋 UCI 引擎",
-    description: "请选择明确支持揭棋扩展 FEN 的专用 UCI 引擎。标准象棋引擎不能直接用于揭棋。",
+    description: "请选择明确支持揭棋扩展 FEN 的专用 UCI 引擎。象棋引擎不能直接用于揭棋。",
     example: "例如 /opt/xiangqidao/engines/jieqi/engine 或 D:\\engines\\jieqi\\engine.exe",
   },
 };
