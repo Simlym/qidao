@@ -78,8 +78,8 @@ NPM_REGISTRY=https://registry.npmjs.org
 在仓库根目录执行以下命令。忘记管理员用户名时先列出管理员，再重置密码：
 
 ```bash
-docker compose exec backend python -m app.modules.auth.manage list --role admin
-docker compose exec backend python -m app.modules.auth.manage reset-password 管理员用户名
+sh scripts/users.sh list --role admin
+sh scripts/users.sh reset-password 管理员用户名
 ```
 
 按提示输入两次新密码（8～128 位，输入不回显）。提交后立即生效，无需重启服务，账号、题库和训练记录保留。密码不通过命令行参数传递，也不会打印到终端。
@@ -88,21 +88,23 @@ docker compose exec backend python -m app.modules.auth.manage reset-password 管
 
 ```bash
 # 查看全部账号
-docker compose exec backend python -m app.modules.auth.manage list
+sh scripts/users.sh list
 # 创建普通账号（仅创建账号，不执行网页注册赠送积分等流程）
-docker compose exec backend python -m app.modules.auth.manage create 新用户名
+sh scripts/users.sh create 新用户名
 # 创建管理员
-docker compose exec backend python -m app.modules.auth.manage create 新管理员 --role admin
+sh scripts/users.sh create 新管理员 --role admin
 # 授予或取消管理员权限
-docker compose exec backend python -m app.modules.auth.manage set-role 用户名 admin
-docker compose exec backend python -m app.modules.auth.manage set-role 用户名 user
+sh scripts/users.sh set-role 用户名 admin
+sh scripts/users.sh set-role 用户名 user
 # 查看帮助
-docker compose exec backend python -m app.modules.auth.manage --help
+sh scripts/users.sh
 ```
+
+Windows PowerShell 使用 `./scripts/users.ps1`，例如 `./scripts/users.ps1 reset-password 管理员用户名`。两个脚本都自动定位仓库中的 Compose 配置，并原样转交参数；不带参数时显示帮助。脚本封装的原始命令为 `docker compose exec backend python -m app.modules.auth.manage ...`。
 
 命令会阻止降级最后一名管理员，不提供删除账号或修改用户名操作。命令直接使用后端的 `DATABASE_URL`，仅在有服务器管理权限的终端执行；数据库须已完成应用初始化。重置密码不会使已有登录 token 立即失效；如需让所有用户重新登录，更换 `SECRET_KEY` 并执行 `docker compose up -d backend`。
 
-旧镜像不包含该命令，更新代码后先执行 `docker compose up -d --build backend`。输入密码时保留 Compose 默认的交互终端，不要加 `-T`。源码部署则在 `backend/` 目录将 `docker compose exec backend python` 替换为 `uv run python`，沿用 `backend/.env` 或真实环境变量中的配置。
+旧镜像不包含后端管理命令，更新代码后先执行 `docker compose up -d --build backend`。输入密码时保留交互终端。源码部署则在 `backend/` 目录执行 `uv run python -m app.modules.auth.manage ...`，沿用 `backend/.env` 或真实环境变量中的配置。
 
 ## HTTPS 与客户端连接
 
