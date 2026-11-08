@@ -85,8 +85,8 @@ const STYLE_PRESETS = [
   },
 ];
 
-export default function Settings({ user, credits, onCreditsChanged, onRequireLogin }) {
-  const [section, setSection] = React.useState("general");
+export default function Settings({ user, credits, onCreditsChanged, onRequireLogin, initialSection = "general", onSectionChange }) {
+  const [section, setSection] = React.useState(() => SECTIONS.some((item) => item.key === initialSection) ? initialSection : "general");
   const [muted, setMuted] = React.useState(soundMuted);
   const [theme, setTheme] = React.useState(soundTheme);
   const [appearance, setAppearance] = React.useState(cosmeticPreferences);
@@ -188,7 +188,7 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
       <aside className="settings-sections" aria-label="设置分类">
         <div className="settings-nav-title"><span>设置</span><small>偏好与引擎</small></div>
         {SECTIONS.map((item) => (
-          <button key={item.key} className={section === item.key ? "active" : ""} aria-current={section === item.key ? "page" : undefined} onClick={() => setSection(item.key)}>
+          <button key={item.key} className={section === item.key ? "active" : ""} aria-current={section === item.key ? "page" : undefined} onClick={() => { setSection(item.key); onSectionChange?.(item.key); }}>
             <svg viewBox="0 0 24 24" aria-hidden="true">{SECTION_ICONS[item.icon]}</svg>
             <span>{item.label}</span>
           </button>

@@ -68,6 +68,11 @@ export default function App() {
   const isDesktop = usesDesktopLayout(runtime);
   const appearance = useCosmeticPreferences();
   const [tab, setTab] = React.useState("today");
+  const [settingsSection, setSettingsSection] = React.useState("general");
+  function openEngineSettings(variant) {
+    setSettingsSection(variant);
+    setTab("settings");
+  }
   // 训练目标：null | {puzzleId} | {category}，用于从复盘/弱点跳转到指定练习
   const [trainTarget, setTrainTarget] = React.useState(null);
   // 复盘目标：从对弈结束「一键复盘」跳转时携带的棋局 id
@@ -309,16 +314,18 @@ export default function App() {
           user={user}
           onCreditsChanged={refreshCredits}
           onRequireLogin={requireLogin}
-          onOpenSettings={isDesktop ? () => setTab("settings") : null}
+          onOpenSettings={() => openEngineSettings("xiangqi")}
         />
       )}
       {tab === "jieqi" && (
-        <JieqiPlay onOpenSettings={isDesktop ? () => setTab("settings") : null} />
+        <JieqiPlay onOpenSettings={() => openEngineSettings("jieqi")} />
       )}
-      {tab === "analysis" && <FreeAnalysis key={analysisTarget?.id || "initial"} initialFen={analysisTarget?.fen} onOpenSettings={isDesktop ? () => setTab("settings") : null} />}
+      {tab === "analysis" && <FreeAnalysis key={analysisTarget?.id || "initial"} initialFen={analysisTarget?.fen} onOpenSettings={() => openEngineSettings("xiangqi")} />}
       {tab === "admin" && isAdmin && <Admin />}
       {tab === "settings" && (
         <Settings
+          initialSection={settingsSection}
+          onSectionChange={setSettingsSection}
           user={user}
           credits={credits}
           onCreditsChanged={refreshCredits}

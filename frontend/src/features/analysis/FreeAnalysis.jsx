@@ -7,6 +7,7 @@ import { evalPosition, streamEvalPosition } from "../../shared/api";
 import { usePlayAnalysis } from "../play/hooks/usePlayAnalysis";
 import { describeEval } from "../play/model";
 import EngineAnalysisView from "./EngineAnalysisView";
+import EngineSetupGuide from "../../shared/ui/EngineSetupGuide";
 import { analysisReducer, createAnalysis, recommendedMove } from "./freeAnalysisState.js";
 import "./freeAnalysis.css";
 
@@ -66,6 +67,7 @@ export default function FreeAnalysis({ initialFen = INITIAL_FEN, onOpenSettings 
     <aside className="panel free-analysis-inspector">
       <div className="free-analysis-heading"><h2>自由分析</h2><span>双方手动</span></div>
       <p className="muted free-analysis-description">回看后可改走其他变化，后续着法将被替换。</p>
+      <EngineSetupGuide localReady={Boolean(localRuntime)} onOpenSettings={onOpenSettings} />
       <div className="free-analysis-tools">
         <button aria-pressed={showEval} onClick={() => setShowEval((value) => !value)}>局面评分 {showEval ? "开" : "关"}</button>
         <button aria-pressed={showHint} onClick={() => setShowHint((value) => !value)}>走棋箭头 {showHint ? "开" : "关"}</button>

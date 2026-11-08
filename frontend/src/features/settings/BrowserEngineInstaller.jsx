@@ -12,18 +12,26 @@ export function useBrowserEngineInstaller({ variant, manager }) {
   const [selected, setSelected] = React.useState("");
   const spec = options.find((item) => item.spec.id === selected && item.available)?.spec || recommendedBrowserEngine(options);
   const [profile, setProfile] = React.useState(() => getBrowserEngineProfile(variant));
-  const [ready, setReady] = React.useState(false);
-  const [busy, setBusy] = React.useState(false);
-  const [progress, setProgress] = React.useState(null);
+  const [ready, setReady] = React.useState(null);
+  const [busy, setBusy] = React.useState(Boolean(profile));
+  const [progress, setProgress] = React.useState(profile ? { phase: "checking-saved" } : null);
   const [message, setMessage] = React.useState(null);
   const [changing, setChanging] = React.useState(false);
   const [importing, setImporting] = React.useState(false);
   const [candidate, setCandidate] = React.useState(null);
   const operation = React.useRef(null);
   const epoch = React.useRef(0);
-  React.useEffect(() => () => { epoch.current++; operation.current?.abort(); }, [variant]);
+  React.useEffect(() => () => {
+    epoch.current++;
+    operation.current?.abort();
+    operation.current = null;
+  }, [variant]);
+  React.useEffect(() => {
+    // 保存记录只代表文件曾经安装过；每次进入设置都自动确认本机文件仍可启动。
+    if (profile) void run("test", null, { automatic: true });
+  }, [variant]);
 
-  async function run(action, value = candidate) {
+  async function run(action, value = candidate, { automatic = false } = {}) {
     if (operation.current || (action === "download" && !spec)) return;
     const controller = new AbortController();
     operation.current = controller;
@@ -33,7 +41,7 @@ export function useBrowserEngineInstaller({ variant, manager }) {
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 300000);
     setBusy(true); setMessage(null);
-    setProgress({ phase: action === "remove" ? "removing" : "storage" });
+    setProgress({ phase: automatic ? "checking-saved" : action === "remove" ? "removing" : "storage" });
     try {
       let next;
       if (action === "remove") {
@@ -50,7 +58,7 @@ export function useBrowserEngineInstaller({ variant, manager }) {
       const installOptions = { signal: controller.signal, isCurrent: current, onProgress, probe: probeBrowserEngineProfile,
         beforeCommit: async () => { if (current()) { await manager.dispose(); resetLocalEngine(variant); } } };
       if (action === "test") {
-        setProgress({ phase: "testing" });
+        setProgress({ phase: automatic ? "checking-saved" : "testing" });
         if (!await probeBrowserEngineProfile(profile, controller.signal)) throw new Error("引擎无法启动，请重新安装或检查引擎文件是否完整。");
         next = profile;
       } else if (action === "download") {
@@ -67,9 +75,9 @@ export function useBrowserEngineInstaller({ variant, manager }) {
       }
     } catch (error) {
       if (mounted()) {
-        if (action === "test") setReady(false);
+        if (action === "test" && !controller.signal.aborted) setReady(false);
         setMessage(controller.signal.aborted ? { summary: timedOut ? "操作超时，当前引擎未更换。请检查网络后重试。" : "操作已取消，当前引擎未更换。", error: timedOut }
-          : { summary: error.code ? error.message : action === "download" ? "下载或安装未完成，请重试，或下载后手动导入。" : action === "remove" ? "引擎未能移除，请重试。" : "未能启用引擎，原配置已保留。请确认文件完整且适用于当前棋种。",
+          : { summary: error.code ? error.message : action === "test" ? "已找到引擎安装记录，但检测未通过。可重试检测；若本机文件已被清理，可重新下载或导入。" : action === "download" ? "下载或安装未完成，请重试，或下载后手动导入。" : action === "remove" ? "引擎未能移除，请重试。" : "未能启用引擎，原配置已保留。请确认文件完整且适用于当前棋种。",
             error: true, detail: error.code ? "" : error.message || String(error), code: error.code });
       }
     } finally {

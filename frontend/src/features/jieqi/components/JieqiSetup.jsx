@@ -1,5 +1,6 @@
 import React from "react";
 import { LEVELS } from "../model";
+import EngineSetupGuide from "../../../shared/ui/EngineSetupGuide";
 
 // 揭棋两种对局模式共用的设置面板。
 export default function JieqiSetup({
@@ -82,6 +83,7 @@ export default function JieqiSetup({
             {onOpenSettings && <button className="btn-newgame" onClick={onOpenSettings}>引擎设置</button>}
           </div>
         </>}
+        <EngineSetupGuide variant="jieqi" localReady={runtimeKind === "native" || runtimeKind === "wasm"} onOpenSettings={onOpenSettings} />
         {error && <div className="import-error">{error}</div>}
         <button className="btn-start" onClick={onStart} disabled={thinking}>
           {thinking ? "引擎启动中…" : gameMode === "free" ? "开始自由翻子" : "开始揭棋"}

@@ -17,15 +17,15 @@ export default function BrowserEngineSettings({ manager, variant = "xiangqi" }) 
     <section className="engine-main-card" aria-label="浏览器引擎设置" aria-busy={busy}>
       <div className={`engine-main-icon${ready && !setup ? " is-ready" : ""}`} aria-hidden="true">{ready && !setup ? "✓" : "棋"}</div>
       <div className="engine-main-content">
-        <h3>{setup ? "让这台设备帮你分析棋局" : ready ? `${variant === "jieqi" ? "揭棋" : "象棋"}引擎已就绪` : "已保存引擎，等待检测"}</h3>
-        <p className="engine-main-description">{setup ? variant === "jieqi" ? "安装浏览器专用的揭棋引擎，用于暗子局面的对弈和分析。" : "安装后可在这台设备上计算走法，用于对弈和棋局分析。" : ready ? "可用于人机对弈、棋局分析和走法提示。" : "检测通过后，即可使用保存在本设备的引擎。"}</p>
+        <h3>{setup ? "让这台设备帮你分析棋局" : ready ? `${variant === "jieqi" ? "揭棋" : "象棋"}引擎已就绪` : busy ? "正在确认已安装的引擎" : ready === false ? "引擎检测未通过" : "引擎已保存在本机"}</h3>
+        <p className="engine-main-description">{setup ? variant === "jieqi" ? "安装浏览器专用的揭棋引擎，用于暗子局面的对弈和分析。" : "安装后可在这台设备上计算走法，用于对弈和棋局分析。" : ready ? "可直接用于对弈和棋局分析，无需重复下载。" : busy ? "正在自动检测本机文件，无需重新下载。" : ready === false ? "安装记录已保留，请查看下方提示。" : "无需重复下载，可重新检测确认是否可用。"}</p>
         {!setup && <dl className="engine-current-info"><div><dt>当前引擎</dt><dd>{profile.name}</dd></div><div><dt>保存位置</dt><dd>当前浏览器的本机存储</dd></div></dl>}
         {busy ? <EngineInstallProgress progress={progress} onCancel={installer.cancel} /> : <>
           <div className="engine-main-actions">{setup ? <>
             <button type="button" className="native-install-primary" disabled={!spec || insecure} onClick={() => installer.run("download")}>{message?.error ? "重试下载" : "下载并安装"}</button>
             <button type="button" disabled={insecure} onClick={installer.openImport}>已有文件，手动导入</button>
             {profile && <button type="button" className="engine-text-button" onClick={() => { installer.setChanging(false); installer.setMessage(null); }}>返回当前引擎</button>}
-          </> : <><button type="button" className={ready ? "" : "native-install-primary"} onClick={() => installer.run("test")}>{ready ? "重新检测" : "检测并启用"}</button><button type="button" className="engine-text-button" onClick={() => { installer.setChanging(true); installer.setMessage(null); }}>更换引擎</button></>}</div>
+          </> : <><button type="button" className={ready ? "" : "native-install-primary"} onClick={() => installer.run("test")}>{ready === false ? "重试检测" : "重新检测"}</button><button type="button" className="engine-text-button" onClick={() => { installer.setChanging(true); installer.setMessage(null); }}>{ready === false ? "重新下载或导入" : "更换引擎"}</button></>}</div>
           {setup && <p className="engine-fine-print">{unsupported || `已为这台设备选择适配版本 · 约 ${(spec.size / 1048576).toFixed(1)} MB · 无需登录`}</p>}
         </>}
         {spec && (setup || message?.error) && <p className="engine-browser-download">下载不顺畅？<a href={spec.url} target="_blank" rel="noreferrer">单独下载安装包</a><span>下载后选择「手动导入」。</span></p>}

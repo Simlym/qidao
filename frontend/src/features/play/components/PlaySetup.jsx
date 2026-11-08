@@ -1,5 +1,6 @@
 import React from "react";
 import { SIDES, LEVELS } from "../model";
+import EngineSetupGuide from "../../../shared/ui/EngineSetupGuide";
 
 // 对弈前的先后手、难度和引擎设置；状态由 Play 持有。
 export default function PlaySetup({
@@ -51,6 +52,7 @@ export default function PlaySetup({
             <button className="btn-newgame" onClick={onOpenSettings}>引擎设置</button>
           )}
         </div>
+        <EngineSetupGuide localReady={localReady} onOpenSettings={onOpenSettings} />
         <button className="btn-start" onClick={() => onStart(humanSide, level)} disabled={thinking}>
           {thinking ? "正在开局…" : "开始对弈"}
         </button>
