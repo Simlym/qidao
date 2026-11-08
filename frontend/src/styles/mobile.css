@@ -1,0 +1,123 @@
+/* Web 与 Android 共用窄屏布局，集中覆盖历史样式，桌面客户端保持原布局。 */
+@media (max-width: 760px) {
+  html:has(.app-web) { scrollbar-gutter: auto; }
+  .app-web {
+    --mobile-gutter: 16px;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top, 0px) max(var(--mobile-gutter), env(safe-area-inset-right, 0px)) calc(84px + env(safe-area-inset-bottom, 0px)) max(var(--mobile-gutter), env(safe-area-inset-left, 0px));
+  }
+  .app-web .web-header { justify-content: space-between; }
+  .app-web .web-header > nav {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 40;
+    display: flex;
+    justify-content: space-around;
+    gap: 4px;
+    padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+    border-top: 1px solid var(--web-border);
+    background: var(--app-surface, #fffdf9);
+    box-shadow: 0 -4px 18px rgba(65, 47, 34, .08);
+  }
+  .app-web .web-header > nav button {
+    flex: 1;
+    min-width: 0;
+    min-height: 54px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 2px;
+    border-radius: 12px;
+    font-size: 12px;
+  }
+  .app-web .web-header > nav button.active {
+    color: var(--web-accent);
+    background: var(--app-accent-soft, #f5e9e1);
+    box-shadow: none;
+  }
+  .app-web nav :is(.nav-ico, .nav-label-short) { display: block; }
+  .app-web nav .nav-ico { font-size: 22px; line-height: 1; }
+  .app-web nav .nav-label-full { display: none; }
+  .app-web .web-account-name { max-width: 100px; }
+  .app-web .web-account-menu > summary { min-height: 44px; }
+  .app-web .web-account-popover { max-height: calc(100dvh - 160px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+  .app-web > .section-tabs {
+    width: 100%;
+    margin-inline: 0;
+    padding-inline: 4px;
+    scroll-padding-inline: 4px;
+  }
+  .app-web > .section-tabs button { min-height: 44px; }
+
+  /* 允许内容收缩和长文本换行，从源头消除页面横向溢出。 */
+  .app-web :is(main, .panel, .card, .trainer, .trainer-board-area, .play-main, .play-board-area, .games-layout, .review-content, .review-board-wrap, .settings-page, .settings-content) { min-width: 0; }
+  .app-web :is(.panel, .result, .settings-content) { overflow-wrap: anywhere; }
+  .app-web :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { min-width: 0; max-width: 100%; font-size: 16px; }
+  .app-web :is(.btn-link, .btn-newgame, .btn-retry, .btn-giveup, .btn-import, .btn-analyze, .seg-btn, .auth-tabs button, .settings-sections button) { min-height: 44px; }
+  .app-web .today-hero-actions { width: 100%; gap: 10px; }
+  .app-web .today-hero-actions > button { width: 100%; }
+  .app-web .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* 准备页的选项按可用宽度换行，长引擎名称不再挤走设置入口。 */
+  .app-web .play-setup-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  .app-web .play-setup-label { width: auto; }
+  .app-web .seg { display: flex; flex-wrap: wrap; }
+  .app-web .seg-btn { flex: 1 1 auto; padding: 10px 12px; }
+  .app-web .engine-setup-summary { align-items: stretch; flex-direction: column; }
+  .app-web .engine-setup-summary > div { min-width: 0; }
+  .app-web .engine-setup-summary span { white-space: normal; }
+  .app-web .engine-setup-summary .btn-newgame { width: 100%; margin-left: 0; }
+  .app-web .play-main { flex-direction: column; gap: 12px; }
+  .app-web .play-board-area { flex: auto; width: 100%; }
+  .app-web .play-main .move-log { width: 100%; margin: 0; }
+  .app-web .play-status-bar { padding: 12px; }
+  .app-web .play-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .app-web .play-actions .btn-newgame { margin: 0; padding: 8px 4px; white-space: normal; }
+  .app-web .move-log-list { max-height: 180px; }
+  .app-web .rating-btns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-web .btn-row { flex-wrap: wrap; }
+
+  /* 棋谱列表、棋盘和着法依次展示，不保留桌面固定侧栏。 */
+  .app-web .games-layout { flex-direction: column; min-height: 0; }
+  .app-web :is(.games-list-panel, .games-review-panel) { width: 100%; min-width: 0; }
+  .app-web .games-list-scroll { max-height: 220px; }
+  .app-web .games-review-panel { min-height: 180px; }
+  .app-web .review-content { width: 100%; flex-direction: column; padding: 12px; }
+  .app-web :is(.review-board-wrap, .review-moves-wrap) { width: 100%; }
+  .app-web .review-meta-row { width: 100%; flex-wrap: wrap; }
+  .app-web .review-moves-list { max-height: 240px; }
+  .app-web .import-row > label { min-width: 0; }
+  .app-web .game-delete-btn { min-width: 44px; min-height: 44px; }
+  .app-web .move-item { min-height: 44px; display: flex; align-items: center; }
+
+  /* 设置页与主导航使用同一断点，横向分类只在自身内部滚动。 */
+  .app-web .settings-page { min-height: 0; grid-template-columns: minmax(0, 1fr); }
+  .app-web .settings-sections { min-width: 0; flex-direction: row; overflow-x: auto; padding: 8px; border-right: 0; border-bottom: 1px solid var(--web-border); }
+  .app-web .settings-nav-title { display: none; }
+  .app-web .settings-sections button { width: auto; flex: 0 0 auto; }
+  .app-web .settings-content { padding: 20px 14px; }
+  .app-web .settings-row { flex-wrap: wrap; gap: 12px; }
+  .app-web .settings-row select { width: 100%; }
+  .app-web .engine-package-actions { flex-direction: column; align-items: stretch; }
+  .app-web .engine-action-buttons { flex-wrap: wrap; }
+  .app-web .engine-action-buttons > :is(button, label) { min-height: 44px; flex: 1 1 auto; justify-content: center; }
+  .app-web .engine-online-installer { padding: 16px; }
+  .app-web .engine-online-installer > button { width: 100%; }
+  .app-web .engine-capabilities { justify-content: flex-start; }
+  .app-web .engine-package-note { margin-left: 20px; }
+  .app-web .engine-profile-status > div { flex-direction: column; align-items: flex-start; }
+  .app-web .engine-profile-status span:last-child { white-space: normal; }
+  .app-web .local-game-actions > button { min-height: 44px; }
+  .app-web .modal-overlay { padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px)); }
+  .app-web .modal { max-height: min(85dvh, 100%); overscroll-behavior: contain; }
+  .app-web .auth-close-confirm { padding: 12px; }
+  .app-web .auth-close-confirm-card { padding: 16px; }
+  .app-web .auth-close-confirm-actions { flex-wrap: wrap; }
+  .app-web .auth-close-confirm-actions button { min-width: 0; flex: 1 1 100px; min-height: 44px; }
+}
+
+@media (max-width: 430px) {
+  .app-web { --mobile-gutter: 12px; }
+}

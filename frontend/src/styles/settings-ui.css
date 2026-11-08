@@ -26,6 +26,24 @@
 .settings-preview-button:hover:not(:disabled) { background: var(--app-accent-soft, #f5ebe4); }
 .settings-preview-button:disabled { opacity: .45; cursor: default; }
 .settings-save-note { margin: 16px 0 0; color: var(--app-muted, #887e74); font-size: 12px; line-height: 1.8; }
+/* 在线安装与手动导入共用卡片视觉，版本选择与下载状态在窄屏下自然换行。 */
+.engine-online-installer { margin-bottom: 16px; padding: 20px; }
+.engine-online-installer h3 { margin: 0 0 10px; color: var(--app-text, #423b34); font-size: 16px; }
+.engine-online-installer p { margin: 10px 0; color: var(--app-muted, #887e74); font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
+.engine-online-installer select {
+  display: block; width: 100%; min-width: 0; min-height: 44px; margin-top: 16px; padding: 10px;
+  border: 1px solid var(--app-border, #ded5c8); border-radius: 8px;
+  color: var(--app-text, #423b34); background: var(--app-surface, #fffdf9); font: inherit; font-size: 14px;
+}
+.engine-online-installer button {
+  min-height: 44px; padding: 10px 16px; border: 1px solid transparent; border-radius: 8px;
+  color: #fff; background: var(--app-accent, #92503f); font: inherit; font-size: 14px; cursor: pointer;
+}
+.engine-online-installer button:disabled { opacity: .55; cursor: default; }
+.engine-online-installer > div[role="status"] { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; font-size: 13px; }
+.engine-online-installer progress { min-width: 0; flex: 1 1 120px; max-width: 100%; accent-color: var(--app-accent, #92503f); }
+.engine-online-installer > div[role="status"] button { color: var(--app-text, #423b34); background: var(--app-surface-soft, #f7f3ed); border-color: var(--app-border, #ded5c8); }
+.engine-online-installer :is(select, button):focus-visible { outline: 2px solid var(--app-accent, #92503f); outline-offset: 3px; }
 .server-current-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
 .server-current-heading strong { font-size: 14px; }
 .server-current-heading > span { padding: 3px 9px; border-radius: 6px; color: var(--app-accent, #8a4933); background: var(--app-accent-soft, #f4e9df); font-size: 11px; }
