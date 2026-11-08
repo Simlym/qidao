@@ -1,67 +1,90 @@
 /* 引擎设置围绕当前状态展示一个主要操作区。 */
-.engine-settings-v2 { color: #423b34; }
-.engine-settings-v2 .engine-main-card { display: flex; align-items: flex-start; gap: 22px; padding: 30px; margin: 4px 0 24px; background: #fffcf6; border: 1px solid #e3d7c5; border-radius: 16px; }
-.engine-main-icon { flex: 0 0 54px; display: grid; place-items: center; height: 54px; border-radius: 16px; background: #f0e5d4; color: #8a5a2b; font-size: 32px; }
-.engine-main-icon.is-ready { color: #36764b; background: #e9f2e9; font-size: 26px; }
+.engine-settings-v2 { color: var(--app-text, #423b34); }
+.engine-settings-v2 .engine-main-card { display: flex; align-items: flex-start; gap: 22px; padding: 30px; margin: 4px 0 24px; background: var(--app-surface, #fffcf6); border: 1px solid var(--app-border, #e3d7c5); border-radius: 16px; }
+.engine-main-icon { flex: 0 0 54px; display: grid; place-items: center; height: 54px; border-radius: 16px; background: var(--app-accent-soft, #f0e5d4); color: var(--app-accent, #8a5a2b); font-size: 32px; }
+.engine-main-icon.is-ready { color: var(--app-success, #36764b); background: var(--app-success-soft, #e9f2e9); font-size: 26px; }
 .engine-main-content { flex: 1; min-width: 0; }
 .engine-settings-v2 .engine-main-content h3 { margin: 2px 0 12px; font-size: 22px; line-height: 1.4; }
-.engine-settings-v2 .engine-main-description { margin: 0 0 26px; font-size: 14px; line-height: 1.8; color: #786f65; }
-.engine-settings-v2 button, .engine-import-dialog button { padding: 10px 16px; border: 1px solid #d8cec2; border-radius: 8px; background: #fffdfa; color: #714521; font: inherit; font-size: 14px; cursor: pointer; }
-.engine-settings-v2 button.native-install-primary, .engine-import-dialog button.native-install-primary { background: #8b5d31; border-color: #8b5d31; color: #fff; font-weight: 600; }
+.engine-settings-v2 .engine-main-description { margin: 0 0 26px; font-size: 14px; line-height: 1.8; color: var(--app-muted, #786f65); }
+.engine-settings-v2 button, .engine-import-dialog button { padding: 10px 16px; border: 1px solid var(--app-border, #d8cec2); border-radius: 8px; background: var(--app-surface, #fffdfa); color: var(--app-text, #714521); font: inherit; font-size: 14px; cursor: pointer; }
+.engine-settings-v2 button.native-install-primary, .engine-import-dialog button.native-install-primary { background: var(--app-accent, #8b5d31); border-color: var(--app-accent, #8b5d31); color: var(--app-on-accent, #fff); font-weight: 600; }
 .engine-settings-v2 button:disabled, .engine-import-dialog button:disabled { opacity: .5; cursor: default; }
-.engine-settings-v2 button.engine-text-button, .engine-import-dialog button.engine-text-button { padding: 4px 0; background: transparent; border-color: transparent; color: #8b5d31; font-size: 13px; }
-.engine-settings-v2 button:focus-visible, .engine-import-dialog button:focus-visible, .engine-settings-v2 summary:focus-visible, .engine-import-dialog summary:focus-visible { outline: 2px solid #8b5d31; outline-offset: 3px; }
+.engine-settings-v2 button.engine-text-button, .engine-import-dialog button.engine-text-button { padding: 4px 0; background: transparent; border-color: transparent; color: var(--app-accent, #8b5d31); font-size: 13px; }
+.engine-settings-v2 button:focus-visible, .engine-import-dialog button:focus-visible, .engine-settings-v2 summary:focus-visible, .engine-import-dialog summary:focus-visible { outline: 2px solid var(--app-accent, #8b5d31); outline-offset: 3px; }
 .engine-settings-v2 button:hover:enabled, .engine-import-dialog button:hover:enabled { filter: brightness(.95); }
 .engine-main-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
-.engine-settings-v2 .engine-fine-print, .engine-import-dialog .engine-fine-print { margin: 12px 0 0; color: #8b8073; font-size: 12px; line-height: 1.8; }
-.engine-settings-v2 .engine-browser-download { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin: 22px 0 0; color: #8b8073; font-size: 12px; }
+.engine-settings-v2 .engine-fine-print, .engine-import-dialog .engine-fine-print { margin: 12px 0 0; color: var(--app-muted, #8b8073); font-size: 12px; line-height: 1.8; }
+.engine-settings-v2 .engine-browser-download { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin: 22px 0 0; color: var(--app-muted, #8b8073); font-size: 12px; }
 .engine-current-info { display: grid; gap: 12px; margin: 0 0 24px; font-size: 14px; }
 .engine-current-info > div { display: flex; align-items: baseline; gap: 18px; }
-.engine-current-info dt { color: #8b8073; flex-shrink: 0; }
+.engine-current-info dt { color: var(--app-muted, #8b8073); flex-shrink: 0; }
 .engine-current-info dd { display: flex; align-items: baseline; flex-wrap: wrap; gap: 16px; margin: 0; overflow-wrap: anywhere; }
-.engine-settings-v2 .engine-settings-disclosure { border-top: 1px solid #e8e0d5; padding: 16px 0; font-size: 13px; }
-.engine-settings-disclosure > summary { cursor: pointer; width: fit-content; color: #786b5a; padding: 4px 0; }
+.engine-settings-v2 .engine-settings-disclosure { border-top: 1px solid var(--app-border, #e8e0d5); padding: 16px 0; font-size: 13px; }
+.engine-settings-disclosure > summary { cursor: pointer; width: fit-content; color: var(--app-muted, #786b5a); padding: 4px 0; }
 .engine-settings-disclosure[open] > summary { margin-bottom: 16px; }
 .engine-settings-v2 .engine-package-details label { display: grid; gap: 8px; }
-.engine-package-details select { width: 100%; max-width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d8cec2; border-radius: 6px; background: #fffdfa; color: #625545; }
-.engine-settings-v2 .engine-path, .engine-import-dialog .engine-path { overflow-wrap: anywhere; white-space: pre-wrap; color: #817365; font-size: 12px; line-height: 1.8; }
-.engine-settings-v2 .engine-feedback, .engine-import-dialog .engine-feedback { margin-top: 20px; padding: 12px 14px; border: 1px solid #d9dfd3; border-radius: 8px; background: #f2f6ee; font-size: 13px; }
-.engine-settings-v2 .engine-feedback.is-error, .engine-import-dialog .engine-feedback.is-error { border-color: #ecd1c7; background: #fff4ef; color: #9b4936; }
+.engine-package-details select { width: 100%; max-width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid var(--app-border, #d8cec2); border-radius: 6px; background: var(--app-surface, #fffdfa); color: var(--app-text, #625545); }
+.engine-settings-v2 .engine-path, .engine-import-dialog .engine-path { overflow-wrap: anywhere; white-space: pre-wrap; color: var(--app-muted, #817365); font-size: 12px; line-height: 1.8; }
+.engine-settings-v2 .engine-feedback, .engine-import-dialog .engine-feedback { margin-top: 20px; padding: 12px 14px; border: 1px solid var(--app-success-border, #d9dfd3); border-radius: 8px; background: var(--app-success-soft, #f2f6ee); font-size: 13px; }
+.engine-settings-v2 .engine-feedback.is-error, .engine-import-dialog .engine-feedback.is-error { border-color: var(--app-danger-border, #ecd1c7); background: var(--app-danger-soft, #fff4ef); color: var(--app-danger, #9b4936); }
 .engine-settings-v2 .engine-feedback p, .engine-import-dialog .engine-feedback p { margin: 0; line-height: 1.8; }
 .engine-feedback details { margin-top: 8px; }
 .engine-feedback summary { width: fit-content; cursor: pointer; font-size: 12px; }
 .engine-install-progress { margin: 24px 0 8px; }
-.engine-progress-label { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 14px; color: #714521; }
+.engine-progress-label { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 14px; color: var(--app-text, #714521); }
 .engine-progress-label strong { display: flex; align-items: center; gap: 10px; }
-.engine-settings-v2 progress, .engine-import-dialog progress { display: block; width: 100%; height: 8px; margin: 16px 0 10px; accent-color: #8b5d31; }
-.engine-progress-footer { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; font-size: 12px; color: #8b8073; line-height: 1.8; }
-.engine-spinner { display: inline-block; flex: 0 0 14px; height: 14px; box-sizing: border-box; border: 2px solid #cfb58f; border-right-color: #8b5d31; border-radius: 50%; animation: engine-install-spin .8s linear infinite; }
+.engine-settings-v2 progress, .engine-import-dialog progress { display: block; width: 100%; height: 8px; margin: 16px 0 10px; accent-color: var(--app-accent, #8b5d31); }
+.engine-progress-footer { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; font-size: 12px; color: var(--app-muted, #8b8073); line-height: 1.8; }
+.engine-spinner { display: inline-block; flex: 0 0 14px; height: 14px; box-sizing: border-box; border: 2px solid #cfb58f; border-right-color: var(--app-accent, #8b5d31); border-radius: 50%; animation: engine-install-spin .8s linear infinite; }
 @keyframes engine-install-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .engine-spinner { animation: none; } }
-.engine-import-dialog { width: min(560px, calc(100vw - 40px)); max-height: calc(100dvh - 48px); box-sizing: border-box; padding: 26px; border: 1px solid #e3d7c5; border-radius: 16px; background: #fffdfa; color: #423b34; box-shadow: 0 24px 80px #33231533; overflow-y: auto; }
+.engine-import-dialog { width: min(560px, calc(100vw - 40px)); max-height: calc(100dvh - 48px); box-sizing: border-box; padding: 26px; border: 1px solid var(--app-border, #e3d7c5); border-radius: 16px; background: var(--app-surface, #fffdfa); color: var(--app-text, #423b34); box-shadow: 0 24px 80px #33231533; overflow-y: auto; }
 .engine-import-dialog::backdrop { background: #241b1459; }
 .engine-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
 .engine-dialog-heading h3 { margin: 0 0 8px; font-size: 20px; }
-.engine-import-dialog p { color: #817365; font-size: 13px; line-height: 1.8; margin: 6px 0 0; }
+.engine-import-dialog p { color: var(--app-muted, #817365); font-size: 13px; line-height: 1.8; margin: 6px 0 0; }
 .engine-import-dialog .engine-dialog-heading > button { font-size: 24px; line-height: 1; padding: 0 4px; }
-.engine-import-option { display: flex; align-items: center; gap: 18px; padding: 20px 0; border-top: 1px solid #e8e0d5; }
+.engine-import-option { display: flex; align-items: center; gap: 18px; padding: 20px 0; border-top: 1px solid var(--app-border, #e8e0d5); }
 .engine-import-option > div { flex: 1; }
 .engine-import-option > button { flex-shrink: 0; }
 .engine-import-option strong { font-size: 14px; }
 .engine-import-option .engine-text-button { margin-top: 6px; }
-.engine-import-candidate { background: #f5f1e9; padding: 14px; border-radius: 8px; font-size: 13px; }
+.engine-import-candidate { background: var(--app-surface-soft, #f5f1e9); padding: 14px; border-radius: 8px; font-size: 13px; }
 .engine-import-candidate details { margin-top: 10px; }
-.engine-import-candidate summary { color: #8b8073; cursor: pointer; font-size: 12px; }
-.engine-browser-download a { color: #8b5d31; text-decoration: underline; text-underline-offset: 3px; padding: 4px 0; }
-.engine-browser-version { display: grid; gap: 8px; }
-.engine-browser-version select { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; padding: 8px; font-size: 13px; }
-.engine-custom-directory { border-top: 1px solid #e8e0d5; padding: 16px 0; }
-.engine-custom-directory summary { cursor: pointer; font-size: 13px; color: #786b5a; }
+.engine-import-candidate summary { color: var(--app-muted, #8b8073); cursor: pointer; font-size: 12px; }
+.engine-browser-download a { color: var(--app-accent, #8b5d31); text-decoration: underline; text-underline-offset: 3px; padding: 4px 0; }
+.engine-settings-v2 .engine-details-current { margin: 0 0 20px; font-size: 13px; line-height: 1.7; }
+.engine-details-current dd { flex-direction: column; gap: 2px; }
+.engine-details-current dd strong { font-weight: 600; }
+.engine-details-current dd > span { color: var(--app-muted, #8b8073); font-size: 12px; }
+.engine-browser-versions { min-width: 0; margin: 0; padding: 0; border: 0; }
+.engine-browser-versions legend { padding: 0; margin-bottom: 10px; font-size: 13px; font-weight: 600; }
+.engine-version-options { display: grid; gap: 10px; }
+.engine-version-option { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 14px 16px; border: 1px solid var(--app-border, #d8cec2); border-radius: 10px; background: var(--app-surface, #fffdfa); cursor: pointer; }
+.engine-version-option:hover:not(:has(input:disabled)) { border-color: var(--app-accent, #8b5d31); }
+.engine-version-option.is-selected { border-color: var(--app-accent, #8b5d31); background: var(--app-accent-soft, #f5ebe4); }
+.engine-settings-v2 .engine-version-option input { appearance: none; flex: 0 0 16px; width: 16px; height: 16px; min-height: 16px; margin: 0; padding: 0; border: 1px solid var(--app-muted, #8b8073); border-radius: 50%; background: var(--app-surface, #fffdfa); cursor: inherit; }
+.engine-settings-v2 .engine-version-option input:checked { border: 5px solid var(--app-accent, #8b5d31); }
+.engine-version-option:focus-within { outline: 2px solid var(--app-accent, #8b5d31); outline-offset: 3px; }
+.engine-version-option input:focus-visible { outline: none; }
+.engine-version-copy { display: grid; gap: 4px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.engine-version-copy strong { color: var(--app-text, #423b34); font-size: 14px; font-weight: 600; line-height: 1.5; }
+.engine-version-number, .engine-version-unavailable { color: var(--app-muted, #8b8073); font-size: 12px; line-height: 1.6; }
+.engine-version-badge { flex-shrink: 0; padding: 3px 8px; border-radius: 5px; color: var(--app-muted, #8b8073); background: var(--app-surface-soft, #f5f1e9); font-size: 11px; line-height: 1.6; }
+.is-selected .engine-version-badge { color: var(--app-accent, #8b5d31); background: var(--app-surface, #fffdfa); }
+.engine-version-option:has(input:disabled) { cursor: default; }
+.engine-version-option.is-unavailable { background: var(--app-surface-soft, #f5f1e9); }
+.engine-version-option.is-unavailable .engine-version-copy strong { color: var(--app-muted, #8b8073); }
+.engine-custom-directory { border-top: 1px solid var(--app-border, #e8e0d5); padding: 16px 0; }
+.engine-custom-directory summary { cursor: pointer; font-size: 13px; color: var(--app-muted, #786b5a); }
 .engine-custom-directory button { margin-top: 12px; }
 .engine-import-dialog .engine-import-candidate { margin-top: 18px; }
-.engine-browser-remove { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e8e0d5; }
+.engine-browser-remove { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--app-border, #e8e0d5); }
 .engine-dialog-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
 @media (max-width: 600px) {
+  .engine-version-option { flex-wrap: wrap; gap: 8px 10px; padding: 12px; }
+  .engine-version-copy { flex-basis: calc(100% - 26px); }
+  .engine-version-badge { margin-left: 26px; }
   .engine-settings-v2 .engine-main-card { padding: 22px 18px; gap: 14px; }
   .engine-main-icon { flex-basis: 38px; height: 38px; border-radius: 11px; font-size: 24px; }
   .engine-settings-v2 .engine-main-content h3 { font-size: 18px; }

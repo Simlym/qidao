@@ -203,7 +203,7 @@ function LevelSolver({ level, onExit }) {
     <div className="trainer">
       <div className="panel info">
         <div className="info-top">
-          <span className="tag" style={{ background: "#ede7f6", color: "#5e35b1" }}>
+          <span className="tag" style={{ background: "var(--app-accent-soft, #ede7f6)", color: "var(--app-accent, #5e35b1)" }}>
             {level.title}
           </span>
           <span className="tag">{puzzle.category}</span>

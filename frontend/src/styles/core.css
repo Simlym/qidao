@@ -74,7 +74,7 @@ header nav { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 2px; -webk
 .comparison-card > div { display: flex; gap: 12px; align-items: center; font-size: 21px; margin: 10px 0 5px; }
 .comparison-card b { color: var(--muted, #777); }
 .comparison-card small { color: #278557; }
-.pack-tag { background: #eee6ff !important; color: #6941a5 !important; }
+.pack-tag { background: var(--app-accent-soft, #eee6ff) !important; color: var(--app-accent, #6941a5) !important; }
 .rule-explain { white-space: pre-line; text-align: left; margin: 8px 0; }
 .learning-pack-result { max-width: 680px; margin: 24px auto; text-align: center; }
 .key-problems-cta { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }

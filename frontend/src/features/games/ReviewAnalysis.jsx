@@ -25,11 +25,11 @@ export function AnalysisPanel({ summary, moveAnalysis, stepIndex, preFen, onNavi
   const notation = variant === "jieqi" ? jieqiMoveToChinese : uciToChinese;
   const badgeInfo = moveAnalysis
     ? moveAnalysis.is_blunder
-      ? { text: "严重失误", color: "#c0392b", bg: "#ffebee" }
+      ? { text: "严重失误", color: "var(--app-danger, #c0392b)", bg: "var(--app-danger-soft, #ffebee)" }
       : moveAnalysis.is_mistake
-        ? { text: "失误", color: "#e67e22", bg: "#fff3e0" }
+        ? { text: "失误", color: "var(--app-warning, #e67e22)", bg: "var(--app-warning-soft, #fff3e0)" }
         : moveAnalysis.move_played !== moveAnalysis.best_move
-          ? { text: "可改进", color: "#b8860b", bg: "#fffde7" }
+          ? { text: "可改进", color: "var(--app-warning, #b8860b)", bg: "var(--app-warning-soft, #fffde7)" }
           : null
     : null;
   const evalDrop = moveAnalysis?.eval_drop != null ? (moveAnalysis.eval_drop / 100).toFixed(1) : null;
@@ -37,9 +37,9 @@ export function AnalysisPanel({ summary, moveAnalysis, stepIndex, preFen, onNavi
   return (
     <div className="analysis-panel">
       <div className="analysis-summary">
-        <span style={{ color: "#c0392b", fontWeight: 600 }}>{summary.blunder_count} 处严重失误</span>
-        <span style={{ color: "#888", margin: "0 6px" }}>，</span>
-        <span style={{ color: "#e67e22", fontWeight: 600 }}>{summary.mistake_count} 处失误</span>
+        <span style={{ color: "var(--app-danger, #c0392b)", fontWeight: 600 }}>{summary.blunder_count} 处严重失误</span>
+        <span style={{ color: "var(--app-muted, #888)", margin: "0 6px" }}>，</span>
+        <span style={{ color: "var(--app-warning, #e67e22)", fontWeight: 600 }}>{summary.mistake_count} 处失误</span>
       </div>
       {moveAnalysis && stepIndex > 0 ? (
         <div className="analysis-detail">

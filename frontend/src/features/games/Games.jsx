@@ -10,17 +10,17 @@ import EvaluationChart from "../analysis/EvaluationChart";
 import { AnalysisPanel, MoveItem } from "./ReviewAnalysis";
 
 const RESULT_LABELS = {
-  "1-0": { text: "红胜", color: "#c0392b" },
-  "0-1": { text: "黑胜", color: "#222" },
-  "1/2-1/2": { text: "和棋", color: "#888" },
-  "红胜": { text: "红胜", color: "#c0392b" },
-  "黑胜": { text: "黑胜", color: "#444" },
-  "和棋": { text: "和棋", color: "#888" },
-  "": { text: "未知", color: "#aaa" },
+  "1-0": { text: "红胜", color: "var(--app-danger, #c0392b)" },
+  "0-1": { text: "黑胜", color: "var(--app-text, #222)" },
+  "1/2-1/2": { text: "和棋", color: "var(--app-muted, #888)" },
+  "红胜": { text: "红胜", color: "var(--app-danger, #c0392b)" },
+  "黑胜": { text: "黑胜", color: "var(--app-text, #444)" },
+  "和棋": { text: "和棋", color: "var(--app-muted, #888)" },
+  "": { text: "未知", color: "var(--app-muted, #aaa)" },
 };
 
 function resultLabel(result) {
-  return RESULT_LABELS[result] || { text: result || "未知", color: "#aaa" };
+  return RESULT_LABELS[result] || { text: result || "未知", color: "var(--app-muted, #aaa)" };
 }
 
 const EMPTY_FORM = {
@@ -653,7 +653,7 @@ export default function Games({ onNavigateToTrain, onStartPack, initialGameId, o
                 </button>
                 {positions.variant === "jieqi" && <span className="tag">揭棋棋谱</span>}
                 {analyzeStatus === "done" && (
-                  <span className="tag" style={{ background: "#e6efe0", color: "#2e7d32" }}>
+                  <span className="tag" style={{ background: "var(--app-success-soft, #e6efe0)", color: "var(--app-success, #2e7d32)" }}>
                     ✓ 已分析（结果已保存）
                   </span>
                 )}

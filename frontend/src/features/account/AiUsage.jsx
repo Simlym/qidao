@@ -15,24 +15,28 @@ export function UsageDetails({ usage }) {
       <div><span>补充额度</span><strong>{usage.extra_balance}</strong></div>
       <div><span>当前可用</span><strong>{usage.available_units} 单位</strong></div>
     </div>
-    <p>{usage.plan === "pro" ? "Pro" : "免费账号"} · {usage.period} · 下次月度重置：{dateText(usage.resets_at)}</p>
-    <p>月度额度不结转；补充额度保留。优先使用月度额度，不足部分再用补充额度。处理中调用会预留额度，生成失败后退回。</p>
+    <p className="ai-plan-summary">{usage.plan === "pro" ? "Pro" : "免费账号"} · {usage.period} · 下次月度重置：{dateText(usage.resets_at)}</p>
+    <p className="ai-quota-note">月度额度不结转；补充额度保留。优先使用月度额度，不足部分再用补充额度。处理中调用会预留额度，生成失败后退回。</p>
+    <section className="ai-usage-section">
     <h3>各项 AI 消耗</h3>
     <ul className="ai-price-list">{Object.entries(usage.costs).map(([key, value]) =>
       <li key={key}>{AI_ACTIONS[key] || key}<strong>{value} 单位 / 次</strong></li>)}</ul>
     <p className="muted">一次整局复盘可能包含多处失误讲解、整局报告和教练计划，分别计入额度。规则讲解、训练与本地引擎不消耗 AI 额度；命中已有题目讲解缓存不重复扣减。</p>
+    </section>
+    <section className="ai-usage-section">
     <h3>最近 AI 使用</h3>
-    {usage.operations.length === 0 ? <p>暂无 AI 使用记录。</p> : <div className="ai-usage-table"><table>
+    {usage.operations.length === 0 ? <p className="ai-usage-empty">暂无 AI 使用记录。</p> : <div className="ai-usage-table" role="region" aria-label="最近 AI 使用记录" tabIndex={0}><table>
       <thead><tr><th>事项</th><th>预留额度</th><th>状态</th><th>时间</th></tr></thead>
       <tbody>{usage.operations.map((row) => <tr key={row.id}>
         <td>{AI_ACTIONS[row.action] || row.action}</td><td>{row.units}</td>
         <td>{STATES[row.status] || row.status}</td><td>{dateText(row.created_at)}</td>
       </tr>)}</tbody>
     </table></div>}
-    {usage.adjustments?.length > 0 && <>
+    </section>
+    {usage.adjustments?.length > 0 && <section className="ai-usage-section">
       <h3>最近补充额度调整</h3>
       <ul>{usage.adjustments.map((row, i) => <li key={i}>{row.delta > 0 ? "+" : ""}{row.delta} · {row.reason} · {dateText(row.created_at)}</li>)}</ul>
-    </>}
+    </section>}
   </>;
 }
 
@@ -49,11 +53,15 @@ export default function AiUsage({ user, credits, onRequireLogin }) {
   React.useEffect(() => { if (user) refresh(); else setUsage(null); }, [user, refresh]);
   return <div className="settings-group ai-usage-page">
     <div className="settings-heading"><h2>账户与 AI 额度</h2><p>AI 额度与训练积分分别记录，仅对当前服务器有效。</p></div>
-    {!user ? <><p>登录后查看个人额度和使用记录。</p><button onClick={onRequireLogin}>登录</button></> : <>
-      <p><strong>{user.username}</strong> · 训练积分 💎 {credits?.balance ?? "…"}（用于外观兑换，不兑换 AI）</p>
-      <button onClick={refresh} disabled={busy}>{busy ? "刷新中…" : "刷新额度"}</button>
-      {error && <p role="alert">{error}</p>}
-      {usage && <UsageDetails usage={usage} />}
+    {!user ? <section className="ai-account-card"><div><h3>登录账户</h3><p>登录后查看个人额度和使用记录。</p></div><button className="ai-usage-button ai-usage-login" onClick={onRequireLogin}>登录</button></section> : <>
+      <section className="ai-account-card"><div><h3>{user.username}</h3><p>训练积分 💎 {credits?.balance ?? "…"} · 用于外观兑换，不兑换 AI</p></div>
+        <button className="ai-usage-button" onClick={refresh} disabled={busy}>{busy ? "刷新中…" : "刷新额度"}</button>
+      </section>
+      {error && <p className="ai-usage-error" role="alert">{error}</p>}
+      <div aria-busy={busy}>
+        {busy && !usage && <p className="ai-usage-empty" role="status">正在读取额度…</p>}
+        {usage && <UsageDetails usage={usage} />}
+      </div>
     </>}
   </div>;
 }

@@ -8,10 +8,10 @@ import { getNext, getTrainingPuzzle, checkMove, submitRating, explainPuzzle, com
 // phase: 'loading' | 'thinking' | 'step_ok' | 'wrong' | 'rating' | 'done' | 'empty'
 
 const RATINGS = [
-  { key: "again", label: "再来", desc: "完全不会，明天再练", color: "#c0392b" },
-  { key: "hard",  label: "困难", desc: "做出来了但很吃力",   color: "#e67e22" },
-  { key: "good",  label: "良好", desc: "想了一会，做出来了",  color: "#27ae60" },
-  { key: "easy",  label: "容易", desc: "一眼看出，毫不费力",  color: "#2980b9" },
+  { key: "again", label: "再来", desc: "完全不会，明天再练", color: "var(--app-danger, #c0392b)" },
+  { key: "hard",  label: "困难", desc: "做出来了但很吃力",   color: "var(--app-warning, #e67e22)" },
+  { key: "good",  label: "良好", desc: "想了一会，做出来了",  color: "var(--app-success, #27ae60)" },
+  { key: "easy",  label: "容易", desc: "一眼看出，毫不费力",  color: "var(--app-info, #2980b9)" },
 ];
 
 export default function Trainer({ target = null, onTargetConsumed, user, onCreditsChanged, onRequireLogin }) {
@@ -379,13 +379,13 @@ export default function Trainer({ target = null, onTargetConsumed, user, onCredi
       <div className="panel info">
         <div className="info-top">
           {activeCategory && (
-            <span className="tag" style={{ background: "#fff3e0", color: "#e67e22" }}>
+            <span className="tag" style={{ background: "var(--app-warning-soft, #fff3e0)", color: "var(--app-warning, #e67e22)" }}>
               弱点专项
             </span>
           )}
           {pack && <span className="tag pack-tag">{pack.title} {pack.index + 1}/{pack.puzzleIds.length}</span>}
           {puzzle.kind && puzzle.kind !== puzzle.category && (
-            <span className="tag" style={{ background: "#e8f0fe", color: "#2980b9" }}>
+            <span className="tag" style={{ background: "var(--app-info-soft, #e8f0fe)", color: "var(--app-info, #2980b9)" }}>
               {puzzle.kind}
             </span>
           )}

@@ -1,6 +1,7 @@
 import React from "react";
 import { useBrowserEngineInstaller } from "./BrowserEngineInstaller";
 import BrowserEngineImportDialog from "./BrowserEngineImportDialog";
+import BrowserEngineVersionPicker from "./BrowserEngineVersionPicker";
 import EngineInstallProgress from "./EngineInstallProgress";
 import EngineMessage from "./EngineSetupFeedback";
 import "./native-engine-settings.css";
@@ -34,8 +35,8 @@ export default function BrowserEngineSettings({ manager, variant = "xiangqi" }) 
       </div>
     </section>
     <details className="engine-settings-disclosure"><summary>引擎详情与兼容性</summary>
-      {profile && <p>当前引擎：{profile.name} · {profile.version}</p>}
-      <label className="engine-browser-version">下载版本<select aria-label="浏览器引擎下载版本" value={spec?.id || ""} disabled={busy} onChange={(event) => installer.setSelected(event.target.value)}>{!spec && <option value="">暂无适配版本</option>}{options.map(({ spec: item, available }) => <option key={item.id} value={item.id} disabled={!available}>{item.name} · {item.version} · {item.threads ? "多线程" : "单线程（推荐）"}{available ? "" : "（当前设备不可用）"}</option>)}</select></label>
+      {profile && <dl className="engine-current-info engine-details-current"><div><dt>当前引擎</dt><dd><strong>{profile.name}</strong><span>{profile.version}</span></dd></div></dl>}
+      <BrowserEngineVersionPicker options={options} value={spec?.id || ""} busy={busy} onChange={installer.setSelected} />
       {spec && <p className="engine-fine-print">程序许可：{spec.engineLicense} · 资源许可：{spec.networkLicense === "not-applicable" ? "无需独立资源" : spec.networkLicense}</p>}
       <p className="engine-fine-print">本地计算：{capabilities.webAssembly && capabilities.worker ? "支持" : "不支持"} · 本机存储：{capabilities.cacheStorage ? "支持" : "不支持"} · 多线程：{capabilities.threads ? "支持" : "使用兼容的单线程版本"}</p>
       <p className="engine-fine-print">引擎保存在当前浏览器中，不会上传。清除网站数据或更换浏览器后，需要重新安装。</p>

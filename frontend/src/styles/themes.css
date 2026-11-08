@@ -109,7 +109,7 @@ body[data-app-theme="pixel"] {
   .seg-btn.active, .btn-primary, .btn-import, .result button, .panel > button,
   .cosmetic-card > button:not(:disabled), .step-dot.current, .bar-fill, .spark-bar,
   .member-badge
-) { color: #fff; background: var(--app-accent); }
+) { color: var(--app-on-accent, #fff); background: var(--app-accent); }
 :is(.app-theme-ink, .app-theme-jade, .app-theme-night) :is(
   .settings-sections button.active, .game-item.selected, .leaderboard li.me,
   .credits-amt, nav button:hover
@@ -163,7 +163,7 @@ body[data-app-theme="pixel"] {
   nav button.active, .btn-register, .auth-tabs button.active, .admin-tabs button.active,
   .seg-btn.active, .btn-primary, .btn-import, .result button, .panel > button,
   .cosmetic-card > button:not(:disabled), .step-dot.current, .bar-fill, .spark-bar, .member-badge
-) { color: #fff; background: var(--app-accent); }
+) { color: var(--app-on-accent, #fff); background: var(--app-accent); }
 .app-theme-custom :is(
   .settings-sections button.active, .game-item.selected, .leaderboard li.me, .credits-amt, nav button:hover
 ) { color: var(--app-accent); background: var(--app-accent-soft); }
@@ -196,7 +196,7 @@ body[data-app-theme="pixel"] {
 .app-theme-custom.app-web .web-brand-copy small { color: var(--app-muted); }
 .app-theme-custom.app-web .web-header > nav button { color: var(--app-muted); }
 .app-theme-custom.app-web .web-header > nav button:hover { color: var(--app-accent); background: var(--app-accent-soft); }
-.app-theme-custom.app-web .web-header > nav button.active { color: #fff; background: var(--app-accent); }
+.app-theme-custom.app-web .web-header > nav button.active { color: var(--app-on-accent, #fff); background: var(--app-accent); }
 .app-theme-custom.app-web > .section-tabs { background: var(--app-surface); border-color: var(--app-border); }
 .app-theme-custom.app-web > .section-tabs button { color: var(--app-muted); }
 .app-theme-custom.app-web > .section-tabs button:hover { color: var(--app-text); background: var(--app-surface-soft); }

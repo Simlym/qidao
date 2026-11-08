@@ -1,0 +1,138 @@
+/* 放在各页面样式之后，补齐共用控件的主题状态；棋盘与外观预览保持独立配色。 */
+body {
+  --app-on-accent: #fff;
+  --app-danger: #b02d2d; --app-danger-soft: #fff0ed; --app-danger-border: #edc8c2;
+  --app-success: #287243; --app-success-soft: #eef6ef; --app-success-border: #b9dfc3;
+  --app-warning: #946000; --app-warning-soft: #fff8e1;
+  --app-info: #286b9a; --app-info-soft: #e8f0fe;
+}
+body:is([data-app-theme="night"], [data-app-theme="neon"], [data-app-theme="palace"]) {
+  --app-on-accent: #14212b;
+  --app-danger: #ff9990; --app-danger-soft: #402525; --app-danger-border: #88514c;
+  --app-success: #8ed5a5; --app-success-soft: #203c30; --app-success-border: #496c54;
+  --app-warning: #edc778; --app-warning-soft: #3c3321;
+  --app-info: #8dc6ed; --app-info-soft: #20374b;
+}
+:where(.app, .engine-import-dialog) :where(button, input, select, textarea) { font-family: inherit; }
+.app-theme-custom :is(button, input, select, textarea, summary):focus-visible,
+body:not([data-app-theme="classic"]) .engine-import-dialog :focus-visible { outline: 2px solid var(--app-accent); outline-offset: 3px; }
+
+/* 普通按钮、主操作与选中态分别配色，亮色强调色使用深色文字。 */
+.app-theme-custom :is(.btn-link, .btn-newgame, .btn-retry, .btn-giveup, .book-move, .seg-btn,
+  .ai-usage-admin button, .today-growth-actions button, .desktop-inspector-actions button,
+  .desktop-hint-result > button, .desktop-book-moves button, .engine-remove-btn,
+  .settings-content .native-engine-input button, .auth-close-confirm-actions button) {
+  color: var(--app-text); background: var(--app-surface); border-color: var(--app-border);
+}
+.app-theme-custom :is(.btn-link, .btn-newgame, .btn-retry, .btn-giveup, .book-move, .seg-btn,
+  .ai-usage-admin button, .today-growth-actions button, .desktop-inspector-actions button,
+  .settings-sections button, .engine-remove-btn, .auth-close-confirm-actions button):hover:not(:disabled) {
+  color: var(--app-accent); background: var(--app-accent-soft); border-color: var(--app-accent);
+}
+.app-theme-custom :is(.btn-register, .btn-start, .btn-primary, .btn-import, .btn-analyze,
+  .seg-btn.active, .btn-newgame.active, .auth-tabs button.active, .admin-tabs button.active,
+  .cosmetic-card > button:not(:disabled), .desktop-inspector-actions button.primary,
+  .btn-import-submit, .engine-setup-guide button, .llm-btn-primary, .web-auth-actions .btn-register,
+  .web-header > nav button.active, .resign-dialog-actions button.danger) {
+  color: var(--app-on-accent); background: var(--app-accent); border-color: var(--app-accent);
+}
+.app-theme-custom :is(.btn-register, .btn-start, .btn-primary, .btn-import, .btn-analyze,
+  .seg-btn.active, .btn-newgame.active, .cosmetic-card > button:not(:disabled),
+  .desktop-inspector-actions button.primary, .btn-import-submit, .engine-setup-guide button, .llm-btn-primary,
+  .web-auth-actions .btn-register):hover:not(:disabled) {
+  color: var(--app-on-accent); background: var(--app-accent); border-color: var(--app-accent); filter: brightness(.92);
+}
+.app-theme-custom :is(.btn-ai, .result .btn-ai, .panel > .btn-ai, .hint-coach-btn) {
+  color: var(--app-accent); background: var(--app-accent-soft); border-color: var(--app-border);
+}
+.app-theme-custom :is(.settings-sections button, .auth-tabs button, .admin-tabs button) { color: var(--app-muted); }
+.app-theme-custom :is(.settings-sections button.active, .desktop-inspector-actions button.active) { color: var(--app-accent); background: var(--app-accent-soft); }
+.app-theme-custom :is(.modal-close, .auth-close, .game-delete-btn) { color: var(--app-muted); }
+.app-theme-custom :is(.game-delete-btn, .desktop-inspector-actions button.danger):hover:not(:disabled) { color: var(--app-danger); }
+
+/* 设置、反馈、额度管理与登录弹窗。 */
+.my-puzzle-reports { font-size: 14px; line-height: 1.7; }
+.my-puzzle-reports .puzzle-batch { overflow-wrap: anywhere; }
+.app-theme-custom :is(.settings-nav-title span, .preset-copy strong, .settings-card-caption h3,
+  .cosmetic-card-body strong, .llm-option-copy strong) { color: var(--app-text); }
+.app-theme-custom :is(.settings-nav-title small, .preset-copy p, .settings-switch,
+  .analysis-default-settings > div:first-child p, .engine-package-intro p,
+  .engine-package-note, .engine-profile-status span:last-child, .auth-intro, .auth-note) { color: var(--app-muted); }
+.app-theme-custom :is(.analysis-default-settings, .engine-package-card, .engine-capabilities > span,
+  .auth-close-confirm-card, .ai-quota-cards > div) { color: var(--app-text); background: var(--app-surface); border-color: var(--app-border); }
+.app-theme-custom :is(.analysis-default-settings > div:first-child strong, .engine-package-intro h3,
+  .auth-close-confirm-card h3) { color: var(--app-text); }
+.app-theme-custom :is(.engine-profile-status, .engine-status-ok) { color: var(--app-success); background: var(--app-success-soft); border-color: var(--app-success-border); }
+.app-theme-custom :is(.engine-status-error, .server-error) { color: var(--app-danger); background: var(--app-danger-soft); border-color: var(--app-danger-border); }
+.app-theme-custom :is(.ai-policy-form input, .ai-usage-admin select, .settings-row select) { color: var(--app-text); background: var(--app-surface); border-color: var(--app-border); }
+.app-theme-custom :is(.ai-usage-table th, .ai-usage-table td, .admin-table th, .admin-table td) { border-color: var(--app-border); }
+.app-theme-custom :is(.ai-usage-table th, .admin-table th, .auth-close-confirm-card p) { color: var(--app-muted); }
+.app-theme-custom .auth-close-confirm-actions .danger { color: var(--app-danger); background: var(--app-danger-soft); border-color: var(--app-danger-border); }
+.app-theme-custom :is(.import-error, .cosmetic-message.error, .delta-down) { color: var(--app-danger); }
+.app-theme-custom .puzzle-status-draft { color: var(--app-warning); }
+.app-theme-custom :is(.delta-up, .puzzle-status-published, .puzzle-success) { color: var(--app-success); }
+
+/* 教练、学习统计和训练：表面、边框与辅助说明同主页面同步。 */
+.app-theme-custom :is(.coach-rec, .coach-progress-item, .curriculum-card, .comparison-card,
+  .native-engine-settings, .pv-preview-dialog, .engine-setup-guide) { color: var(--app-text); background: var(--app-surface); border-color: var(--app-border); }
+.app-theme-custom :is(.engine-setup-guide strong, .engine-setup-summary strong) { color: var(--app-text); }
+.app-theme-custom :is(.engine-setup-guide p, .engine-setup-summary span, .play-setup-label) { color: var(--app-muted); }
+.app-theme-custom :is(.coach-rec-no, .member-badge) { color: var(--app-on-accent); background: var(--app-accent); }
+.app-theme-custom :is(.rating-num, .rating-title, .coach-progress-head, .hint-strip strong) { color: var(--app-accent); }
+.app-theme-custom :is(.skill-chips span, .bar-track, .level-card.locked) { color: var(--app-muted); background: var(--app-surface-soft); }
+.app-theme-custom :is(.lb-rank, .level-prog, .level-card.locked .level-no, .due-badge,
+  .bar-label, .bar-val, .forecast-x, .forecast-num, .spark-x, .curriculum-head span,
+  .mastery-row small, .comparison-card b, .book-move-rate, .book-move-score.neg) { color: var(--app-muted); }
+.app-theme-custom :is(.coach-progress-weak, .level-card.cleared) { color: var(--app-success); background: var(--app-success-soft); border-color: var(--app-success-border); }
+.app-theme-custom :is(.coach-progress-weak.warn, .reminder-banner, .hint) { color: var(--app-warning); background: var(--app-warning-soft); border-color: var(--app-warning); }
+.app-theme-custom .reminder-banner .reminder-x { color: inherit; }
+.app-theme-custom :is(.leaderboard li, .seg) { border-color: var(--app-border); }
+
+/* 复盘与分析侧栏。棋盘上的红黑阵营及外观预览不受这些规则影响。 */
+.app-theme-custom :is(.play-turn, .game-black, .jieqi-move-black, .evaluation-chart-head strong,
+  .desktop-game-summary strong, .desktop-analysis-section > strong) { color: var(--app-text); }
+.app-theme-custom :is(.game-vs, .game-date, .import-label, .evaluation-chart-head small,
+  .pv-preview-caption, .desktop-game-summary span, .desktop-analysis-section p,
+  .desktop-hint-result > span) { color: var(--app-muted); }
+.app-theme-custom :is(.game-item:hover, .book-move:hover:not(:disabled)) { background: var(--app-surface-soft); }
+.app-theme-custom :is(.game-item.selected, .move-log-list .active) { background: var(--app-accent-soft); }
+.app-theme-custom :is(.jieqi-notation-list li, .games-list-header, .games-list-footer) { border-color: var(--app-border); }
+.app-theme-custom :is(.analysis-panel, .move-item, .btn-rate) { color: var(--app-text); background: var(--app-surface); border-color: var(--app-border); }
+.app-theme-custom .btn-rate { border-color: var(--rate-color); }
+.app-theme-custom :is(.move-item:hover, .btn-rate:hover, .analysis-explanation) { background: var(--app-surface-soft); }
+.app-theme-custom :is(.analysis-summary, .analysis-explanation) { border-color: var(--app-border); }
+.app-theme-custom .move-item.active { color: var(--app-on-accent); background: var(--app-accent); }
+.app-theme-custom .move-log-list .latest { color: var(--app-accent); background: var(--app-accent-soft); }
+.app-theme-custom :is(.rate-desc, .analysis-arrow, .move-log-no, .move-time) { color: var(--app-muted); }
+.app-theme-custom :is(.web-turn-card, .engine-setup-summary) { background: var(--app-surface-soft); border-color: var(--app-border); }
+.app-theme-custom :is(.web-play-rail-title, .web-player-card strong) { color: var(--app-text); }
+.app-theme-custom :is(.web-player-card small, .web-turn-card small, .web-turn-card span) { color: var(--app-muted); }
+.app-theme-custom .web-turn-card strong { color: var(--app-accent); }
+.app-theme-custom .cosmetic-card > button:disabled { color: var(--app-muted); background: var(--app-surface-soft); }
+
+/* 通用模型配置原先使用独立的浅色面板，统一接入主题变量。 */
+.app-theme-custom .panel.llm-settings-panel {
+  --llm-accent: var(--app-accent); --llm-accent-strong: var(--app-accent);
+  --llm-ink: var(--app-text); --llm-muted: var(--app-muted); --llm-line: var(--app-border);
+  color: var(--app-text); background: var(--app-surface);
+}
+.app-theme-custom :is(.llm-settings-header, .llm-reasoning-section, .llm-status) { color: var(--app-muted); background: var(--app-surface-soft); border-color: var(--app-border); }
+.app-theme-custom :is(.llm-option-card, .llm-settings-footer, .llm-field .import-input,
+  .llm-key-input-wrap .import-input, .llm-btn-secondary, .llm-btn-subtle) { color: var(--app-text); background: var(--app-surface); border-color: var(--app-border); }
+.app-theme-custom :is(.llm-switch b, .llm-section-heading strong, .llm-field) { color: var(--app-text); }
+.app-theme-custom :is(.llm-section-heading p, .llm-section-heading > div > span, .llm-field small,
+  .llm-option-copy small, .llm-key-input-wrap > span) { color: var(--app-muted); }
+.app-theme-custom :is(.llm-btn-secondary, .llm-btn-subtle):hover:not(:disabled) { color: var(--app-accent); background: var(--app-accent-soft); border-color: var(--app-accent); }
+.app-theme-custom :is(.llm-status.is-active, .llm-success) { color: var(--app-success); }
+.app-theme-custom .llm-status.is-active { background: var(--app-success-soft); border-color: var(--app-success-border); }
+.app-theme-custom .llm-btn-danger { color: var(--app-danger); }
+.app-theme-custom .llm-btn-danger:hover:not(:disabled) { background: var(--app-danger-soft); }
+
+/* 主题覆盖需在 Web 装饰层之后生效。 */
+.app-theme-custom.app-web .today-hero { background: linear-gradient(130deg, var(--app-sidebar), color-mix(in srgb, var(--app-accent) 72%, var(--app-sidebar))); }
+.app-theme-custom .today-hero .today-secondary { color: #fff; background: #ffffff14; border-color: #ffffff80; }
+.app-theme-custom .today-hero .today-secondary:hover { background: #ffffff29; }
+.app-theme-custom .server-actions .server-connect { color: var(--app-on-accent); }
+@media (max-width: 760px) {
+  .app-theme-custom.app-web .web-header > nav button.active { color: var(--app-accent); background: var(--app-accent-soft); }
+}

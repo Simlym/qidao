@@ -190,7 +190,7 @@ export default function Coach({ onPractice, onNavigate, user, credits, entitleme
       {/* 训练计划 */}
       <div className="panel">
         <div className="coach-plan-head">
-          <h3 style={{ margin: 0, color: "#8a5a2b" }}>🧑‍🏫 我的训练计划</h3>
+          <h3 style={{ margin: 0, color: "var(--app-accent, #8a5a2b)" }}>🧑‍🏫 我的训练计划</h3>
           <button className="btn-newgame" onClick={refresh} disabled={refreshing}>
             {refreshing
               ? "教练备课中…"

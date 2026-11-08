@@ -16,8 +16,8 @@ export default function MyPuzzleReports({ user,onRequireLogin }) {
     myPuzzleReports({ offset,limit:20 }).then(r => active && setData(r)).catch(e => active && setError(e.message));
     return () => { active=false; };
   },[user?.username,offset,version]);
-  return <section className="settings-group puzzle-feedback"><h2>我的题目反馈</h2><p className="muted">在训练页提交问题后，可以在这里查看管理员回复。</p>
-    {!user ? <button onClick={onRequireLogin}>登录查看反馈</button> : <>
+  return <section className="settings-group my-puzzle-reports"><div className="settings-heading"><h2>我的题目反馈</h2><p>在训练页提交问题后，可以在这里查看管理员回复。</p></div>
+    {!user ? <button className="btn-link btn-register" onClick={onRequireLogin}>登录查看反馈</button> : <>
       <button className="btn-link" onClick={() => setVersion(v => v+1)}>刷新处理结果</button>
       {error && <p className="import-error" role="alert">{error}</p>}
       {data.items.map(r => <div className="puzzle-batch" key={r.id}><strong>题目 #{r.puzzle_id} · {STATUS[r.status]}</strong><p>{REPORT_TYPES[r.category]}：{r.description}</p>{r.proposed_solution && <p>我的建议：{r.proposed_solution}</p>}{r.resolution_note && <p>管理员回复：{r.resolution_note}</p>}<small className="muted">提交于 {r.created_at.slice(0,10)}</small></div>)}

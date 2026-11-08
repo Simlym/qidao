@@ -1,15 +1,50 @@
 .ai-quota-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin: 20px 0; }
-.ai-quota-cards > div { display: flex; flex-direction: column; gap: 8px; padding: 18px; border: 1px solid #d8cec2; border-radius: 10px; }
+.ai-quota-cards > div { display: flex; flex-direction: column; gap: 8px; padding: 18px; border: 1px solid var(--app-border, #d8cec2); border-radius: 10px; }
 .ai-quota-cards strong { font-size: 22px; }
 .ai-price-list { list-style: none; padding: 0; }
-.ai-price-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #e9e1d7; }
+.ai-price-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--app-border, #e9e1d7); }
 .ai-usage-table { overflow-x: auto; max-width: 100%; }
 .ai-usage-table table { border-collapse: collapse; width: 100%; white-space: nowrap; }
-.ai-usage-table th, .ai-usage-table td { padding: 10px; text-align: left; border-bottom: 1px solid #e9e1d7; }
+.ai-usage-table th, .ai-usage-table td { padding: 10px; text-align: left; border-bottom: 1px solid var(--app-border, #e9e1d7); }
 .ai-policy-form { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px; margin: 18px 0; }
 .ai-policy-form label { display: flex; flex-direction: column; gap: 7px; }
 .ai-policy-form input, .ai-usage-admin select { padding: 9px; max-width: 210px; }
 .ai-usage-admin .panel { margin: 16px 0; }
-.ai-usage-page button, .ai-usage-admin button { padding: 9px 14px; border: 1px solid #cdbca7; border-radius: 8px; background: #faf7f1; color: #714521; cursor: pointer; }
-.ai-usage-page button:disabled, .ai-usage-admin button:disabled { opacity: .55; cursor: default; }
+.ai-usage-admin button { padding: 9px 14px; border: 1px solid #cdbca7; border-radius: 8px; background: #faf7f1; color: #714521; cursor: pointer; }
+.ai-usage-admin button:disabled { opacity: .55; cursor: default; }
 @media (max-width: 600px) { .ai-policy-form label { width: 100%; } .ai-policy-form input { max-width: 100%; } }
+
+/* 账户页面沿用设置中心的文字层级与主题配色。 */
+.ai-usage-page { color: var(--app-text, #423b34); font-size: 14px; line-height: 1.7; }
+.ai-account-card { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px; border: 1px solid var(--app-border, #e8e1d7); border-radius: 12px; background: var(--app-surface-soft, #f7f3ed); }
+.ai-account-card > div { min-width: 0; overflow-wrap: anywhere; }
+.ai-account-card h3 { margin: 0; font-size: 15px; }
+.ai-account-card p { margin: 5px 0 0; color: var(--app-muted, #887e74); font-size: 13px; }
+.ai-usage-page .ai-usage-button { flex-shrink: 0; min-height: 40px; padding: 9px 16px; border: 1px solid var(--app-border, #ded5ca); border-radius: 8px; background: var(--app-surface, #fffdf9); color: var(--app-text, #67534a); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.ai-usage-page .ai-usage-login { background: var(--app-accent, #8a5a2b); border-color: var(--app-accent, #8a5a2b); color: var(--app-on-accent, #fff); }
+.ai-usage-page .ai-usage-button:hover:not(:disabled) { background: var(--app-accent-soft, #f5ebe4); color: var(--app-accent, #8a5a2b); border-color: var(--app-accent, #8a5a2b); }
+.ai-usage-page .ai-usage-button:disabled { opacity: .5; cursor: default; }
+.ai-usage-page :is(button, .ai-usage-table):focus-visible { outline: 2px solid var(--app-accent, #8a5a2b); outline-offset: 3px; }
+.ai-usage-page .ai-quota-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0 12px; }
+.ai-usage-page .ai-quota-cards > div { min-width: 0; background: var(--app-surface, #fffdf9); border-radius: 12px; }
+.ai-usage-page .ai-quota-cards span { color: var(--app-muted, #887e74); font-size: 13px; }
+.ai-usage-page .ai-quota-cards strong { font-size: 25px; line-height: 1.3; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ai-usage-page .ai-quota-cards > div:last-child { background: var(--app-accent-soft, #f5ebe4); border-color: var(--app-accent, #8a5a2b); color: var(--app-accent, #8a5a2b); }
+.ai-usage-page :is(.ai-plan-summary, .ai-quota-note) { margin: 8px 0; color: var(--app-muted, #887e74); font-size: 13px; }
+.ai-usage-page .ai-usage-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--app-border, #e8e1d7); }
+.ai-usage-page .ai-usage-section h3 { margin: 0 0 12px; font-size: 15px; }
+.ai-usage-page .ai-price-list { margin: 0 0 12px; }
+.ai-usage-page .ai-price-list li { padding: 11px 0; flex-wrap: wrap; }
+.ai-usage-page .ai-price-list strong { font-size: 13px; font-weight: 600; }
+.ai-usage-page .muted { color: var(--app-muted, #887e74); line-height: 1.8; }
+.ai-usage-page .ai-usage-table { border: 1px solid var(--app-border, #e8e1d7); border-radius: 8px; font-size: 13px; }
+.ai-usage-page .ai-usage-table th { background: var(--app-surface-soft, #f7f3ed); color: var(--app-muted, #887e74); font-weight: 600; }
+.ai-usage-page .ai-usage-table tr:last-child td { border-bottom: 0; }
+.ai-usage-page .ai-usage-empty { margin: 0; padding: 18px; border-radius: 8px; background: var(--app-surface-soft, #f7f3ed); color: var(--app-muted, #887e74); font-size: 13px; }
+.ai-usage-page .ai-usage-error { padding: 12px 14px; border-radius: 8px; color: var(--app-danger, #b02d2d); background: var(--app-danger-soft, #fff0ed); }
+@media (max-width: 600px) {
+  .ai-account-card { flex-wrap: wrap; padding: 16px; gap: 12px; }
+  .ai-usage-page .ai-quota-cards { grid-template-columns: 1fr; }
+  .ai-usage-page .ai-quota-cards > div { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; }
+  .ai-usage-page .ai-quota-cards strong { font-size: 22px; }
+}

@@ -357,12 +357,12 @@
 }
 
 /* 着法质量颜色 */
-.move-blunder { background: #ffebee !important; }
-.move-mistake { background: #fff3e0 !important; }
-.move-inaccuracy { background: #fffde7 !important; }
+.move-blunder { background: var(--app-danger-soft, #ffebee) !important; }
+.move-mistake { background: var(--app-warning-soft, #fff3e0) !important; }
+.move-inaccuracy { background: var(--app-warning-soft, #fffde7) !important; }
 .move-item.active.move-blunder,
 .move-item.active.move-mistake,
-.move-item.active.move-inaccuracy { background: #8a5a2b !important; color: #fff; }
+.move-item.active.move-inaccuracy { background: var(--app-accent, #8a5a2b) !important; color: var(--app-on-accent, #fff); }
 
 /* 分析按钮 */
 .btn-analyze {
