@@ -1,7 +1,7 @@
 import React from "react";
 import { useNativePackageInstaller, NativeInstallProgress, NativePackageDetails } from "./NativePackageInstaller";
 import { nativeInstallationProfile } from "../../domain/xiangqi/engine/nativeInstallationProfile";
-import { activateNativeEngine } from "../../domain/xiangqi/engine/activateNativeEngine";
+import { activateNativeEngine, verifyNativeEngineReadiness } from "../../domain/xiangqi/engine/activateNativeEngine";
 import { getNativeEngineProfile, saveNativeEngineProfile, removeNativeEngineProfile } from "../../domain/xiangqi/engine/TauriEngineAdapter";
 import { openNativeEngineFolder } from "../../platform/nativeEngineInstaller";
 import { runtime, supportsNativeEngine } from "../../platform/runtime";
@@ -11,12 +11,15 @@ import "./native-engine-settings.css";
 const filename = (path) => path?.split(/[\\/]/).pop() || "本地引擎";
 
 export default function NativeEngineSettings({ manager, onReady, variant = "xiangqi" }) {
-  const [profile, setProfile] = React.useState(() => getNativeEngineProfile(variant));
+  const [profile, setProfile] = React.useState(() => {
+    const saved = getNativeEngineProfile(variant);
+    return saved?.path ? saved : null;
+  });
   const [threads, setThreads] = React.useState(() => profile?.threads || 2);
   const [hashMb, setHashMb] = React.useState(() => profile?.hashMb || 256);
-  const [ready, setReady] = React.useState(false);
+  const [ready, setReady] = React.useState(null);
   const [changing, setChanging] = React.useState(false);
-  const [checking, setChecking] = React.useState(false);
+  const [checking, setChecking] = React.useState(Boolean(profile));
   const [importing, setImporting] = React.useState(false);
   const [candidate, setCandidate] = React.useState(null);
   const [message, setMessage] = React.useState(null);
@@ -24,6 +27,22 @@ export default function NativeEngineSettings({ manager, onReady, variant = "xian
   const epoch = React.useRef(0);
   const running = React.useRef(false);
   React.useEffect(() => () => { epoch.current++; }, []);
+  React.useEffect(() => {
+    if (!profile || !supportsNativeEngine(runtime)) return;
+    const current = epoch.current;
+    const active = () => current === epoch.current;
+    setChecking(true);
+    verifyNativeEngineReadiness({ manager, isCurrent: active }).then(() => {
+      if (!active()) return;
+      setReady(true);
+      onReady?.(true, "native");
+    }).catch((error) => {
+      if (!active()) return;
+      setReady(false);
+      setMessage({ error: true, summary: "已找到引擎配置，但检测未通过。可重试检测；若程序已移动或删除，可重新选择文件或安装。", detail: String(error.message || error) });
+      onReady?.(false, null);
+    }).finally(() => { if (active()) setChecking(false); });
+  }, [manager, variant]);
   React.useEffect(() => {
     let active = true;
     if (supportsNativeEngine(runtime)) import("@tauri-apps/api/core").then(({ invoke }) => invoke("platform_info")).then((value) => active && setPlatform(value)).catch(() => {});
@@ -95,16 +114,16 @@ export default function NativeEngineSettings({ manager, onReady, variant = "xian
     <section className="engine-main-card" aria-label="本地引擎设置" aria-busy={busy}>
       <div className={`engine-main-icon${ready && !showSetup ? " is-ready" : ""}`} aria-hidden="true">{ready && !showSetup ? "✓" : "棋"}</div>
       <div className="engine-main-content">
-        <h3>{showSetup ? "让电脑帮你分析棋局" : ready ? `${variant === "jieqi" ? "揭棋" : "象棋"}引擎已就绪` : "已配置引擎，等待检测"}</h3>
-        <p className="engine-main-description">{showSetup ? variant === "jieqi" ? "安装揭棋专用引擎，用于暗子局面的对弈和分析。" : "安装象棋引擎，用于人机对弈、局面评分和走法提示。" : ready ? "可用于人机对弈、棋局分析和走法提示。" : "检测通过后，即可在这台电脑上使用。"}</p>
+        <h3>{showSetup ? "让电脑帮你分析棋局" : ready ? `${variant === "jieqi" ? "揭棋" : "象棋"}引擎已就绪` : checking ? "正在确认已配置的引擎" : ready === false ? "引擎检测未通过" : "引擎配置已保存在本机"}</h3>
+        <p className="engine-main-description">{showSetup ? variant === "jieqi" ? "安装揭棋专用引擎，用于暗子局面的对弈和分析。" : "安装象棋引擎，用于人机对弈、局面评分和走法提示。" : ready ? "可直接用于对弈和棋局分析，无需重复下载。" : checking ? "正在自动检测这台电脑上的引擎，无需重新下载。" : "原配置已保留，请查看下方提示。"}</p>
         {!showSetup && <dl className="engine-current-info"><div><dt>当前引擎</dt><dd>{name}</dd></div><div><dt>安装位置</dt><dd>{managed ? "由棋岛管理" : "自定义位置"}<button type="button" className="engine-text-button" onClick={openFolder}>打开文件夹</button></dd></div></dl>}
-        {installer.busy ? <NativeInstallProgress progress={installer.progress} onCancel={installer.cancel} /> : checking ? <NativeInstallProgress progress={{ phase: "testing" }} /> : <>
+        {installer.busy ? <NativeInstallProgress progress={installer.progress} onCancel={installer.cancel} /> : checking ? <NativeInstallProgress progress={{ phase: ready === null && !importing ? "checking-saved" : "testing" }} /> : <>
           <div className="engine-main-actions">
             {showSetup ? <>
               {platform?.os === "windows" && <button type="button" className="native-install-primary" disabled={!selected?.publicDownload || !installer.info} onClick={() => installer.run("download")}>{!installer.info ? "正在查找适配版本…" : selected?.publicDownload ? installer.error ? "重试下载" : "下载并安装" : "暂无适配的在线安装包"}</button>}
               <button type="button" onClick={openImport}>已有文件，手动导入</button>
               {profile && <button type="button" className="engine-text-button" onClick={() => { setChanging(false); installer.clearMessages(); }}>返回当前引擎</button>}
-            </> : <><button type="button" className={ready ? "" : "native-install-primary"} onClick={() => enable()}>{ready ? "重新检测" : "检测并启用"}</button><button type="button" className="engine-text-button" onClick={() => setChanging(true)}>更换引擎</button></>}
+            </> : <><button type="button" className={ready ? "" : "native-install-primary"} onClick={() => enable()}>{ready === false ? "重试检测" : "重新检测"}</button><button type="button" className="engine-text-button" onClick={() => setChanging(true)}>{ready === false ? "重新下载或导入" : "更换引擎"}</button></>}
           </div>
           {showSetup && <p className="engine-fine-print">{selected?.publicDownload ? `已为这台电脑选择适配版本 · 约 ${(selected.size / 1048576).toFixed(1)} MB · 无需登录` : "已有引擎可直接导入，启用成功后再替换当前配置。"}</p>}
         </>}

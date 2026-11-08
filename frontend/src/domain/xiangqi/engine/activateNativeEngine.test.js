@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activateNativeEngine } from "./activateNativeEngine.js";
+import { activateNativeEngine, verifyNativeEngineReadiness } from "./activateNativeEngine.js";
 
 function harness(previous, kinds) {
   let saved = previous;
@@ -13,6 +13,42 @@ function harness(previous, kinds) {
     saved: () => saved, disposed: () => disposed,
   };
 }
+
+test("自动检测原生引擎不重写配置或重启已就绪的引擎", async () => {
+  const previous = { path: "installed.exe", nnuePath: "installed.nnue", threads: 4 };
+  const h = harness(previous, ["native", "remote"]);
+  assert.equal(await verifyNativeEngineReadiness(h.options), true);
+  assert.equal(h.saved(), previous);
+  assert.equal(h.disposed(), 0);
+});
+
+test("自动检测失败保留原生配置，云端可用也不能显示本地就绪", async () => {
+  const previous = { path: "missing.exe" };
+  const h = harness(previous, ["remote"]);
+  await assert.rejects(verifyNativeEngineReadiness(h.options), /CPU 不兼容/);
+  assert.equal(h.saved(), previous);
+  assert.equal(h.disposed(), 0);
+});
+
+test("切换设置后丢弃迟到的检测结果，后续启用等待检测结束", async () => {
+  const h = harness({ path: "old.exe" }, ["native"]);
+  let current = true;
+  let release, entered;
+  const started = new Promise((resolve) => { entered = resolve; });
+  const pending = new Promise((resolve) => { release = resolve; });
+  const checking = verifyNativeEngineReadiness({ manager: { availableKinds: async () => { entered(); await pending; return ["native"]; } }, isCurrent: () => current });
+  await started;
+  current = false;
+  const next = activateNativeEngine({ path: "next.exe" }, h.options);
+  assert.equal(h.saved().path, "old.exe");
+  release();
+  await assert.rejects(checking, /已取消/);
+  await next;
+  assert.equal(h.saved().path, "next.exe");
+  const disposed = h.disposed();
+  await assert.rejects(verifyNativeEngineReadiness({ ...h.options, isCurrent: () => false }), /已取消/);
+  assert.equal(h.disposed(), disposed);
+});
 
 test("启用成功后保存象棋变体和无权重选项", async () => {
   const h = harness(null, ["native", "remote"]);
