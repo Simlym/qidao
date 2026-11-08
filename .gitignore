@@ -39,6 +39,7 @@ scripts/setup/
 # misc
 .DS_Store
 .claude/
+.codex-remote-attachments/
 
 # 独立原生安装器测试产物
 src-tauri/engine-installer/target/

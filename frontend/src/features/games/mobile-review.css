@@ -1,0 +1,34 @@
+.app-web .mobile-games-list { display: block; }
+.move-round > .move-item { border: 0; background: transparent; color: inherit; text-align: left; }
+.move-round > .move-item.active { background: #8a5a2b; color: #fff; }
+.move-round > .move-item:focus-visible { outline: 2px solid var(--app-accent, #9f432f); outline-offset: 1px; }
+.app-web .mobile-games-list .games-review-panel { display: none; }
+.app-web .mobile-games-list .games-list-panel { width: 100%; background: transparent; box-shadow: none; overflow: visible; }
+.mobile-games-list .games-list-header { padding: 14px 0; border: 0; }
+.mobile-games-list .games-list-title { font-size: 20px; color: var(--app-text, #423b34); }
+.mobile-games-search { display: grid; gap: 10px; margin-bottom: 16px; }
+.mobile-games-search input { width: 100%; min-height: 46px; padding: 12px 14px; border: 1px solid var(--app-border, #e5ddd3); border-radius: 12px; color: var(--app-text, #423b34); background: var(--app-surface, #fffdf9); font: inherit; }
+.mobile-games-search > span { color: var(--app-muted, #80766d); font-size: 12px; }
+.app-web .mobile-games-list .games-list-scroll { max-height: none; display: grid; gap: 12px; overflow: visible; }
+.mobile-games-list .game-item { padding: 14px; border: 1px solid var(--app-border, #e5ddd3); border-radius: 14px; background: var(--app-surface, #fffdf9); }
+.mobile-game-card-head { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px solid var(--app-border, #eee6dc); color: var(--app-muted, #80766d); font-size: 11px; }
+.mobile-games-list .game-item-players { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; font-size: 16px; }
+.mobile-games-list .game-item-players > span { overflow: hidden; text-overflow: ellipsis; }
+.mobile-games-list .game-item-players .game-black { text-align: right; color: var(--app-text, #423b34); }
+.mobile-games-list .game-item-meta { margin-top: 12px; }
+.mobile-games-list .game-delete-btn { display: none; }
+.mobile-games-list .games-list-footer { padding: 16px 0; border: 0; }
+.mobile-games-more { width: 100%; margin-top: 14px; }
+.app-web .mobile-game-toolbar.review-toolbar { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.review-loading { display: grid; place-content: center; gap: 16px; height: 100%; text-align: center; color: var(--app-muted, #80766d); }
+.review-loading button, .review-seek-actions button, .review-mistake-jumps button { min-height: 44px; padding: 10px 12px; border: 1px solid var(--app-border, #e5ddd3); border-radius: 9px; background: var(--app-surface-soft, #f7f3ed); color: var(--app-text, #423b34); font: inherit; font-size: 13px; }
+.review-seek-actions, .review-mistake-jumps { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.review-seek-actions > button { flex: 1; }
+.review-seek { display: grid; gap: 4px; margin: 16px 0; font-size: 13px; }
+.review-seek input { width: 100%; min-height: 44px; accent-color: var(--app-accent, #9f432f); }
+.review-play .review-moves-list { max-height: none; }
+.review-play .move-item { min-height: 44px; }
+.review-play .mobile-game-heading { gap: 4px; padding-inline: 0; }
+.review-play .mobile-game-heading > strong { font-size: 14px; white-space: nowrap; }
+.review-play .mobile-game-heading > button { padding-inline: 6px; }
+.review-play .mobile-game-sheet .analysis-panel { margin-top: 12px; }

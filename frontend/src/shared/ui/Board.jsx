@@ -87,7 +87,7 @@ export default function Board({
   checkedSide = null, onScaleChange = null, fitContainerHeight = false,
   reservedBottomHeight = 0,
 }) {
-  const board = parsePosition(fen);
+  const board = React.useMemo(() => parsePosition(fen), [fen, parsePosition]);
   const appearance = useCosmeticPreferences();
   const [from, setFrom] = React.useState(null); // {row,col}
 

@@ -1,6 +1,7 @@
 import React from "react";
 
 import { uciToChinese } from "../../domain/xiangqi/xiangqi";
+import { jieqiMoveToChinese } from "../../domain/xiangqi/jieqi/rules";
 
 function moveQuality(moveData) {
   if (!moveData) return null;
@@ -14,13 +15,14 @@ export function MoveItem({ moveText, isActive, analysisEntry, onClick }) {
   const quality = moveQuality(analysisEntry);
   const qualityClass = quality && quality !== "best" ? ` move-${quality}` : "";
   return (
-    <span className={`move-item${isActive ? " active" : ""}${qualityClass}`} onClick={onClick}>
+    <button type="button" className={`move-item${isActive ? " active" : ""}${qualityClass}`} onClick={onClick} aria-current={isActive ? "step" : undefined}>
       {moveText}
-    </span>
+    </button>
   );
 }
 
-export function AnalysisPanel({ summary, moveAnalysis, stepIndex, preFen, onNavigateToTrain }) {
+export function AnalysisPanel({ summary, moveAnalysis, stepIndex, preFen, onNavigateToTrain, variant = "xiangqi" }) {
+  const notation = variant === "jieqi" ? jieqiMoveToChinese : uciToChinese;
   const badgeInfo = moveAnalysis
     ? moveAnalysis.is_blunder
       ? { text: "严重失误", color: "#c0392b", bg: "#ffebee" }
@@ -46,9 +48,9 @@ export function AnalysisPanel({ summary, moveAnalysis, stepIndex, preFen, onNavi
             {badgeInfo && <span className="analysis-badge" style={{ color: badgeInfo.color, background: badgeInfo.bg }}>{badgeInfo.text}</span>}
           </div>
           <div className="analysis-moves-row">
-            <span>实际走法：<strong>{preFen ? uciToChinese(preFen, moveAnalysis.move_played) : moveAnalysis.move_played}</strong></span>
+            <span>实际走法：<strong>{preFen ? notation(preFen, moveAnalysis.move_played) : moveAnalysis.move_played}</strong></span>
             <span className="analysis-arrow">→</span>
-            <span>最优走法：<strong>{preFen ? uciToChinese(preFen, moveAnalysis.best_move) : moveAnalysis.best_move}</strong></span>
+            <span>最优走法：<strong>{preFen && moveAnalysis.best_move ? notation(preFen, moveAnalysis.best_move) : moveAnalysis.best_move || "—"}</strong></span>
           </div>
           {evalDrop !== null && <div className="analysis-eval-drop muted">失分：约 {evalDrop} 个子</div>}
           {moveAnalysis.explanation && <div className="analysis-explanation">{moveAnalysis.explanation}</div>}

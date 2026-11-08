@@ -299,6 +299,19 @@ export default function JieqiPlay({ onOpenSettings }) {
   const { requestExit: restart, exitDialog } = useGameExit({ active: Boolean(fen), finished: Boolean(winner), onExit: leaveGame });
   useBackAction(() => { setPendingFlip(null); return true; }, { enabled: Boolean(pendingFlip), priority: 200 });
 
+  // 面板切换和分析流更新不改变局面，避免重复生成整盘合法着法与棋谱。
+  const currentStatus = React.useMemo(() => fen ? jieqiStatus(fen) : null, [fen]);
+  const notationPairs = React.useMemo(() => {
+    const texts = moves.map((move, index) =>
+      jieqiMoveToChinese(positionsRef.current[index] || JIEQI_INITIAL_FEN, move)
+    );
+    const pairs = [];
+    for (let index = 0; index < texts.length; index += 2) {
+      pairs.push([texts[index], texts[index + 1] || ""]);
+    }
+    return pairs;
+  }, [moves]);
+
   if (!fen) {
     return (
       <JieqiSetup
@@ -346,7 +359,6 @@ export default function JieqiPlay({ onOpenSettings }) {
   }
 
   const currentSide = parseJieqiFen(fen).side;
-  const currentStatus = jieqiStatus(fen);
   const inCheck = currentStatus === "check";
   const currentTurnText = resignedSide
     ? gameMode === "free" ? `${resignedSide === "w" ? "红方" : "黑方"}认输，${resignedSide === "w" ? "黑方" : "红方"}获胜` : "你已认输，本局结束"
@@ -367,13 +379,6 @@ export default function JieqiPlay({ onOpenSettings }) {
   const levelLabel = LEVELS.find((item) => item.key === level)?.label;
   const evalInfo = describeJieqiEval(analysisData);
   const canUndo = !resignedSide && (moves.length > initialPlyRef.current || Boolean(pendingFlip));
-  const notationTexts = moves.map((move, index) =>
-    jieqiMoveToChinese(positionsRef.current[index] || JIEQI_INITIAL_FEN, move)
-  );
-  const notationPairs = [];
-  for (let index = 0; index < notationTexts.length; index += 2) {
-    notationPairs.push([notationTexts[index], notationTexts[index + 1] || ""]);
-  }
   const analysisIsCurrent = analysisPosition === fen;
   const bestMoveText = analysisData?.bestMove
     ? jieqiMoveToChinese(analysisPosition || fen, analysisData.bestMove)

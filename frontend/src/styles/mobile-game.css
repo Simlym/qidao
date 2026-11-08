@@ -42,6 +42,11 @@ html:has(.mobile-game) { scrollbar-gutter: auto; }
 .mobile-board-space { min-width: 0; min-height: 0; }
 .app-web .mobile-game .play-board-area { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; padding: 0; overflow: hidden; }
 .mobile-game .xq-board-measure { display: grid; place-items: center; flex: 1; width: 100%; height: 100%; min-height: 0; }
+/* 阴影只绘制静态底板，避免安卓 WebView 在走子时重绘整盘滤镜。 */
+.mobile-game .xq-board { filter: none; }
+.mobile-game .xq-lines { filter: var(--xq-board-shadow); }
+/* 选中光晕已有独立标记，不再对 SVG 棋子叠加并动画化多层滤镜。 */
+.mobile-game .xq-piece.image.selected:not(.in-check) { filter: none; transition: transform .14s ease-out; }
 .app-web .mobile-game .mobile-jieqi-board-core { flex: 1; height: auto; }
 .mobile-game .jieqi-pool-strip { flex: 0 0 35px; margin-block: 2px; }
 .app-web .mobile-game-toolbar { position: static; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px; border-top: 1px solid var(--app-border, #e5ddd3); background: var(--app-surface, #fffdf9); border-radius: 14px 14px 0 0; }
