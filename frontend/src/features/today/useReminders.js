@@ -1,6 +1,7 @@
 import React from "react";
 import { getOverview } from "../../shared/api";
 import { serverStorageKey } from "../../shared/api/session.js";
+import { setupServiceWorker } from "../../platform/serviceWorker.js";
 
 // 到期复习提醒（MVP：本地通知 + 顶部横幅）。
 // 真正的服务端推送（Web Push / 微信模板消息）属于后续步骤，这里先用浏览器
@@ -15,9 +16,7 @@ function today() {
 
 // 注册 service worker，使站点可「安装到桌面/主屏」（PWA），失败静默。
 export function registerSW() {
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
-  }
+  return setupServiceWorker().catch(() => {});
 }
 
 function notify(due, streak) {

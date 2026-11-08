@@ -260,6 +260,24 @@ fn kill_engine(state: tauri::State<'_, Mutex<EngineProcess>>) -> Result<(), Stri
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let context = tauri::generate_context!();
+    #[cfg(all(not(mobile), not(debug_assertions)))]
+    let context = {
+        use std::hash::{Hash, Hasher};
+        // 发布入口带前端内容版本，防止 WebView 沿用旧 HTML 引用已移除的脚本。
+        // 只改变入口 URL，不改变应用来源和用户数据目录。
+        let mut context = context;
+        let mut version = std::collections::hash_map::DefaultHasher::new();
+        include_bytes!("../../frontend/dist-tauri/index.html").hash(&mut version);
+        for window in &mut context.config_mut().app.windows {
+            if window.label == "main" {
+                window.url = tauri::WebviewUrl::App(
+                    format!("index.html?build={:x}", version.finish()).into(),
+                );
+            }
+        }
+        context
+    };
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(Mutex::new(EngineProcess::default()));
@@ -295,6 +313,6 @@ pub fn run() {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("启动棋岛 QiDao失败");
 }

@@ -155,6 +155,11 @@ npm run tauri android build -- --aab
 
 服务器通常需要允许 `https://tauri.localhost`；以实际 WebView 的 Origin 为准。前端构建通过不等于设备安装、签名和兼容性验证通过。
 
+安卓系统返回键和返回手势由 `src-tauri/android/MainActivity.kt` 接管，先发送可取消的
+`qidao:back` 页面事件：关闭顶层弹窗或面板 → 对局中确认退出本局（终局直接返回准备页）
+→ 其他页面回到首页。页面未消费事件时，原生层才弹出退出应用确认。
+不要直接修改 `gen/android/` 下的入口；`build.rs` 会在编译时同步受版本管理的安卓源码。
+
 ### 发布签名
 
 release APK 需要签名才能安装。一次性生成并备份仓库外的 keystore：

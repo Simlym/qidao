@@ -17,6 +17,7 @@ export function usePlayAssistance({
   const [coachLoading, setCoachLoading] = React.useState(false);
   const hintEpoch = React.useRef(null);
   const coachEpoch = React.useRef(null);
+  const hintSearch = React.useRef(null);
   if (!hintEpoch.current) hintEpoch.current = createGameEpoch();
   if (!coachEpoch.current) coachEpoch.current = createGameEpoch();
 
@@ -35,15 +36,18 @@ export function usePlayAssistance({
   }, [showBook, fen, thinking, over]);
 
   React.useEffect(() => {
+    hintSearch.current?.stop();
+    hintSearch.current = null;
     hintEpoch.current.invalidate();
     coachEpoch.current.invalidate();
     setHint(null);
     setCoach(null);
     setHintLoading(false);
     setCoachLoading(false);
-  }, [fen]);
+  }, [fen, over]);
 
   React.useEffect(() => () => {
+    hintSearch.current?.stop();
     hintEpoch.current.invalidate();
     coachEpoch.current.invalidate();
   }, []);
@@ -57,7 +61,9 @@ export function usePlayAssistance({
       let source = "";
       if (localReady) {
         try {
-          const data = await engine.evaluate(fen, { depth: 14 }, { onlyKinds: [localRuntime] });
+          const session = engine.startAnalysis(fen, { depth: 14 }, { onlyKinds: [localRuntime] });
+          hintSearch.current = session;
+          const data = await session.result;
           move = data.bestMove;
           source = "本地引擎";
         } catch { /* 降级到服务器，保留云库优先策略 */ }

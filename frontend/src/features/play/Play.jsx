@@ -1,6 +1,9 @@
 import React from "react";
 import Board from "../../shared/ui/Board";
 import { useWideWebLayout } from "../../shared/hooks/useWideWebLayout";
+import { useMobilePlayLayout } from "../../shared/hooks/useMobilePlayLayout";
+import MobileGameLayout from "./components/MobileGameLayout";
+import ResignButton from "./components/ResignButton";
 import LocalGameLibrary from "./components/LocalGameLibrary";
 import PlaySetup from "./components/PlaySetup";
 import MoveHistory from "./components/MoveHistory";
@@ -20,6 +23,7 @@ import { LEVELS, capturedPieces, describeEval, fmtDuration } from "./model";
 import { usePlayGame } from "./hooks/usePlayGame";
 import { usePlayAnalysis } from "./hooks/usePlayAnalysis";
 import { usePlayAssistance } from "./hooks/usePlayAssistance";
+import { useGameExit } from "./hooks/useGameExit";
 
 // 当前为 Web：WASM 优先，失败后自动降级 FastAPI。
 // Tauri 接入后只在工厂中增加原生适配器，页面无需出现平台分支。
@@ -28,20 +32,23 @@ const positionEngine = createEngineManager({ remoteEvaluate: evalPosition, remot
 export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogin, onOpenSettings }) {
   const isDesktop = usesDesktopLayout(runtime);
   const wideWeb = useWideWebLayout(runtime);
+  const mobile = useMobilePlayLayout();
+  const [mobilePanel, setMobilePanel] = React.useState(null);
   const {
     fen, legalMoves, lastMove, yourTurn, thinking, over,
     level, setLevel, humanSide, setHumanSide, status, saved, savedGameId, canUndo,
     engineInfo, startError, moveError, localReady, localRuntime,
     moveLog, timesLog, overDismissed, setOverDismissed,
-    start, restart, onMove, undo, restore, localNotice,
+    start, restart: leaveGame, resign, onMove, undo, restore, localNotice,
   } = usePlayGame({ engine: positionEngine, onCreditsChanged });
+  const { requestExit: restart, exitDialog } = useGameExit({ active: Boolean(fen), finished: Boolean(over), onExit: leaveGame, savedLocally: true });
   const {
     showEval, setShowEval, evalData, evalLoading,
     analysisMode, setAnalysisMode, analysisTime, setAnalysisTime,
     analysisDepth, setAnalysisDepth, analysisMultiPv, setAnalysisMultiPv,
     analysisSearchMoves, setAnalysisSearchMoves,
   } = usePlayAnalysis({
-    engine: positionEngine, fen, thinking, localRuntime, localReady,
+    engine: positionEngine, fen, thinking: thinking || Boolean(over), localRuntime, localReady,
   });
   const [inspectorTab, setInspectorTab] = React.useState("moves");
   const {
@@ -50,13 +57,14 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   } = usePlayAssistance({
     fen, thinking, over, yourTurn, localReady, localRuntime, engine: positionEngine,
     isDesktop, user, onRequireLogin, onCreditsChanged,
-    onShowAnalysis: () => setInspectorTab("analysis"),
+    onShowAnalysis: () => { setInspectorTab("analysis"); if (mobile) setMobilePanel("analysis"); },
   });
   const [fenCopied, setFenCopied] = React.useState(false);
   const [muted, setMuted] = React.useState(soundMuted);
   const [soundKey, setSoundKey] = React.useState(soundTheme);
   const logRef = React.useRef(null);                  // 棋谱滚动容器
   const keysRef = React.useRef({});                   // 键盘快捷键的最新处理函数
+  React.useEffect(() => { if (!fen) setMobilePanel(null); }, [fen]);
 
   // 新着法出现时棋谱自动滚到最底部，最新一着始终可见
   React.useEffect(() => {
@@ -126,7 +134,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   }
 
   const winnerText = over
-    ? over.winner === "human"
+    ? over.status === "resigned" ? "你已认输，本局结束" : over.winner === "human"
       ? "🎉 你赢了！"
       : over.winner === "engine"
       ? "引擎获胜，再接再厉"
@@ -148,8 +156,42 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   const evalInfo = describeEval(evalData || {}, humanSide);
   const useSideLayout = isDesktop || wideWeb;
 
+  if (mobile) return <MobileGameLayout
+    variant="xiangqi" title="象棋对弈" status={moveError ? "走棋失败，请在菜单查看详情" : currentTurnText} moveCount={moveLog.length}
+    opponent={{ mark: "机", name: "电脑", side: humanSide === "w" ? "black" : "red", detail: LEVELS.find((item) => item.key === level)?.label }}
+    self={{ mark: "我", name: user?.username || "你", side: humanSide === "w" ? "red" : "black", detail: humanSide === "w" ? "执红先行" : "执黑后行" }}
+    panel={mobilePanel} onPanelChange={setMobilePanel}
+    onUndo={undo} canUndo={canUndo && !thinking && !over}
+    onHint={() => { setMobilePanel("analysis"); requestHint(); }} canHint={yourTurn && !thinking && !over && !hintLoading} hintLoading={hintLoading}
+    menu={<div className="mobile-menu-actions">
+      <ResignButton disabled={Boolean(over)} onResign={() => { setMobilePanel(null); resign(); }} />
+      <button onClick={() => { setMobilePanel(null); restart(); }}>返回对弈准备</button>
+      <button onClick={() => { setMobilePanel(null); start(humanSide, level); }} disabled={!over}>再来一盘</button>
+      <button onClick={cycleSound}>{muted ? "音效：已静音" : `音效：${soundThemeLabel(soundKey)}`}</button>
+      <button onClick={copyFen}>{fenCopied ? "局面已复制" : "复制局面"}</button>
+      {over && <button onClick={() => { setMobilePanel(null); setOverDismissed(false); }}>查看结果</button>}
+      <p role="status">{localNotice}</p>
+      {moveError && <p role="alert">{moveError}</p>}
+    </div>}
+    history={<><MoveHistory moveLog={moveLog} timesLog={timesLog} logRef={logRef} />{!moveLog.length && <p className="muted">走子后将在这里记录棋谱。</p>}<CapturedPieces capt={capt} /></>}
+    analysis={<>
+      <div className="mobile-analysis-actions"><button disabled={Boolean(over)} onClick={() => setShowEval((value) => !value)}>{showEval ? "停止评分" : "开启评分"}</button><button onClick={() => setShowBook((value) => !value)}>{showBook ? "收起云库" : "查看云库"}</button></div>
+      {showEval && <><p>{evalLoading ? "分析中…" : `${evalInfo.label} ${evalInfo.value}`}</p><EngineAnalysisView fen={fen} data={evalData} loading={evalLoading} log={positionEngine.getLog()} /></>}
+      {hintLoading && <p role="status">正在寻找推荐着法…</p>}
+      {hint && <div className="hint-strip"><strong>推荐：{hint.text}</strong><p className="muted">{hint.source}</p><button onClick={requestCoach} disabled={coachLoading}>{coachLoading ? "讲解中…" : "AI 讲解"}</button>{coach?.text && <div className="analysis-explanation">{coach.text}</div>}{coach?.error && <p>{coach.error}</p>}</div>}
+      {showBook && <div className="book-moves">{bookLoading ? "云库查询中…" : bookData?.moves?.length ? bookData.moves.slice(0, 8).map((item) => <button className="book-move" key={item.uci} disabled={!yourTurn || thinking || Boolean(over) || !legalMoves.includes(item.uci)} onClick={() => { setMobilePanel(null); onMove(item.uci); }}>{uciToChinese(fen, item.uci)}</button>) : "云库暂无可用着法"}</div>}
+      {!showEval && !showBook && !hint && !hintLoading && <p className="muted">开启评分或点击提示查看当前局面分析。</p>}
+      {moveError && <p role="alert">{moveError}</p>}
+    </>}
+  >
+    {exitDialog}
+    <Board fen={fen} onMove={onMove} lastMove={lastMove} disabled={!yourTurn || thinking || Boolean(over)} legalMoves={over ? [] : legalMoves} hintMove={hint?.move || null} flipped={humanSide === "b"} fitContainerHeight />
+    <ResultOverlay localNotice={localNotice} over={over} overDismissed={overDismissed} winnerText={winnerText} moveLog={moveLog} totalMs={totalMs} saved={saved} savedGameId={savedGameId} onGoReview={onGoReview} onDismiss={() => setOverDismissed(true)} onExit={leaveGame} onRestart={() => start(humanSide, level)} />
+  </MobileGameLayout>;
+
   return (
     <div className="play xiangqi-play">
+      {exitDialog}
       {!useSideLayout && localNotice && <p role="status">{localNotice}</p>}
       {moveError && <div className="result bad" role="alert">{moveError}</div>}
       {/* 状态与操作分两行：状态文案变化（引擎思考中 ↔ 轮到你走）不再挤动按钮换行，棋盘不跳动 */}
@@ -178,6 +220,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
           </span>
         </div>
         <div className="play-actions">
+          <ResignButton disabled={Boolean(over)} onResign={resign} />
           <button
             className={"btn-newgame" + (showEval ? " active" : "")}
             onClick={() => setShowEval((v) => !v)}
@@ -369,6 +412,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
             savedGameId={savedGameId} onGoReview={onGoReview}
             onDismiss={() => setOverDismissed(true)}
             onRestart={() => start(humanSide, level)}
+            onExit={leaveGame}
           />
 
         </div>
@@ -525,6 +569,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
               </button>
               <button className="secondary" onClick={copyFen}>{fenCopied ? "已复制" : "复制局面"}</button>
               <button className="secondary danger" onClick={restart}>重新开局</button>
+              <ResignButton className="secondary danger" disabled={Boolean(over)} onResign={resign} />
               {over && overDismissed && (
                 <button className="wide" onClick={() => setOverDismissed(false)}>查看结果</button>
               )}

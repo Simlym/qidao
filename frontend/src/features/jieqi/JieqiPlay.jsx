@@ -1,6 +1,13 @@
 import React from "react";
 import Board from "../../shared/ui/Board";
 import { useWideWebLayout } from "../../shared/hooks/useWideWebLayout";
+import { useMobilePlayLayout } from "../../shared/hooks/useMobilePlayLayout";
+import MobileGameLayout from "../play/components/MobileGameLayout";
+import ResignButton from "../play/components/ResignButton";
+import ResultOverlay from "../play/components/ResultOverlay";
+import { useGameExit } from "../play/hooks/useGameExit";
+import { useBackAction } from "../../shared/hooks/useBackAction";
+import { createReplyPacer } from "../play/replyPacer";
 import JieqiSetup from "./components/JieqiSetup";
 import { createEngineManager } from "../../domain/xiangqi/engine/createEngineManager";
 import {
@@ -27,6 +34,10 @@ const jieqiEngine = createEngineManager({ variant: "jieqi", remoteEvaluate: eval
 export default function JieqiPlay({ onOpenSettings }) {
   const isDesktop = usesDesktopLayout(runtime);
   const wideWeb = useWideWebLayout(runtime);
+  const mobile = useMobilePlayLayout();
+  const [mobilePanel, setMobilePanel] = React.useState(null);
+  const [resignedSide, setResignedSide] = React.useState(null);
+  const [resultDismissed, setResultDismissed] = React.useState(false);
   const [fen, setFen] = React.useState(null);
   const [gameMode, setGameMode] = React.useState("human-ai");
   const [humanSide, setHumanSide] = React.useState("w");
@@ -57,6 +68,10 @@ export default function JieqiPlay({ onOpenSettings }) {
   const initialPlyRef = React.useRef(0);
   const turnReqId = React.useRef(0);
   const desktopMoveLogRef = React.useRef(null);
+  const turnSearch = React.useRef(null);
+  const replyPacer = React.useRef(null);
+  if (!replyPacer.current) replyPacer.current = createReplyPacer();
+  function stopTurn() { turnSearch.current?.stop(); turnSearch.current = null; replyPacer.current.cancel(); }
 
   React.useEffect(() => {
     let active = true;
@@ -69,7 +84,8 @@ export default function JieqiPlay({ onOpenSettings }) {
   }, []);
 
   // 离开揭棋页面后不允许已在运行的引擎请求继续更新旧组件。
-  React.useEffect(() => () => { turnReqId.current++; }, []);
+  React.useEffect(() => () => { turnReqId.current++; stopTurn(); }, []);
+  React.useEffect(() => { if (!fen) setMobilePanel(null); }, [fen]);
 
   const depth = LEVELS.find((item) => item.key === level)?.depth || 10;
 
@@ -81,7 +97,10 @@ export default function JieqiPlay({ onOpenSettings }) {
   async function engineTurn(position, side) {
     const engineSide = parseJieqiFen(position).side;
     const enginePosition = generateLimitedKnowledgeFen(position, engineSide);
-    const result = await jieqiEngine.evaluate(enginePosition, { depth });
+    stopTurn();
+    const session = jieqiEngine.startAnalysis(enginePosition, { depth });
+    turnSearch.current = session;
+    const result = await session.result;
     const legal = legalJieqiMoves(position);
     const baseMove = result.bestMove?.slice(0, 4);
     if (!baseMove || !legal.includes(baseMove)) throw new Error("揭棋引擎返回了不合法着法");
@@ -95,10 +114,13 @@ export default function JieqiPlay({ onOpenSettings }) {
   }
 
   async function start() {
+    stopTurn();
     const requestId = ++turnReqId.current;
     setThinking(gameMode === "human-ai");
     setError("");
     setWinner(null);
+    setResignedSide(null);
+    setResultDismissed(false);
     setMoves([]);
     setSaved(false);
     setPendingFlip(null);
@@ -239,11 +261,15 @@ export default function JieqiPlay({ onOpenSettings }) {
     }
 
     const requestId = ++turnReqId.current;
+    const movedAt = Date.now();
     setThinking(true);
     // 给 React 和浏览器一次绘制机会，避免本地引擎启动挤占落子这一帧。
     await new Promise((resolve) => setTimeout(resolve, 0));
+    if (requestId !== turnReqId.current) return;
     try {
       const reply = await engineTurn(afterHuman, "engine");
+      if (requestId !== turnReqId.current) return;
+      if (!await replyPacer.current.waitSince(movedAt)) return;
       if (requestId !== turnReqId.current) return;
       movesRef.current.push(reply.move);
       positionsRef.current.push(reply.fen);
@@ -262,6 +288,17 @@ export default function JieqiPlay({ onOpenSettings }) {
     }
   }
 
+  function leaveGame() {
+    turnReqId.current++;
+    stopTurn();
+    invalidateAnalysis();
+    setThinking(false);
+    setPendingFlip(null);
+    setFen(null);
+  }
+  const { requestExit: restart, exitDialog } = useGameExit({ active: Boolean(fen), finished: Boolean(winner), onExit: leaveGame });
+  useBackAction(() => { setPendingFlip(null); return true; }, { enabled: Boolean(pendingFlip), priority: 200 });
+
   if (!fen) {
     return (
       <JieqiSetup
@@ -274,7 +311,7 @@ export default function JieqiPlay({ onOpenSettings }) {
   }
 
   function undo() {
-    if (thinking) return;
+    if (thinking || resignedSide) return;
     if (pendingFlip) {
       setPendingFlip(null);
       return;
@@ -291,6 +328,7 @@ export default function JieqiPlay({ onOpenSettings }) {
     }
 
     invalidateAnalysis();
+    stopTurn();
     turnReqId.current++;
     const restoredFen = positionsRef.current[targetPly];
     movesRef.current = movesRef.current.slice(0, targetPly);
@@ -300,6 +338,7 @@ export default function JieqiPlay({ onOpenSettings }) {
     setLastMove(movesRef.current.at(-1) || null);
     setLegalMoves(legalJieqiMoves(restoredFen));
     setWinner(null);
+    setResultDismissed(false);
     setSaved(false);
     setError("");
     setAnalysisError("");
@@ -309,7 +348,9 @@ export default function JieqiPlay({ onOpenSettings }) {
   const currentSide = parseJieqiFen(fen).side;
   const currentStatus = jieqiStatus(fen);
   const inCheck = currentStatus === "check";
-  const currentTurnText = gameMode === "free"
+  const currentTurnText = resignedSide
+    ? gameMode === "free" ? `${resignedSide === "w" ? "红方" : "黑方"}认输，${resignedSide === "w" ? "黑方" : "红方"}获胜` : "你已认输，本局结束"
+    : gameMode === "free"
     ? winner
       ? winner === "draw" ? "和棋" : winner === "w" ? "红方获胜" : "黑方获胜"
       : pendingFlip
@@ -325,7 +366,7 @@ export default function JieqiPlay({ onOpenSettings }) {
     : "揭棋云端引擎";
   const levelLabel = LEVELS.find((item) => item.key === level)?.label;
   const evalInfo = describeJieqiEval(analysisData);
-  const canUndo = moves.length > initialPlyRef.current || Boolean(pendingFlip);
+  const canUndo = !resignedSide && (moves.length > initialPlyRef.current || Boolean(pendingFlip));
   const notationTexts = moves.map((move, index) =>
     jieqiMoveToChinese(positionsRef.current[index] || JIEQI_INITIAL_FEN, move)
   );
@@ -344,30 +385,70 @@ export default function JieqiPlay({ onOpenSettings }) {
     : "云端揭棋引擎";
   const useSideLayout = isDesktop || wideWeb;
 
+  function resign() {
+    if (winner) return;
+    turnReqId.current++;
+    stopTurn();
+    invalidateAnalysis();
+    setThinking(false);
+    setPendingFlip(null);
+    setLegalMoves([]);
+    setResignedSide(gameMode === "free" ? currentSide : humanSide);
+    const finalWinner = gameMode === "free" ? currentSide === "w" ? "b" : "w" : "engine";
+    setWinner(finalWinner);
+    setError("");
+    saveGame(finalWinner);
+  }
+
+  const resultOverlay = <ResultOverlay
+    over={winner ? { winner, status: resignedSide ? "resigned" : currentStatus } : null}
+    overDismissed={resultDismissed} winnerText={currentTurnText} moveLog={moves} totalMs={0}
+    localNotice={saved ? "棋局已存入复盘。" : moves.length ? "棋局未同步时请保持网络连接。" : "本局未走子，不生成棋谱。"}
+    saved={saved} onDismiss={() => setResultDismissed(true)} onExit={leaveGame} onRestart={start}
+  />;
+
+  const flipDialog = pendingFlip && <div className="jieqi-flip-overlay" role="dialog" aria-modal="true" aria-label="翻子提示">
+    <div className="panel jieqi-flip-dialog"><strong>请选择要翻开的棋子</strong><p>{pendingFlip.side === "w" ? "红方" : "黑方"}暗子池</p>
+      <div className="jieqi-flip-choices">{pendingFlip.choices.map((item) => <button key={item.piece} className={pendingFlip.side === "w" ? "red" : "black"} onClick={() => commitFreeMove(pendingFlip.move, item.piece)} aria-label={`${item.glyph}，剩余 ${item.count} 枚`}><span>{item.glyph}</span><small>×{item.count}</small></button>)}</div>
+      <button className="btn-newgame" onClick={randomPendingFlip}>随机翻开</button>
+    </div>
+  </div>;
+
+  if (mobile) return <MobileGameLayout
+    variant="jieqi" title={gameMode === "free" ? "揭棋 · 自由翻子" : "揭棋对弈"} status={error || currentTurnText} moveCount={moves.length}
+    opponent={{ mark: boardFlipped ? "红" : "黑", side: boardFlipped ? "red" : "black", name: gameMode === "free" ? boardFlipped ? "红方" : "黑方" : (boardFlipped ? "w" : "b") === humanSide ? "你" : "电脑", detail: gameMode === "free" ? "自由翻子" : levelLabel }}
+    self={{ mark: boardFlipped ? "黑" : "红", side: boardFlipped ? "black" : "red", name: gameMode === "free" ? boardFlipped ? "黑方" : "红方" : (boardFlipped ? "b" : "w") === humanSide ? "你" : "电脑", detail: winner ? saved ? "棋局已存入复盘" : moves.length ? "本局已结束" : "未走子，不生成棋谱" : "轻点棋子走棋" }}
+    panel={mobilePanel} onPanelChange={setMobilePanel} onUndo={undo} canUndo={canUndo && !thinking && !winner}
+    onHint={() => { setMobilePanel("analysis"); setShowHint(true); if (!analysisData && !winner) analyzeFreePosition(fen); }} canHint={gameMode === "free" && !winner && !pendingFlip && !analysisLoading} hintLoading={analysisLoading}
+    menu={<div className="mobile-menu-actions">
+      <ResignButton label={gameMode === "free" ? `${currentSide === "w" ? "红方" : "黑方"}认输` : "认输"} disabled={Boolean(winner)} onResign={() => { setMobilePanel(null); resign(); }} />
+      <button onClick={() => { setMobilePanel(null); restart(); }}>返回对弈准备</button>
+      <button onClick={() => setBoardFlipped((value) => !value)}>翻转棋盘</button>
+      {winner && <button onClick={() => { setMobilePanel(null); start(); }}>再来一盘</button>}
+      {winner && <button onClick={() => { setMobilePanel(null); setResultDismissed(false); }}>查看结果</button>}
+      {error && <p role="alert">{error}</p>}
+    </div>}
+    history={<>{moves.length ? <ChineseMoveList pairs={notationPairs} /> : <p className="muted">走子后将在这里记录棋谱。</p>}</>}
+    analysis={gameMode === "free" ? <>
+      <div className="mobile-analysis-actions"><button disabled={Boolean(winner)} onClick={toggleAnalysis}>{analysisEnabled ? "停止分析" : "开始分析"}</button><button disabled={Boolean(winner)} onClick={() => setShowHint((value) => !value)}>{showHint ? "隐藏走子提示" : "显示走子提示"}</button></div>
+      <p>{analysisLoading ? "分析中…" : `${evalInfo.label} ${evalInfo.value}`}</p><JieqiWinChances wdl={analysisData?.wdl} />
+      {bestMoveText && <p>推荐：{bestMoveText}</p>}
+      <EngineAnalysisView fen={analysisPosition || fen} data={analysisData} loading={analysisLoading} variant="jieqi" log={jieqiEngine.getLog()} />
+      {analysisError && <p role="alert">{analysisError}</p>}
+    </> : <p className="muted">人机对弈中不展示暗子的真实身份；自由翻子模式可使用局面分析。</p>}
+  >
+    {exitDialog}
+    {flipDialog}
+    <HiddenPool fen={fen} side={boardFlipped ? "w" : "b"} label={boardFlipped ? "红方" : "黑方"} />
+    <div className="mobile-jieqi-board-core play-board-area"><Board fen={fen} onMove={onMove} lastMove={lastMove} disabled={thinking || Boolean(winner) || Boolean(pendingFlip)} legalMoves={legalMoves} hintMove={gameMode === "free" && showHint && !pendingFlip && analysisIsCurrent && !winner ? analysisData?.bestMove : null} flipped={boardFlipped} checkedSide={inCheck ? currentSide : null} parsePosition={parseJieqiBoard} pieceImage={jieqiPieceImage} fitContainerHeight /></div>
+    <HiddenPool fen={fen} side={boardFlipped ? "b" : "w"} label={boardFlipped ? "黑方" : "红方"} />
+    {resultOverlay}
+  </MobileGameLayout>;
+
   return (
     <div className="play jieqi-play">
-      {pendingFlip && (
-        <div className="jieqi-flip-overlay" role="dialog" aria-modal="true" aria-label="翻子提示">
-          <div className="panel jieqi-flip-dialog">
-            <strong>请选择要翻开的棋子</strong>
-            <p>{pendingFlip.side === "w" ? "红方" : "黑方"}暗子池 · {pendingFlip.move.slice(0, 4)}</p>
-            <div className="jieqi-flip-choices">
-              {pendingFlip.choices.map((item) => (
-                <button
-                  key={item.piece}
-                  className={pendingFlip.side === "w" ? "red" : "black"}
-                  onClick={() => commitFreeMove(pendingFlip.move, item.piece)}
-                  aria-label={`${item.glyph}，剩余 ${item.count} 枚`}
-                >
-                  <span>{item.glyph}</span>
-                  <small>×{item.count}</small>
-                </button>
-              ))}
-            </div>
-            <button className="btn-newgame" onClick={randomPendingFlip}>随机翻开</button>
-          </div>
-        </div>
-      )}
+      {exitDialog}
+      {flipDialog}
       {!useSideLayout && <div className="panel play-status-bar">
         <div className="play-status-line">
           <span className="tag">揭棋</span>
@@ -377,6 +458,7 @@ export default function JieqiPlay({ onOpenSettings }) {
           {winner && <span className="tag">{saved ? "已存入复盘" : "正在保存…"}</span>}
         </div>
         <div className="play-actions">
+          <ResignButton label={gameMode === "free" ? `${currentSide === "w" ? "红方" : "黑方"}认输` : "认输"} disabled={Boolean(winner)} onResign={resign} />
           {gameMode === "free" && <>
             <button className="btn-newgame" onClick={toggleAnalysis}>{analysisEnabled ? "停止分析" : "开始分析"}</button>
             <button
@@ -389,7 +471,7 @@ export default function JieqiPlay({ onOpenSettings }) {
           </>}
           <button className="btn-newgame" onClick={undo} disabled={!canUndo || thinking}>悔棋</button>
           <button className="btn-newgame" onClick={() => setBoardFlipped((value) => !value)}>翻转棋盘</button>
-          <button className="btn-newgame" onClick={() => { turnReqId.current++; setThinking(false); setPendingFlip(null); setFen(null); }}>新对局</button>
+          <button className="btn-newgame" onClick={restart}>新对局</button>
         </div>
       </div>}
       {!useSideLayout && error && <div className="panel import-error">{error}</div>}
@@ -481,6 +563,7 @@ export default function JieqiPlay({ onOpenSettings }) {
             side={boardFlipped ? "b" : "w"}
             label={boardFlipped ? "黑方" : "红方"}
           />
+          {resultOverlay}
         </div>
         {useSideLayout ? (
           <aside className="panel move-log desktop-play-inspector desktop-jieqi-inspector">
@@ -610,7 +693,8 @@ export default function JieqiPlay({ onOpenSettings }) {
               </>}
               <button onClick={undo} disabled={!canUndo || thinking}>悔棋</button>
               <button onClick={() => setBoardFlipped((value) => !value)}>{boardFlipped ? "恢复方向" : "翻转棋盘"}</button>
-              <button className="danger wide" onClick={() => { turnReqId.current++; setThinking(false); setPendingFlip(null); setFen(null); }}>新对局</button>
+              <ResignButton className="danger" label={gameMode === "free" ? `${currentSide === "w" ? "红方" : "黑方"}认输` : "认输"} disabled={Boolean(winner)} onResign={resign} />
+              <button className="danger wide" onClick={restart}>新对局</button>
             </div>
           </aside>
         ) : (

@@ -1,5 +1,8 @@
 // 棋岛 QiDao PWA service worker（极简）：提供安装能力与离线壳缓存。
 const CACHE = "xq-shell-v3";
+// 原生客户端的页面随安装包提供，不能回退到上一次安装留下的页面资源。
+// 用户导入的浏览器引擎仍由下方独立缓存提供，不受页面缓存策略影响。
+const CACHE_SHELL = !["http://tauri.localhost", "https://tauri.localhost", "tauri://localhost"].includes(self.location.origin);
 
 self.addEventListener("install", (e) => {
   self.skipWaiting();
@@ -9,7 +12,7 @@ self.addEventListener("activate", (e) => {
   e.waitUntil(Promise.all([
     self.clients.claim(),
     caches.keys().then((keys) => Promise.all(keys
-      .filter((key) => key.startsWith("xq-shell-") && key !== CACHE)
+      .filter((key) => key.startsWith("xq-shell-") && (!CACHE_SHELL || key !== CACHE))
       .map((key) => caches.delete(key)))),
   ]));
 });
@@ -38,6 +41,7 @@ self.addEventListener("fetch", (e) => {
     );
     return;
   }
+  if (!CACHE_SHELL) return;
   // API 响应含账号/设备级进度，绝不能按 URL 跨身份缓存。
   if (request.cache === "no-store" || request.headers.has("Authorization")
       || request.headers.has("X-Guest-ID") || /\/api(?:\/|$)/.test(new URL(request.url).pathname)) return;

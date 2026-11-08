@@ -21,6 +21,8 @@ import { PrimaryNavigation, SecondaryNavigation } from "./AppNavigation";
 import { resolveNavigation } from "./navigation";
 import DesktopShell from "./shells/DesktopShell";
 import WebShell from "./shells/WebShell";
+import { ANDROID_BACK_EVENT, backDispatcher, dismissTopDialog } from "../platform/backNavigation";
+import { useBackAction } from "../shared/hooks/useBackAction";
 
 // 顶部积分徽标 + 每日签到。训练积分用于外观兑换，AI 使用独立额度。
 function CreditsBadge({ credits, onCheckin }) {
@@ -76,6 +78,24 @@ export default function App() {
   const [authOpen, setAuthOpen] = React.useState(false);
   const [authMode, setAuthMode] = React.useState("login");
   const desktopUserMenuRef = React.useRef(null);
+  useBackAction(() => {
+    const button = document.querySelector(".auth-close-confirm-actions button") || document.querySelector(".auth-close");
+    button?.click();
+    return true;
+  }, { enabled: authOpen, priority: 300 });
+  useBackAction(() => {
+    const menu = document.querySelector("details[open]");
+    if (menu) { menu.open = false; return true; }
+    if (tab !== "today") { setTab("today"); return true; }
+    return false;
+  });
+  React.useEffect(() => {
+    const onBack = (event) => {
+      if (dismissTopDialog(document) || backDispatcher.dispatch()) event.preventDefault();
+    };
+    window.addEventListener(ANDROID_BACK_EVENT, onBack);
+    return () => window.removeEventListener(ANDROID_BACK_EVENT, onBack);
+  }, []);
 
   function openAuth(mode = "login") {
     setAuthMode(mode);

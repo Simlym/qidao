@@ -9,6 +9,60 @@
     <title>棋岛 QiDao · 中国象棋与揭棋</title>
   </head>
   <body>
+    <div id="startup" role="status" style="position:fixed;inset:0;z-index:99999;display:grid;place-content:center;gap:16px;padding:32px;background:#f7f3eb;color:#493627;font:16px/1.6 system-ui,sans-serif;text-align:center">
+      <strong style="font-size:24px">棋岛 QiDao</strong>
+      <span id="startup-message">正在启动，请稍候…</span>
+      <button id="startup-retry" type="button" hidden style="padding:10px 20px;cursor:pointer">重新加载</button>
+      <details id="startup-details" hidden><summary>查看错误详情</summary><pre id="startup-error" style="white-space:pre-wrap;overflow-wrap:anywhere;max-width:720px;text-align:left"></pre></details>
+    </div>
+    <script>
+      (() => {
+        const screen = document.getElementById("startup");
+        let ready = false;
+        let repairing = false;
+        async function repairDesktopCache() {
+          // 旧入口可能引用已被新版替换的脚本，必须在 React 加载前也能恢复。
+          const url = new URL(location.href);
+          if (repairing || !window.__TAURI_INTERNALS__ || /Android/i.test(navigator.userAgent)
+              || url.searchParams.has("qidao-startup-retry")) return;
+          repairing = true;
+          try {
+            const registrations = await navigator.serviceWorker?.getRegistrations() || [];
+            await Promise.all(registrations.filter((registration) => {
+              const script = registration.active || registration.waiting || registration.installing;
+              return script && new URL(script.scriptURL).pathname === "/sw.js";
+            }).map((registration) => registration.unregister()));
+            const keys = await window.caches?.keys() || [];
+            await Promise.all(keys.filter((key) => key.startsWith("xq-shell-")).map((key) => window.caches.delete(key)));
+            url.searchParams.set("qidao-startup-retry", String(Date.now()));
+            location.replace(url.href);
+          } catch { /* 保留错误详情与手动重试入口 */ }
+        }
+        function fail(error, force = false) {
+          if (ready && !force) return;
+          clearTimeout(timeout);
+          screen.style.display = "grid";
+          document.getElementById("startup-message").textContent = "启动未完成，请重新加载。若再次出现，请反馈下方错误详情。";
+          document.getElementById("startup-retry").hidden = false;
+          document.getElementById("startup-details").hidden = false;
+          document.getElementById("startup-error").textContent = String(error?.stack || error?.message || error || "页面加载超时");
+        }
+        const timeout = setTimeout(() => fail("页面启动超过 15 秒"), 15000);
+        document.getElementById("startup-retry").onclick = () => location.reload();
+        window.addEventListener("error", (event) => {
+          if (event.target instanceof HTMLScriptElement) {
+            fail(`无法加载页面脚本：${event.target.src}`);
+            void repairDesktopCache();
+          }
+          else if (event.error || event.message) fail(event.error || event.message);
+        }, true);
+        window.addEventListener("unhandledrejection", (event) => fail(event.reason));
+        window.qidaoStartup = {
+          ready() { ready = true; clearTimeout(timeout); screen.style.display = "none"; },
+          fail(error) { fail(error, true); },
+        };
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

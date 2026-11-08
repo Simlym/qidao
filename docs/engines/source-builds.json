@@ -52,7 +52,7 @@
       ],
       "makeOptions": [
         "largeboards=yes",
-        "nnue=no"
+        "nnue=yes"
       ],
       "uciOptions": {
         "UCI_Variant": "xiangqi",

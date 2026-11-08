@@ -10,6 +10,7 @@ import { getLocalPositionState } from "../../../domain/xiangqi/rules.js";
 import { localGames, localOwner, newLocalGameId, LOCAL_GAMES_CHANGED } from "../localGames.js";
 import { useOfflineOwner } from "../../../shared/hooks/useOfflineOwner.js";
 import { createGameEpoch } from "../gameEpoch.js";
+import { createReplyPacer } from "../replyPacer.js";
 
 const api = { newPlayGame, playMove, getPositionState };
 
@@ -39,7 +40,9 @@ export function usePlayGame({ engine, onCreditsChanged }) {
   const [localNotice, setLocalNotice] = React.useState("");
   const localRecord = React.useRef(null);
   const search = React.useRef(null);
-  function stopSearch() { search.current?.stop(); search.current = null; }
+  const replyPacer = React.useRef(null);
+  if (!replyPacer.current) replyPacer.current = createReplyPacer();
+  function stopSearch() { search.current?.stop(); search.current = null; replyPacer.current.cancel(); }
   const turnEngine = { evaluate: (...args) => {
     stopSearch();
     const session = engine.startAnalysis(...args);
@@ -111,7 +114,8 @@ export function usePlayGame({ engine, onCreditsChanged }) {
         history: [...history.current], humanSide, level, over, lastMove, status, payload,
         serverId: existing?.serverId || null, updatedAt: Date.now() });
       setLocalNotice(existing?.serverId ? "已同步到服务器 · 本机已保留"
-        : payload ? (owner.startsWith("user:") ? "已保存到本机 · 等待同步" : "已保存到本机 · 登录后可认领并同步") : "对局已保存到本机，可稍后继续");
+        : payload ? (owner.startsWith("user:") ? "已保存到本机 · 等待同步" : "已保存到本机 · 登录后可认领并同步")
+          : over ? "对局已结束，终局已保存在本机。" : "对局已保存到本机，可稍后继续");
     } catch { setLocalNotice("本机保存失败，请检查设备存储空间；关闭页面可能丢失对局"); }
   }, [fen, thinking, over, owner, humanSide, level, lastMove, status]);
 
@@ -127,13 +131,11 @@ export function usePlayGame({ engine, onCreditsChanged }) {
     setLegalMoves(record.over ? [] : getLocalPositionState(record.fen).legal_moves);
     setOver(record.over); setOverDismissed(false); setYourTurn(!record.over); setThinking(false);
     setSaved(Boolean(record.serverId)); setSavedGameId(record.serverId || null);
-    setCanUndo(history.current.length > 0); setMoveLog([...record.moves]); setTimesLog([...record.times]);
+    setCanUndo(record.over?.status !== "resigned" && history.current.length > 0); setMoveLog([...record.moves]); setTimesLog([...record.times]);
     setMoveError(""); turnStart.current = Date.now();
   }
 
   function restart() {
-    if (!over && moves.current.length > 0 &&
-      !window.confirm("对局尚未结束，确定放弃本局重新开始吗？")) return;
     stopSearch();
     epoch.current.invalidate();
     setThinking(false);
@@ -184,6 +186,21 @@ export function usePlayGame({ engine, onCreditsChanged }) {
     }
   }
 
+  function resign() {
+    if (!fen || over) return;
+    stopSearch();
+    epoch.current.invalidate();
+    setThinking(false);
+    setYourTurn(false);
+    setLegalMoves([]);
+    setCanUndo(false);
+    setMoveError("");
+    setStatus("resigned");
+    setOver({ winner: "engine", status: "resigned" });
+    setOverDismissed(false);
+    playSound("lose");
+  }
+
   async function onMove(move) {
     if (!yourTurn || thinking || over || !legalMoves.includes(move)) return;
     const ticket = epoch.current.begin();
@@ -197,7 +214,13 @@ export function usePlayGame({ engine, onCreditsChanged }) {
     setFen(afterHumanFen);
     setLastMove(move);
     setLegalMoves([]);
+    // 搜索期间认输时，保存的着法必须与屏幕上的玩家落子一致。
+    moves.current.push(move);
+    moveTimes.current.push(humanMs);
+    setMoveLog([...moves.current]);
+    setTimesLog([...moveTimes.current]);
     playSound(isCapture(fen, move) ? "capture" : "move");
+    const movedAt = Date.now();
     try {
       const t0 = Date.now();
       const d = await resolvePlayTurn({
@@ -210,11 +233,12 @@ export function usePlayGame({ engine, onCreditsChanged }) {
         },
       });
       if (!epoch.current.isCurrent(ticket)) return;
-      moves.current.push(move);
-      moveTimes.current.push(humanMs);
+      const engineMs = Date.now() - t0;
+      if (d.engine_move && !await replyPacer.current.waitSince(movedAt)) return;
+      if (!epoch.current.isCurrent(ticket)) return;
       if (d.engine_move) {
         moves.current.push(d.engine_move);
-        moveTimes.current.push(Date.now() - t0);
+        moveTimes.current.push(engineMs);
         playSound(isCapture(afterHumanFen, d.engine_move) ? "capture" : "move");
       }
       setMoveLog([...moves.current]);
@@ -242,6 +266,10 @@ export function usePlayGame({ engine, onCreditsChanged }) {
       if (!epoch.current.isCurrent(ticket)) return;
       setMoveError(`走棋失败：${error?.message || "请检查网络后重试"}`);
       history.current.pop();
+      moves.current = moves.current.slice(0, snap.movesLen);
+      moveTimes.current = moveTimes.current.slice(0, snap.movesLen);
+      setMoveLog([...moves.current]);
+      setTimesLog([...moveTimes.current]);
       setFen(snap.fen);
       setLegalMoves(snap.legalMoves);
       setLastMove(snap.lastMove);
@@ -253,7 +281,7 @@ export function usePlayGame({ engine, onCreditsChanged }) {
   }
 
   function undo() {
-    if (thinking || history.current.length === 0) return;
+    if (thinking || over?.status === "resigned" || history.current.length === 0) return;
     if (over) localRecord.current = { ...localRecord.current, id: newLocalGameId() };
     const snap = history.current.pop();
     // 旧的 AI 详解、局面评分等会随 fen 变化被重新查询。
@@ -279,6 +307,6 @@ export function usePlayGame({ engine, onCreditsChanged }) {
     level, setLevel, humanSide, setHumanSide, status, saved, savedGameId, canUndo,
     engineInfo, startError, moveError, localReady, localRuntime,
     moveLog, timesLog, overDismissed, setOverDismissed,
-    start, restart, onMove, undo, restore, localNotice,
+    start, restart, resign, onMove, undo, restore, localNotice,
   };
 }

@@ -3,7 +3,7 @@ import {
   nativeInstallInfo, installNativeEngine, cancelNativeInstall, verifyNativeInstallation, openEngineInstallLink,
 } from "../../platform/nativeEngineInstaller";
 
-const PHASES = { downloading: "下载中", verifying: "校验文件", testing: "象棋试算", installed: "安装完成", activating: "正在启用" };
+const PHASES = { preparing: "正在连接下载，首次连接可能需要一点时间…", downloading: "下载中", verifying: "校验文件", testing: "象棋试算", installed: "安装完成", activating: "正在启用" };
 const BUILD_NAMES = { generic: "兼容版", modern: "现代 CPU 版", bmi2: "BMI2 版" };
 
 export default function NativeEngineInstaller({ onActivate, onBusyChange, externalBusy = false }) {
@@ -40,7 +40,7 @@ export default function NativeEngineInstaller({ onActivate, onBusyChange, extern
 
   async function run(existing) {
     cancelled.current = false;
-    setBusy(true); setError(false); setNotice(""); setProgress(null);
+    setBusy(true); setError(false); setNotice(""); setProgress({ phase: existing ? "verifying" : "preparing" });
     try {
       const result = existing
         ? await verifyNativeInstallation(existing)
@@ -56,7 +56,7 @@ export default function NativeEngineInstaller({ onActivate, onBusyChange, extern
     } catch (e) {
       if (live.current) { setError(true); setNotice(`${String(e.message || e)}。原引擎配置已保留，可重试或手动导入。`); }
     } finally {
-      if (live.current) { setBusy(false); refresh().catch(() => {}); }
+      if (live.current) { setBusy(false); setProgress(null); refresh().catch(() => {}); }
     }
   }
 
@@ -93,13 +93,13 @@ export default function NativeEngineInstaller({ onActivate, onBusyChange, extern
           </label>
           <p className="muted">下载约 {(artifact.size / 1024 / 1024).toFixed(1)} MB。已按本机 CPU 筛选，也可选择兼容版。</p>
           <div className="native-install-actions">
-            <button type="button" disabled={working} className="native-install-primary" onClick={() => run(null)}>{working ? "处理中…" : "从 GitHub 安装并启用"}</button>
+            <button type="button" disabled={working} aria-busy={busy} className="native-install-primary" onClick={() => run(null)}>{busy && progress?.phase === "preparing" ? "正在连接下载…" : working ? "处理中…" : "从 GitHub 安装并启用"}</button>
             {(busy || info?.busy) && progress?.phase !== "activating" && <button type="button" onClick={cancel}>取消安装或检测</button>}
           </div>
         </>}
         {progress && <div role="status">
           <span>{PHASES[progress.phase] || "处理中"}</span>
-          <progress aria-label="引擎下载进度" value={progress.downloaded} max={progress.total || 1} />
+          <progress aria-label="引擎下载进度" value={progress.total > 0 ? progress.downloaded : undefined} max={progress.total || 1} />
         </div>}
         {info.busy && !busy && <p role="status">后台安装任务仍在进行，完成后将显示在已安装版本中。</p>}
         {info.installed.length > 0 && <div className="native-installed-list">

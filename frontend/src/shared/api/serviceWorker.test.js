@@ -3,13 +3,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 
-function harness() {
+function harness(origin = "https://app.example") {
   const events = {};
   const deleted = [];
   runInNewContext(readFileSync(new URL("../../../public/sw.js", import.meta.url), "utf8"), {
     URL, Headers, Response,
     self: {
-      location: { origin: "https://app.example" },
+      location: { origin },
       addEventListener(name, handler) { events[name] = handler; },
       clients: { claim() {} },
     },
@@ -41,4 +41,19 @@ test("升级清理旧壳缓存但保留用户引擎", async () => {
   events.activate({ waitUntil(promise) { work = promise; } });
   await work;
   assert.deepEqual(deleted, ["xq-shell-v2"]);
+});
+
+test("原生客户端不拦截安装包页面且清除全部旧页面缓存", async () => {
+  for (const origin of ["http://tauri.localhost", "https://tauri.localhost"]) {
+    const { events, deleted } = harness(origin);
+    for (const path of ["/", "/index.html", "/assets/old.js"]) {
+      events.fetch({ request: new Request(`${origin}${path}`), respondWith() {
+        assert.fail(`原生页面不能回退到旧缓存：${path}`);
+      } });
+    }
+    let work;
+    events.activate({ waitUntil(promise) { work = promise; } });
+    await work;
+    assert.deepEqual(deleted, ["xq-shell-v2", "xq-shell-v3"]);
+  }
 });
