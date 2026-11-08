@@ -6,6 +6,7 @@ export const TAB_DESCRIPTIONS = {
   stats: "训练记录与能力变化",
   games: "查看棋谱并分析得失",
   play: "与本地或云端引擎对弈",
+  analysis: "双方手动走棋，研究局面与变化",
   jieqi: "揭棋对弈",
   admin: "当前 Web 服务的用户、内容与云端配置",
   settings: "应用偏好与本地引擎配置",
@@ -14,7 +15,7 @@ export const TAB_DESCRIPTIONS = {
 export const PRIMARY_GROUPS = [
   { key: "today", icon: "◷", label: "今日", short: "今日", defaultTab: "today", tabs: ["today", "stats", "coach"] },
   { key: "training", icon: "◎", label: "训练", short: "训练", defaultTab: "train", tabs: ["train", "learning", "challenge"] },
-  { key: "playing", icon: "♟", label: "对弈", short: "对弈", defaultTab: "play", tabs: ["play", "jieqi"] },
+  { key: "playing", icon: "♟", label: "对弈", short: "对弈", defaultTab: "play", tabs: ["play", "jieqi", "analysis"] },
   { key: "records", icon: "≡", label: "棋谱", short: "棋谱", defaultTab: "games", tabs: ["games"] },
 ];
 
@@ -27,6 +28,7 @@ export const PAGE_TABS = [
   { key: "challenge", label: "闯关" },
   { key: "play", label: "标准象棋" },
   { key: "jieqi", label: "揭棋" },
+  { key: "analysis", label: "自由分析" },
   { key: "games", label: "我的棋局" },
 ];
 

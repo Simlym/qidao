@@ -4,6 +4,7 @@ import React from "react";
 export function usePlayAnalysis({ engine, fen, thinking, localRuntime, localReady }) {
   const [showEval, setShowEval] = React.useState(false);
   const [evalData, setEvalData] = React.useState(null);
+  const [evalFen, setEvalFen] = React.useState(null);
   const [evalLoading, setEvalLoading] = React.useState(false);
   const [analysisMode, setAnalysisMode] = React.useState("movetime");
   const [analysisTime, setAnalysisTime] = React.useState(1000);
@@ -25,6 +26,7 @@ export function usePlayAnalysis({ engine, fen, thinking, localRuntime, localRead
       return;
     }
     const id = ++evalReqId.current;
+    setEvalFen(fen);
     setEvalData(null);
     setEvalLoading(true);
     evalSession.current?.stop();
@@ -54,7 +56,7 @@ export function usePlayAnalysis({ engine, fen, thinking, localRuntime, localRead
   }, [fen]);
 
   return {
-    showEval, setShowEval, evalData, evalLoading,
+    showEval, setShowEval, evalData: evalFen === fen ? evalData : null, evalLoading,
     analysisMode, setAnalysisMode, analysisTime, setAnalysisTime,
     analysisDepth, setAnalysisDepth, analysisMultiPv, setAnalysisMultiPv,
     analysisSearchMoves, setAnalysisSearchMoves,

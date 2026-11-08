@@ -29,7 +29,7 @@ import { useGameExit } from "./hooks/useGameExit";
 // Tauri 接入后只在工厂中增加原生适配器，页面无需出现平台分支。
 const positionEngine = createEngineManager({ remoteEvaluate: evalPosition, remoteStream: streamEvalPosition });
 
-export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogin, onOpenSettings }) {
+export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogin, onOpenSettings, onFreeAnalysis }) {
   const isDesktop = usesDesktopLayout(runtime);
   const wideWeb = useWideWebLayout(runtime);
   const mobile = useMobilePlayLayout();
@@ -129,6 +129,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
         onStart={start} thinking={thinking} startError={startError}
       />
       <LocalGameLibrary onRestore={restore} />
+      {onFreeAnalysis && <div className="panel"><strong>自由分析</strong><p className="muted">红黑双方都由你走棋，引擎只提供评分与候选线路。</p><button onClick={() => onFreeAnalysis()}>进入自由分析</button></div>}
       </>
     );
   }
@@ -164,6 +165,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
     onUndo={undo} canUndo={canUndo && !thinking && !over}
     onHint={() => { setMobilePanel("analysis"); requestHint(); }} canHint={yourTurn && !thinking && !over && !hintLoading} hintLoading={hintLoading}
     menu={<div className="mobile-menu-actions">
+      {onFreeAnalysis && <button disabled={thinking} onClick={() => onFreeAnalysis(fen)}>转为自由分析</button>}
       <ResignButton disabled={Boolean(over)} onResign={() => { setMobilePanel(null); resign(); }} />
       <button onClick={() => { setMobilePanel(null); restart(); }}>返回对弈准备</button>
       <button onClick={() => { setMobilePanel(null); start(humanSide, level); }} disabled={!over}>再来一盘</button>
@@ -220,6 +222,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
           </span>
         </div>
         <div className="play-actions">
+          {onFreeAnalysis && <button className="btn-newgame" onClick={() => onFreeAnalysis(fen)} disabled={thinking}>转为自由分析</button>}
           <ResignButton disabled={Boolean(over)} onResign={resign} />
           <button
             className={"btn-newgame" + (showEval ? " active" : "")}
@@ -539,6 +542,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
             </div>
 
             <div className="desktop-inspector-actions">
+              {onFreeAnalysis && <button className="wide" onClick={() => onFreeAnalysis(fen)} disabled={thinking}>转为自由分析</button>}
               <button
                 className="primary"
                 onClick={requestHint}

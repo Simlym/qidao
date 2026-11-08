@@ -6,6 +6,7 @@ import Stats from "../features/stats/Stats";
 import Games from "../features/games/Games";
 import { useLocalGameSync } from "../features/play/useLocalGameSync.js";
 import Play from "../features/play/Play";
+import FreeAnalysis from "../features/analysis/FreeAnalysis.jsx";
 import JieqiPlay from "../features/jieqi/JieqiPlay";
 import Challenge from "../features/challenge/Challenge";
 import Auth from "../features/auth/Auth";
@@ -71,6 +72,7 @@ export default function App() {
   const [trainTarget, setTrainTarget] = React.useState(null);
   // 复盘目标：从对弈结束「一键复盘」跳转时携带的棋局 id
   const [reviewGameId, setReviewGameId] = React.useState(null);
+  const [analysisTarget, setAnalysisTarget] = React.useState(null);
   const [user, setUser] = React.useState(null); // {username, role}
   useLocalGameSync(user?.username || "guest");
   const [credits, setCredits] = React.useState(null); // {balance, checkin_today, costs, ...}
@@ -302,6 +304,7 @@ export default function App() {
       {tab === "stats" && <Stats onPractice={practiceCategory} />}
       {tab === "play" && (
         <Play
+          onFreeAnalysis={(fen) => { setAnalysisTarget({ fen, id: Date.now() }); setTab("analysis"); }}
           onGoReview={reviewGame}
           user={user}
           onCreditsChanged={refreshCredits}
@@ -312,6 +315,7 @@ export default function App() {
       {tab === "jieqi" && (
         <JieqiPlay onOpenSettings={isDesktop ? () => setTab("settings") : null} />
       )}
+      {tab === "analysis" && <FreeAnalysis key={analysisTarget?.id || "initial"} initialFen={analysisTarget?.fen} onOpenSettings={isDesktop ? () => setTab("settings") : null} />}
       {tab === "admin" && isAdmin && <Admin />}
       {tab === "settings" && (
         <Settings
