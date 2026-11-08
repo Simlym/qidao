@@ -375,17 +375,18 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
               <span>累计用时</span><strong>{totalMs > 0 ? fmtDuration(totalMs) : "00:00"}</strong>
             </div>
             {localNotice && <p className="web-save-notice" role="status">{localNotice}</p>}
+            <button className="web-sound-button" aria-haspopup="dialog" onClick={() => openAppearance()}>棋盘与棋子</button>
             <button className="web-sound-button" onClick={() => openAppearance("sound")} title="选择音色或开关对弈音效">
               {muted ? "🔇 已静音" : `🔊 ${soundThemeLabel(soundKey)}`}
             </button>
           </aside>
         )}
         <div className="play-board-area">
-          <div className="desktop-board-playerbar">
+          {!wideWeb && <div className="desktop-board-playerbar">
             <span>{isDesktop ? "电脑" : "象棋对弈"}</span>
             {isDesktop && <strong>{currentTurnText}</strong>}
             <button className="board-appearance-trigger" aria-haspopup="dialog" onClick={() => openAppearance()}>棋盘与音效</button>
-          </div>
+          </div>}
           <Board
             fen={fen}
             onMove={onMove}
