@@ -27,21 +27,6 @@
 .settings-preview-button { flex-shrink: 0; padding: 9px 12px; border: 1px solid var(--app-border, #ded5ca); border-radius: 8px; background: var(--app-surface, #fffdf9); color: var(--app-text, #67534a); font: inherit; font-size: 12px; cursor: pointer; }
 .settings-preview-button:hover:not(:disabled) { background: var(--app-accent-soft, #f5ebe4); }
 .settings-preview-button:disabled { opacity: .45; cursor: default; }
-.settings-auditions { margin-top: 24px; }
-.settings-auditions > h3 { margin: 0 0 8px; font-size: 16px; }
-.settings-auditions > p { font-size: 13px; line-height: 1.7; }
-.settings-audition-packs { display: grid; gap: 12px; margin-top: 14px; }
-.settings-audition-pack { padding: 16px; border: 1px solid var(--app-border, #e8e1d7); border-radius: 10px; background: var(--app-surface, #fffdf9); }
-.settings-audition-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
-.settings-audition-heading h4 { margin: 0; font-size: 14px; }
-.settings-audition-heading a { font-size: 12px; color: var(--app-accent, #9b4936); }
-.settings-audition-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-.settings-audition-buttons button[aria-pressed="true"] { border-color: var(--app-accent, #9b4936); background: var(--app-accent-soft, #f5ebe4); }
-.settings-audition-player { margin-top: 14px; }
-.settings-audition-player p { margin: 8px 0; font-size: 13px; }
-.settings-audition-player audio { display: block; width: 100%; max-width: 420px; }
-.settings-audition-use { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
-.settings-audition-use small { color: var(--app-muted, #887e74); font-size: 12px; }
 .settings-save-note { margin: 16px 0 0; color: var(--app-muted, #887e74); font-size: 12px; line-height: 1.8; }
 /* 在线安装与手动导入共用卡片视觉，版本选择与下载状态在窄屏下自然换行。 */
 .engine-online-installer { margin-bottom: 16px; padding: 20px; }

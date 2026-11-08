@@ -4,7 +4,6 @@ import MyPuzzleReports from "../account/MyPuzzleReports";
 import ServerSettings from "./ServerSettings";
 import NativeEngineSettings from "./NativeEngineSettings";
 import BrowserEngineSettings from "./BrowserEngineSettings";
-import SoundAuditions from "./SoundAuditions";
 import { createEngineManager } from "../../domain/xiangqi/engine/createEngineManager";
 import { evalPosition, evalJieqiPosition, getCosmetics, purchaseCosmetic } from "../../shared/api";
 import { cosmeticPreferences, setCosmeticPreference } from "../../shared/preferences/cosmetics";
@@ -217,7 +216,6 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
                 ))}
               </div>
             </section>
-            <SoundAuditions theme={theme} onUseTheme={changeTheme} />
             <p className="settings-save-note">偏好保存在本机，无需手动保存。</p>
           </div>
         )}

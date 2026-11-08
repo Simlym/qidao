@@ -1,15 +1,15 @@
 # Third-party notices
 
-## 象棋候选试听音效
+## 象棋原声音效主题
 
-设置页提供三套原声对比：
+音效库包含三套象棋原声主题：
 
 - [XQWLight](https://github.com/xqbase/xqwlight)，固定提交 `6221733f1f79b3acb44cce6f83dc6100443cb2c9`，仓库采用 GPL-2.0。
 - [GMChess](https://github.com/lerosua/gmchess)，固定提交 `a532daf5edfdc8cc0f5b5d5415a79d0dcdef3181`，仓库采用 GPL-2.0。
 - [StevenBaby/chess](https://github.com/StevenBaby/chess)，固定提交 `4da2d408852fbfa75d7ac3c90119c6292b975621`，仓库采用 MIT。
 
 原始 WAV 未修改；每套仓库许可正文保留于 `frontend/src/shared/audio/auditions/<套装>/LICENSE.txt`。
-逐文件来源、哈希与体积见 [试听音效清单](frontend/src/shared/audio/auditions/sources.json)。
+逐文件来源、哈希与体积见 [音效来源清单](frontend/src/shared/audio/auditions/sources.json)。
 以上是仓库级许可声明，不另行宣称素材为原创或 CC0。
 
 ## Kenney 棋局音效
