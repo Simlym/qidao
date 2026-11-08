@@ -15,11 +15,9 @@ import { uciToChinese } from "../../domain/xiangqi/xiangqi";
 import { evalPosition, streamEvalPosition } from "../../shared/api";
 import { createEngineManager } from "../../domain/xiangqi/engine/createEngineManager";
 import { runtime, usesDesktopLayout } from "../../platform/runtime";
-import {
-  playSound, soundMuted, setSoundMuted,
-  soundTheme, setSoundTheme, SOUND_THEMES,
-  soundThemeLabel,
-} from "../../shared/sounds";
+import { soundThemeLabel } from "../../shared/sounds";
+import { useSoundPreferences } from "../../shared/hooks/useSoundPreferences";
+import { BoardAppearancePanel, BoardAppearanceDialog } from "../../shared/ui/BoardAppearance";
 import EngineAnalysisView from "../analysis/EngineAnalysisView";
 import { LEVELS, capturedPieces, describeEval, fmtDuration } from "./model";
 import { usePlayGame } from "./hooks/usePlayGame";
@@ -63,11 +61,12 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
     onShowAnalysis: () => { setInspectorTab("analysis"); if (mobile) setMobilePanel("analysis"); },
   });
   const [fenCopied, setFenCopied] = React.useState(false);
-  const [muted, setMuted] = React.useState(soundMuted);
-  const [soundKey, setSoundKey] = React.useState(soundTheme);
+  const { muted, theme: soundKey } = useSoundPreferences();
+  const [appearanceCategory, setAppearanceCategory] = React.useState(null);
   const logRef = React.useRef(null);                  // 棋谱滚动容器
   const keysRef = React.useRef({});                   // 键盘快捷键的最新处理函数
-  React.useEffect(() => { if (!fen) setMobilePanel(null); }, [fen]);
+  React.useEffect(() => { if (!fen) { setMobilePanel(null); setAppearanceCategory(null); } }, [fen]);
+  React.useEffect(() => { setMobilePanel(null); setAppearanceCategory(null); }, [mobile]);
 
   // 新着法出现时棋谱自动滚到最底部，最新一着始终可见
   React.useEffect(() => {
@@ -79,6 +78,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   React.useEffect(() => {
     const onKey = (e) => {
       const tag = e.target.tagName;
+      if (e.target.closest?.("dialog")) return;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || e.target.isContentEditable) return;
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "z") {
         e.preventDefault();
@@ -104,21 +104,9 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   keysRef.current.undo = undo;
   keysRef.current.hint = requestHint;
 
-  // 音效切换：按可用音色顺序循环，最后进入静音；切换后立即试听一声。
-  function cycleSound() {
-    const order = [...SOUND_THEMES.map((t) => t.key), "muted"];
-    const cur = muted ? "muted" : soundKey;
-    const next = order[(order.indexOf(cur) + 1) % order.length];
-    if (next === "muted") {
-      setMuted(true);
-      setSoundMuted(true);
-    } else {
-      setMuted(false);
-      setSoundMuted(false);
-      setSoundKey(next);
-      setSoundTheme(next);
-      playSound("move");
-    }
+  function openAppearance(category = "board") {
+    setAppearanceCategory(category);
+    if (mobile) setMobilePanel("appearance");
   }
 
   // 初始进入选择界面
@@ -167,6 +155,8 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
     opponent={{ mark: "机", name: "电脑", side: humanSide === "w" ? "black" : "red", detail: LEVELS.find((item) => item.key === level)?.label }}
     self={{ mark: "我", name: user?.username || "你", side: humanSide === "w" ? "red" : "black", detail: humanSide === "w" ? "执红先行" : "执黑后行" }}
     panel={mobilePanel} onPanelChange={setMobilePanel}
+    onAppearance={() => openAppearance()}
+    appearance={mobilePanel === "appearance" ? <BoardAppearancePanel user={user} initialCategory={appearanceCategory || "board"} /> : null}
     onUndo={undo} canUndo={canUndo && !thinking && !over}
     onHint={() => { setMobilePanel("analysis"); requestHint(); }} canHint={yourTurn && !thinking && !over && !hintLoading} hintLoading={hintLoading}
     menu={<div className="mobile-menu-actions">
@@ -174,7 +164,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
       <ResignButton disabled={Boolean(over)} onResign={() => { setMobilePanel(null); resign(); }} />
       <button onClick={() => { setMobilePanel(null); requestExit(); }}>返回对弈准备</button>
       <button onClick={() => { setMobilePanel(null); start(humanSide, level); }} disabled={!over}>再来一盘</button>
-      <button onClick={cycleSound}>{muted ? "音效：已静音" : `音效：${soundThemeLabel(soundKey)}`}</button>
+      <button onClick={() => openAppearance()}>棋盘与音效</button>
       <button onClick={copyFen}>{fenCopied ? "局面已复制" : "复制局面"}</button>
       {over && <button onClick={() => { setMobilePanel(null); setOverDismissed(false); }}>查看结果</button>}
       <p role="status">{localNotice}</p>
@@ -199,6 +189,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   return (
     <div className="play xiangqi-play" style={{ "--play-board-scale": boardScale }}>
       {exitDialog}
+      {appearanceCategory && <BoardAppearanceDialog user={user} initialCategory={appearanceCategory} onClose={() => setAppearanceCategory(null)} />}
       {!useSideLayout && localNotice && <p role="status">{localNotice}</p>}
       {moveError && <div className="result bad" role="alert">{moveError}</div>}
       {/* 状态与操作分两行：状态文案变化（引擎思考中 ↔ 轮到你走）不再挤动按钮换行，棋盘不跳动 */}
@@ -262,8 +253,8 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
           </button>
           <button
             className="btn-newgame"
-            onClick={cycleSound}
-            title="点击切换音效，全部音色轮换后进入静音"
+            onClick={() => openAppearance("sound")}
+            title="选择音色或开关对弈音效"
           >
             {muted
               ? "🔇 静音"
@@ -384,18 +375,17 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
               <span>累计用时</span><strong>{totalMs > 0 ? fmtDuration(totalMs) : "00:00"}</strong>
             </div>
             {localNotice && <p className="web-save-notice" role="status">{localNotice}</p>}
-            <button className="web-sound-button" onClick={cycleSound} title="点击切换音效">
+            <button className="web-sound-button" onClick={() => openAppearance("sound")} title="选择音色或开关对弈音效">
               {muted ? "🔇 已静音" : `🔊 ${soundThemeLabel(soundKey)}`}
             </button>
           </aside>
         )}
         <div className="play-board-area">
-          {isDesktop && (
-            <div className="desktop-board-playerbar">
-              <span>电脑</span>
-              <strong>{currentTurnText}</strong>
-            </div>
-          )}
+          <div className="desktop-board-playerbar">
+            <span>{isDesktop ? "电脑" : "象棋对弈"}</span>
+            {isDesktop && <strong>{currentTurnText}</strong>}
+            <button className="board-appearance-trigger" aria-haspopup="dialog" onClick={() => openAppearance()}>棋盘与音效</button>
+          </div>
           <Board
             fen={fen}
             onMove={onMove}

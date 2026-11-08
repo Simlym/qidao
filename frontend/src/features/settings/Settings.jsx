@@ -6,10 +6,11 @@ import NativeEngineSettings from "./NativeEngineSettings";
 import BrowserEngineSettings from "./BrowserEngineSettings";
 import { createEngineManager } from "../../domain/xiangqi/engine/createEngineManager";
 import { evalPosition, evalJieqiPosition, getCosmetics, purchaseCosmetic } from "../../shared/api";
-import { cosmeticPreferences, setCosmeticPreference } from "../../shared/preferences/cosmetics";
-import { playSound, prepareSounds, soundMuted, setSoundMuted, soundTheme, setSoundTheme, soundThemeLabel } from "../../shared/sounds";
+import { useCosmeticPreferences, setCosmeticPreference } from "../../shared/preferences/cosmetics";
+import { playSound, prepareSounds, setSoundMuted, setSoundTheme, soundThemeLabel } from "../../shared/sounds";
 import { analysisPreferences, saveAnalysisPreferences } from "../../shared/preferences/analysisPreferences";
 import { runtime, supportsNativeEngine, isTauriRuntime } from "../../platform/runtime";
+import { useSoundPreferences } from "../../shared/hooks/useSoundPreferences";
 
 const xiangqiEngine = createEngineManager({ remoteEvaluate: evalPosition });
 const jieqiEngine = createEngineManager({ variant: "jieqi", remoteEvaluate: evalJieqiPosition });
@@ -87,10 +88,9 @@ const STYLE_PRESETS = [
 
 export default function Settings({ user, credits, onCreditsChanged, onRequireLogin, initialSection = "general", onSectionChange }) {
   const [section, setSection] = React.useState(() => SECTIONS.some((item) => item.key === initialSection) ? initialSection : "general");
-  const [muted, setMuted] = React.useState(soundMuted);
-  const [theme, setTheme] = React.useState(soundTheme);
+  const { muted, theme } = useSoundPreferences();
   React.useEffect(() => { prepareSounds(); }, [theme, muted]);
-  const [appearance, setAppearance] = React.useState(cosmeticPreferences);
+  const appearance = useCosmeticPreferences();
   const [appearanceCategory, setAppearanceCategory] = React.useState("presets");
   const [catalog, setCatalog] = React.useState([]);
   const [storeBusy, setStoreBusy] = React.useState("");
@@ -106,16 +106,13 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
   }, [loadCatalog, user]);
 
   function changeMuted(next) {
-    setMuted(next);
     setSoundMuted(next);
     if (!next) playSound("move");
   }
 
   function changeTheme(next) {
-    setTheme(next);
     setSoundTheme(next);
     if (muted) {
-      setMuted(false);
       setSoundMuted(false);
     }
     window.setTimeout(() => playSound("move"), 0);
@@ -126,7 +123,6 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
     if (item.type === "sound") changeTheme(item.theme);
     else {
       setCosmeticPreference(item.type, item.theme);
-      setAppearance({ ...cosmeticPreferences(), [item.type]: item.theme });
     }
     setStoreNotice({ type: "success", text: `已使用「${item.name}」` });
   }
@@ -147,11 +143,6 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
     for (const type of ["app", "board", "piece"]) {
       setCosmeticPreference(type, preset.themes[type]);
     }
-    setAppearance({
-      app: preset.themes.app,
-      board: preset.themes.board,
-      piece: preset.themes.piece,
-    });
     changeTheme(preset.themes.sound);
     setStoreNotice({ type: "success", text: `已应用「${preset.name}」整套搭配` });
   }

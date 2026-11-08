@@ -75,6 +75,16 @@ export function prepareSounds() {
 
 const MUTE_KEY = "xq_sound_muted";
 const THEME_KEY = "xq_sound_theme";
+const preferenceListeners = new Set();
+
+export function subscribeSoundPreferences(listener) {
+  preferenceListeners.add(listener);
+  return () => preferenceListeners.delete(listener);
+}
+
+function notifyPreferences() {
+  preferenceListeners.forEach((listener) => listener());
+}
 
 export const SOUND_THEMES = [
   { key: "xqwlight", label: "象棋巫师" },
@@ -111,6 +121,7 @@ export function setSoundMuted(muted) {
   try {
     localStorage.setItem(MUTE_KEY, muted ? "1" : "0");
   } catch { /* 隐私模式等存不了就算了 */ }
+  notifyPreferences();
 }
 
 export function soundTheme() {
@@ -123,9 +134,11 @@ export function soundTheme() {
 }
 
 export function setSoundTheme(key) {
+  if (!ALL_SOUND_KEYS.includes(key)) return;
   try {
     localStorage.setItem(THEME_KEY, key);
   } catch { /* ignore */ }
+  notifyPreferences();
 }
 
 // 播放一个包络衰减的单音。time 为相对当前的起始秒数，to 给出则做频率滑音。
@@ -378,7 +391,16 @@ const THEMES = {
 
 // name: move | capture | check | win | lose | draw
 export function playSound(name) {
-  if (soundMuted()) return;
+  playEventSound(name, false);
+}
+
+// 显式试听只绕过本次静音，不修改用户的对局音效开关。
+export function previewSound(name = "move") {
+  playEventSound(name, true);
+}
+
+function playEventSound(name, preview) {
+  if (!preview && soundMuted()) return;
   try {
     const c = audioCtx();
     if (!c) return;
@@ -400,7 +422,7 @@ export function playSound(name) {
       const requestedAt = Date.now();
       c.resume().then(() => {
         // 恢复失败、切换音色、静音或长时间挂起后，不补播旧局面的声音。
-        if (c.state === "running" && Date.now() - requestedAt < 250 && !soundMuted() && soundTheme() === key) fn(c);
+        if (c.state === "running" && Date.now() - requestedAt < 250 && (preview || !soundMuted()) && soundTheme() === key) fn(c);
       }).catch(() => {});
     }
   } catch { /* 设备不支持音频时仍可正常走棋 */ }

@@ -126,3 +126,39 @@ test("设备拒绝创建音频时不影响走棋", async (t) => {
   assert.doesNotThrow(() => s.prepareSounds());
   assert.doesNotThrow(() => s.playSound("move"));
 });
+
+test("静音时切换音色和显式试听不会解除静音或播放后续走子", async (t) => {
+  const s = await setup(t);
+  s.setSoundMuted(true);
+  s.setSoundTheme("crisp");
+  s.previewSound("move");
+  assert.ok(s.started.length > 0);
+  assert.equal(s.soundMuted(), true);
+  assert.equal(s.soundTheme(), "crisp");
+  const count = s.started.length;
+  s.playSound("capture");
+  assert.equal(s.started.length, count);
+});
+
+test("声音设置通知其他面板，退订后不再接收更新", async (t) => {
+  const s = await setup(t);
+  const updates = [];
+  const unsubscribe = s.subscribeSoundPreferences(() => updates.push([s.soundMuted(), s.soundTheme()]));
+  s.setSoundMuted(true);
+  s.setSoundTheme("soft");
+  assert.deepEqual(updates, [[true, "beep"], [true, "soft"]]);
+  unsubscribe();
+  s.setSoundMuted(false);
+  assert.equal(updates.length, 2);
+});
+
+test("等待音频恢复的试听在切换音色后不补播旧音色", async (t) => {
+  const s = await setup(t, { state: "suspended" });
+  s.setSoundMuted(true);
+  s.previewSound("move");
+  s.setSoundTheme("soft");
+  s.resume();
+  await s.flush();
+  assert.deepEqual(s.started, []);
+  assert.equal(s.soundMuted(), true);
+});
