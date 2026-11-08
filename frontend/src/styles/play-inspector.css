@@ -1,0 +1,98 @@
+/* 标准象棋侧栏独立限高，避免记录区跟随整列留下大块空白。 */
+.app-desktop .xiangqi-play .play-main .desktop-play-inspector {
+  height: min(100%, 640px);
+  align-self: flex-start;
+}
+@media (min-width: 1100px) {
+  /* 坐标行单独留在主体上方，两侧卡片与棋盘木框对齐；22px 与棋盘坐标行一致。 */
+  .app-web .xiangqi-play { --play-coords-height: calc(22px * var(--play-board-scale, 1)); }
+  .app-web .xiangqi-play .web-play-rail {
+    margin-top: var(--play-coords-height);
+    max-height: calc(100% - var(--play-coords-height));
+  }
+  .app-web .xiangqi-play .play-main .desktop-play-inspector {
+    width: 100%;
+    height: min(calc(100% - var(--play-coords-height)), 600px);
+    margin-top: var(--play-coords-height);
+    align-self: start;
+  }
+}
+
+.xiangqi-play .desktop-inspector-actions.play-compact-actions {
+  grid-template-columns: 1fr 1fr 1fr;
+  position: relative;
+}
+.play-more-actions { min-width: 0; }
+.play-more-actions > summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--app-border, #ded4c8);
+  border-radius: 7px;
+  color: var(--app-text, #5d554c);
+  background: var(--app-surface, #fff);
+  font-size: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.play-more-actions > summary::-webkit-details-marker { display: none; }
+.play-more-actions > summary:hover,
+.play-more-actions[open] > summary { border-color: var(--app-accent, #a24733); color: var(--app-accent, #a24733); }
+.play-more-actions > summary:focus-visible,
+.play-analysis-toggles button:focus-visible { outline: 2px solid var(--app-accent, #a24733); outline-offset: 2px; }
+.play-more-menu {
+  position: absolute;
+  z-index: 5;
+  right: 12px;
+  bottom: calc(100% - 4px);
+  width: 200px;
+  max-width: calc(100% - 24px);
+  max-height: min(300px, calc(100dvh - 220px));
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid var(--app-border, #e7dfd5);
+  border-radius: 10px;
+  background: var(--app-surface, #fff);
+  box-shadow: 0 6px 24px #34251920;
+}
+.xiangqi-play .play-compact-actions .play-more-menu > button {
+  width: 100%;
+  min-height: 36px;
+  border-color: transparent;
+  background: transparent;
+  text-align: left;
+  padding-inline: 12px;
+}
+.xiangqi-play .play-compact-actions .play-more-menu > button:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--app-surface-soft, #f6f1ea);
+}
+.play-more-divider { border-top: 1px solid var(--app-border, #e7dfd5); margin: 4px 6px; }
+.play-analysis-toggles { display: flex; gap: 8px; margin-bottom: 12px; }
+.play-analysis-toggles button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  padding: 10px;
+  border: 1px solid var(--app-border, #e7dfd5);
+  border-radius: 8px;
+  background: var(--app-surface-soft, #f7f3ee);
+  color: var(--app-text, #5d554c);
+  font-size: 12px;
+  cursor: pointer;
+}
+.play-analysis-toggles button > span { color: var(--app-muted, #948a80); font-size: 10px; }
+.play-analysis-toggles button[aria-pressed="true"] {
+  border-color: var(--app-accent, #a24733);
+  color: var(--app-accent, #a24733);
+  background: var(--app-accent-soft, #f5e7df);
+}

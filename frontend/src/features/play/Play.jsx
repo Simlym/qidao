@@ -4,6 +4,8 @@ import { useWideWebLayout } from "../../shared/hooks/useWideWebLayout";
 import { useMobilePlayLayout } from "../../shared/hooks/useMobilePlayLayout";
 import MobileGameLayout from "./components/MobileGameLayout";
 import ResignButton from "./components/ResignButton";
+import RestartButton from "./components/RestartButton";
+import PlayInspectorActions from "./components/PlayInspectorActions";
 import LocalGameLibrary from "./components/LocalGameLibrary";
 import PlaySetup from "./components/PlaySetup";
 import MoveHistory from "./components/MoveHistory";
@@ -34,6 +36,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   const wideWeb = useWideWebLayout(runtime);
   const mobile = useMobilePlayLayout();
   const [mobilePanel, setMobilePanel] = React.useState(null);
+  const [boardScale, setBoardScale] = React.useState(1);
   const {
     fen, legalMoves, lastMove, yourTurn, thinking, over,
     level, setLevel, humanSide, setHumanSide, status, saved, savedGameId, canUndo,
@@ -41,7 +44,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
     moveLog, timesLog, overDismissed, setOverDismissed,
     start, restart: leaveGame, resign, onMove, undo, restore, localNotice,
   } = usePlayGame({ engine: positionEngine, onCreditsChanged });
-  const { requestExit: restart, exitDialog } = useGameExit({ active: Boolean(fen), finished: Boolean(over), onExit: leaveGame, savedLocally: true });
+  const { requestExit, exitDialog } = useGameExit({ active: Boolean(fen), finished: Boolean(over), onExit: leaveGame, savedLocally: true });
   const {
     showEval, setShowEval, evalData, evalLoading,
     analysisMode, setAnalysisMode, analysisTime, setAnalysisTime,
@@ -169,7 +172,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
     menu={<div className="mobile-menu-actions">
       {onFreeAnalysis && <button disabled={thinking} onClick={() => onFreeAnalysis(fen)}>转为自由分析</button>}
       <ResignButton disabled={Boolean(over)} onResign={() => { setMobilePanel(null); resign(); }} />
-      <button onClick={() => { setMobilePanel(null); restart(); }}>返回对弈准备</button>
+      <button onClick={() => { setMobilePanel(null); requestExit(); }}>返回对弈准备</button>
       <button onClick={() => { setMobilePanel(null); start(humanSide, level); }} disabled={!over}>再来一盘</button>
       <button onClick={cycleSound}>{muted ? "音效：已静音" : `音效：${soundThemeLabel(soundKey)}`}</button>
       <button onClick={copyFen}>{fenCopied ? "局面已复制" : "复制局面"}</button>
@@ -194,7 +197,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   </MobileGameLayout>;
 
   return (
-    <div className="play xiangqi-play">
+    <div className="play xiangqi-play" style={{ "--play-board-scale": boardScale }}>
       {exitDialog}
       {!useSideLayout && localNotice && <p role="status">{localNotice}</p>}
       {moveError && <div className="result bad" role="alert">{moveError}</div>}
@@ -271,12 +274,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
               查看结果
             </button>
           )}
-          <button
-            className="btn-newgame"
-            onClick={restart}
-          >
-            重开
-          </button>
+          <RestartButton label="重开" finished={Boolean(over)} onRestart={() => start(humanSide, level)} />
         </div>
       </div>}
 
@@ -407,6 +405,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
             hintMove={hint?.move || null}
             flipped={humanSide === "b"}
             fitContainerHeight={useSideLayout}
+            onScaleChange={wideWeb ? setBoardScale : null}
           />
 
           {!useSideLayout && <CapturedPieces capt={capt} />}
@@ -462,6 +461,14 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
 
               {inspectorTab === "analysis" && (
                 <div className="desktop-analysis-pane">
+                  <div className="play-analysis-toggles" aria-label="分析辅助">
+                    <button aria-pressed={showEval} onClick={() => setShowEval((value) => !value)}>
+                      局面评分<span>{showEval ? "已开启" : "未开启"}</span>
+                    </button>
+                    <button aria-pressed={showBook} onClick={() => setShowBook((value) => !value)}>
+                      云库参考<span>{showBook ? "已开启" : "未开启"}</span>
+                    </button>
+                  </div>
                   {showEval && (
                     <div className="desktop-analysis-section">
                       <div className="eval-bar">
@@ -543,43 +550,15 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
               )}
             </div>
 
-            <div className="desktop-inspector-actions">
-              {onFreeAnalysis && <button className="wide" onClick={() => onFreeAnalysis(fen)} disabled={thinking}>转为自由分析</button>}
-              <button
-                className="primary"
-                onClick={requestHint}
-                disabled={!yourTurn || thinking || !!over || hintLoading}
-              >
-                {hintLoading ? "思考中…" : "提示"}
-              </button>
-              <button onClick={undo} disabled={!canUndo || thinking}>悔棋</button>
-              <button
-                className={showEval ? "active" : ""}
-                aria-pressed={showEval}
-                onClick={() => {
-                  setShowEval((value) => !value);
-                  setInspectorTab("analysis");
-                }}
-              >
-                <span>局面评分</span><span className="play-toggle-state">{showEval ? "开" : "关"}</span>
-              </button>
-              <button
-                className={showBook ? "active" : ""}
-                aria-pressed={showBook}
-                onClick={() => {
-                  setShowBook((value) => !value);
-                  setInspectorTab("analysis");
-                }}
-              >
-                <span>云库参考</span><span className="play-toggle-state">{showBook ? "开" : "关"}</span>
-              </button>
-              <button className="secondary" onClick={copyFen}>{fenCopied ? "已复制" : "复制局面"}</button>
-              <button className="secondary danger" onClick={restart}>重新开局</button>
-              <ResignButton className="secondary danger" disabled={Boolean(over)} onResign={resign} />
-              {over && overDismissed && (
-                <button className="wide" onClick={() => setOverDismissed(false)}>查看结果</button>
-              )}
-            </div>
+            <PlayInspectorActions
+              onHint={requestHint} hintLoading={hintLoading}
+              canHint={yourTurn && !thinking && !over && !hintLoading}
+              onUndo={undo} canUndo={canUndo && !thinking}
+              onFreeAnalysis={onFreeAnalysis ? () => onFreeAnalysis(fen) : null}
+              thinking={thinking} onCopy={copyFen} copied={fenCopied}
+              onRestart={() => start(humanSide, level)} onResign={resign} over={Boolean(over)}
+              onShowResult={over && overDismissed ? () => setOverDismissed(false) : null}
+            />
           </aside>
         ) : moveLog.length > 0 && (
           <div className="panel move-log">

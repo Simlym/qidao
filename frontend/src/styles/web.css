@@ -50,6 +50,9 @@
   cursor: pointer;
 }
 .today-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.today-welcome > div { width: 100%; }
+.today-welcome h2 span { display: inline-block; }
+.today-hero .today-welcome-note { margin-top: 16px; color: rgba(255,255,255,.65); font-size: 12px; line-height: 1.7; }
 .today-hero .today-secondary { background: rgba(255,255,255,.08); color: inherit; border-color: rgba(255,255,255,.5); }
 .today-hero .today-secondary:hover { background: rgba(255,255,255,.16); border-color: currentColor; }
 .today-primary:focus-visible { outline: 3px solid #f0c5a8; outline-offset: 4px; }
@@ -147,6 +150,16 @@ html:has(.app-web) { scrollbar-gutter: stable both-edges; }
 }
 .app-web .user-box { gap: 7px; }
 .app-web .user-box .btn-link { min-height: 40px; padding-inline: 15px; font-weight: 600; }
+.web-auth-actions { display: flex; align-items: center; gap: 8px; }
+.app-web .web-auth-actions .web-login-button { color: var(--web-ink); border-color: transparent; background: transparent; }
+.app-web .web-auth-actions .web-login-button:hover { color: var(--web-accent); background: var(--app-accent-soft, #f4ece5); }
+.app-web .web-auth-actions .btn-register { display: block; border-color: var(--web-accent); background: var(--web-accent); color: #fff; }
+.app-web .web-auth-actions .btn-register:hover { border-color: var(--web-accent-deep); background: var(--web-accent-deep); }
+.web-settings-button {
+  display: grid; place-items: center; width: 40px; height: 40px; padding: 0;
+  border: 0; border-radius: 8px; color: var(--web-muted); background: transparent; cursor: pointer;
+}
+.web-settings-button:hover { color: var(--web-accent); background: var(--app-accent-soft, #f4ece5); }
 
 /* 账户信息按需展开，不占用主导航或页面内容的空间。 */
 .web-account-menu { position: relative; min-width: 0; }
@@ -296,6 +309,7 @@ html:has(.app-web) { scrollbar-gutter: stable both-edges; }
 }
 .app-web .today-hero h2 { max-width: 720px; margin-top: 9px; font-size: clamp(28px, 3vw, 42px); line-height: 1.2; }
 .app-web .today-hero p { font-size: 16px; line-height: 1.6; }
+.app-web .today-hero .today-welcome-note { max-width: 600px; font-size: 12px; line-height: 1.7; }
 .app-web .today-primary { min-width: 194px; min-height: 56px; border-radius: 13px; font-size: 15px; }
 .app-web .today-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(38, 23, 15, .2); }
 .app-web .today-metrics { gap: 14px; }

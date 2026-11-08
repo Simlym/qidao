@@ -41,6 +41,10 @@
   .app-web nav .nav-ico { font-size: 22px; line-height: 1; }
   .app-web nav .nav-label-full { display: none; }
   .app-web .web-account-name { max-width: 100px; }
+  .app-web .web-auth-actions { gap: 4px; }
+  .app-web .web-auth-actions .btn-link { min-height: 44px; padding-inline: 12px; }
+  .app-web .web-auth-actions .btn-register { display: block; }
+  .app-web .web-settings-button { width: 44px; height: 44px; }
   .app-web .web-account-menu > summary { min-height: 44px; }
   .app-web .web-account-popover { max-height: calc(100dvh - 160px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
   .app-web > .section-tabs {

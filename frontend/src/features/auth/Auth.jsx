@@ -2,7 +2,7 @@ import React from "react";
 import { login, register } from "../../shared/api";
 
 // 登录 / 注册弹窗。成功后回调 onAuth({token, username, role})。
-export default function Auth({ initialMode = "login", onClose, onAuth }) {
+export default function Auth({ initialMode = "login", intro, onClose, onAuth }) {
   const [mode, setMode] = React.useState(initialMode); // login | register
   const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -52,7 +52,7 @@ export default function Auth({ initialMode = "login", onClose, onAuth }) {
         <button className="modal-close auth-close" type="button" aria-label="关闭" onClick={requestClose}>×</button>
         <h2>{mode === "login" ? "欢迎回来" : "创建账号"}</h2>
         <p className="auth-intro">
-          {mode === "login" ? "登录后同步你的训练进度和棋局。" : "注册后即可保存个人训练进度和棋局。"}
+          {intro || (mode === "login" ? "登录后同步你的训练进度和棋局。" : "注册后即可保存个人训练进度和棋局。")}
         </p>
         <div className="auth-tabs">
           <button

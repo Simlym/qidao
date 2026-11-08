@@ -84,6 +84,7 @@ export default function App() {
   const [entitlements, setEntitlements] = React.useState(null);
   const [authOpen, setAuthOpen] = React.useState(false);
   const [authMode, setAuthMode] = React.useState("login");
+  const [authTarget, setAuthTarget] = React.useState(null);
   const desktopUserMenuRef = React.useRef(null);
   useBackAction(() => {
     const button = document.querySelector(".auth-close-confirm-actions button") || document.querySelector(".auth-close");
@@ -104,9 +105,20 @@ export default function App() {
     return () => window.removeEventListener(ANDROID_BACK_EVENT, onBack);
   }, []);
 
-  function openAuth(mode = "login") {
+  function openAuth(mode = "login", target = null) {
     setAuthMode(mode);
+    setAuthTarget(target);
     setAuthOpen(true);
+  }
+
+  function closeAuth() {
+    setAuthOpen(false);
+    setAuthTarget(null);
+  }
+
+  function startTraining() {
+    if (user) setTab("train");
+    else openAuth("login", "train");
   }
 
   // 拉取积分余额；登录态下调用，未登录清空
@@ -186,6 +198,8 @@ export default function App() {
     resetGuestId();
     setUser({ username: res.username, role: res.role });
     setAuthOpen(false);
+    if (authTarget) setTab(authTarget);
+    setAuthTarget(null);
     refreshCredits();
     refreshEntitlements();
   }
@@ -228,10 +242,10 @@ export default function App() {
       <button className="btn-link" onClick={logout}>退出登录</button>
     </>
   ) : (
-    <>
-      <button className="btn-link" onClick={() => openAuth("login")}>登录</button>
-      <button className="btn-link btn-register" onClick={() => openAuth("register")}>免费注册</button>
-    </>
+    <div className="web-auth-actions" role="group" aria-label="登录与注册">
+      <button className="btn-link web-login-button" onClick={() => openAuth("login")}>登录</button>
+      <button className="btn-link btn-register" onClick={() => openAuth("register")}>注册</button>
+    </div>
   );
 
   const desktopAccount = user ? (
@@ -280,7 +294,7 @@ export default function App() {
   const pageContent = (
     <>
       {tab === "today" && (
-        <Today user={user} onNavigate={setTab} onPractice={practiceCategory} onRequireLogin={requireLogin} />
+        <Today user={user} onNavigate={setTab} onPractice={practiceCategory} onStartTraining={startTraining} />
       )}
       {tab === "train" && (
         <Trainer
@@ -365,7 +379,7 @@ export default function App() {
         </WebShell>
       )}
       {authOpen && (
-        <Auth initialMode={authMode} onClose={() => setAuthOpen(false)} onAuth={onAuth} />
+        <Auth initialMode={authMode} intro={authTarget === "train" ? "登录后即可开始训练，练习进度将随账号保存。" : undefined} onClose={closeAuth} onAuth={onAuth} />
       )}
     </div>
   );

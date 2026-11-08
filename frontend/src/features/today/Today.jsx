@@ -3,7 +3,7 @@ import { getToday } from "../../shared/api";
 
 const ACTION_ICON = { train: "◎", category: "↺", games: "≡", play: "♟" };
 
-export default function Today({ user, onNavigate, onPractice, onRequireLogin }) {
+export default function Today({ user, onNavigate, onPractice, onStartTraining }) {
   const [plan, setPlan] = React.useState(null);
   const [error, setError] = React.useState("");
 
@@ -21,13 +21,14 @@ export default function Today({ user, onNavigate, onPractice, onRequireLogin }) 
     else onNavigate?.(action.type);
   }
 
-  if (!user) return <section className="panel today-hero">
-    <div><span className="today-eyebrow">欢迎来到棋岛</span><h2>先下一盘，再开始系统训练</h2>
-      <p>启用本地引擎即可离线对弈，对局自动保存到本机。题库训练、闯关、学习计划和 AI 功能需要注册登录并联网。</p>
+  if (!user) return <section className="today-hero today-welcome" aria-labelledby="today-welcome-title">
+    <div><span className="today-eyebrow">欢迎来到棋岛</span><h2 id="today-welcome-title"><span>下一盘好棋，</span><span>从这里开始</span></h2>
+      <p>实战对弈、题库练习、错题复习，找到适合你的进步节奏。</p>
       <div className="today-hero-actions">
-        <button className="today-primary" onClick={() => onNavigate?.("play")}>开始本地对弈 →</button>
-        <button className="today-primary today-secondary" onClick={onRequireLogin}>注册 / 登录，开始训练</button>
+        <button className="today-primary" onClick={onStartTraining}>开始训练 <span aria-hidden="true">→</span></button>
+        <button className="today-primary today-secondary" onClick={() => onNavigate?.("play")}>先下一盘</button>
       </div>
+      <p className="today-welcome-note">训练需登录并联网；本地对弈无需登录，启用本地引擎后可离线使用。</p>
     </div>
   </section>;
   if (error) return <div className="panel import-error">{error}</div>;
