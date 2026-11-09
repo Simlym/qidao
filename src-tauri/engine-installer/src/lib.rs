@@ -386,7 +386,7 @@ pub fn smoke_test(path: &Path, cancel: &AtomicBool, timeout: Duration) -> Result
     probe(path, cancel, timeout, "xiangqi", true, None)
 }
 
-fn probe(
+pub fn probe(
     path: &Path,
     cancel: &AtomicBool,
     timeout: Duration,

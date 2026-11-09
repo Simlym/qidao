@@ -1,6 +1,7 @@
 """管理员接口的请求与响应结构。"""
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 from app.modules.puzzles.schemas import AdminPuzzle  # 兼容历史导入
@@ -101,4 +102,10 @@ class AdminLog(BaseModel):
 
 
 class EnginePathUpdate(BaseModel):
+    path: str = Field(default="", max_length=1000)
+
+
+class EngineInstallRequest(BaseModel):
+    action: Literal["download", "verify", "import", "probe"] = "download"
+    package_id: str = Field(default="", max_length=150)
     path: str = Field(default="", max_length=1000)

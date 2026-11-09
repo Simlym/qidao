@@ -1,16 +1,15 @@
 import React from "react";
 import AiUsageAdmin from "./AiUsageAdmin";
+import ServerEnginePanel from "./ServerEnginePanel";
 import PuzzleLibrary from "./PuzzleLibrary";
 import {
   adminAdjustCredits,
   adminDeleteUser,
-  adminGetVariantEngine,
   adminGetLlmSettings,
   adminLogs,
   adminOverview,
   adminTestLlmSettings,
   adminUpdateLlmSettings,
-  adminUpdateVariantEngine,
   adminUpdateMembership,
   adminUsers,
 } from "../../shared/api";
@@ -221,73 +220,6 @@ export default function Admin() {
       {tab === "puzzles" && <PuzzleLibrary />}
     </div>
   );
-}
-
-const OS_LABEL = { windows: "Windows", macos: "macOS", linux: "Linux" };
-const ENGINE_GUIDES = {
-  xiangqi: {
-    title: "标准象棋 UCI 引擎",
-    description: "棋岛不提供或代下载引擎，也不指定推荐引擎。请根据服务器平台自行选择上游来源下载，再将文件放到服务器的非公开目录。",
-    example: "例如 /opt/xiangqidao/engines/xiangqi/engine 或 D:\\engines\\xiangqi\\engine.exe",
-  },
-  jieqi: {
-    title: "揭棋 UCI 引擎",
-    description: "请选择明确支持揭棋扩展 FEN 的专用 UCI 引擎。象棋引擎不能直接用于揭棋。",
-    example: "例如 /opt/xiangqidao/engines/jieqi/engine 或 D:\\engines\\jieqi\\engine.exe",
-  },
-};
-
-function ServerEnginePanel({ variant }) {
-  const guide = ENGINE_GUIDES[variant];
-  const [status, setStatus] = React.useState(null);
-  const [path, setPath] = React.useState("");
-  const [busy, setBusy] = React.useState(false);
-  const [message, setMessage] = React.useState("");
-  const [error, setError] = React.useState("");
-
-  React.useEffect(() => {
-    adminGetVariantEngine(variant).then((next) => {
-      setStatus(next);
-      setPath(next.configured_path || next.effective_path || "");
-    }).catch((reason) => setError(reason.message));
-  }, [variant]);
-
-  async function save(nextPath = path.trim()) {
-    setBusy(true);
-    setMessage("");
-    setError("");
-    try {
-      const next = await adminUpdateVariantEngine(variant, nextPath);
-      setStatus(next);
-      setPath(next.configured_path || next.effective_path || "");
-      setMessage(next.available ? "配置已保存，引擎文件已找到" : "配置已清除，当前使用内置能力");
-    } catch (reason) {
-      setError(reason.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return <div className="panel">
-    <h3>{guide.title}</h3>
-    <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>{guide.description}</p>
-    {status && <div className="import-row" style={{ alignItems: "center", marginBottom: 8 }}>
-      <span className={"tag" + (status.available ? "" : " muted")}>
-        {status.available ? "● 已找到用户引擎" : "○ 未配置用户引擎"}
-      </span>
-      <span className="muted" style={{ fontSize: 13 }}>服务器：{OS_LABEL[status.os] || status.os} / {status.arch}</span>
-    </div>}
-    <div className="import-row">
-      <input className="import-input" value={path} onChange={(event) => setPath(event.target.value)} placeholder={guide.example} spellCheck={false} />
-      <button className="btn-import-submit" disabled={busy || !path.trim()} onClick={() => save()}>{busy ? "检测中…" : "保存并检测"}</button>
-      {status?.configured_path && <button className="game-delete-btn" style={{ width: "auto", padding: "0 12px" }} disabled={busy} onClick={() => save("")}>清除</button>}
-    </div>
-    <p className="muted" style={{ fontSize: 12 }}>
-      引擎程序和权重可能采用不同许可；商业使用前请自行确认。棋岛只保存路径并通过 UCI 协议调用。
-    </p>
-    {error && <div className="import-error">{error}</div>}
-    {message && <div className={status?.available ? "import-ok" : "muted"}>{message}</div>}
-  </div>;
 }
 
 const DEFAULT_LLM_SETTINGS = {

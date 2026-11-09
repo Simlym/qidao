@@ -11,6 +11,7 @@ backups/
 
 # 引擎下载/安装产物（本地测试文件不入库）
 backend/data/engine/
+backend/data/engines/
 local-engines/*
 !local-engines/README.md
 

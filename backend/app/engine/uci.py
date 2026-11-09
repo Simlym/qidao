@@ -1,5 +1,6 @@
 """通用 UCI 象棋引擎进程封装，不下载或发现特定品牌引擎。"""
 import os
+import json
 import re
 import subprocess
 import threading
@@ -60,6 +61,18 @@ class Engine:
             for line in uci_lines
             if (match := re.match(r"option name (.+?) type ", line, re.IGNORECASE))
         }
+        # 共用安装器的 Fairy-Stockfish 包需要象棋协议与变体配置。
+        try:
+            with open(os.path.join(workdir or ".", "engine-manifest.json"), encoding="utf-8") as stream:
+                manifest = json.load(stream)
+        except (OSError, ValueError):
+            manifest = {}
+        if not isinstance(manifest, dict):
+            manifest = {}
+        if manifest.get("uciProtocol") == "ucicyclone":
+            self._cmd("setoption name Protocol value ucicyclone" if "protocol" in self.options else "ucicyclone")
+        if manifest.get("uciVariant") == "xiangqi":
+            self._cmd("setoption name UCI_Variant value xiangqi")
         networks = [
             os.path.join(workdir or ".", name)
             for name in os.listdir(workdir or ".")
@@ -68,6 +81,8 @@ class Engine:
         ]
         if "evalfile" in self.options and len(networks) == 1:
             self._cmd(f"setoption name EvalFile value {os.path.abspath(networks[0])}")
+            if "use nnue" in self.options:
+                self._cmd("setoption name Use NNUE value true")
         self._cmd("isready")
         self._wait_for("readyok")
 

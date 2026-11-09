@@ -1,4 +1,4 @@
-"""从固定 GitHub 提交构建 Windows 测试包，不读取 local-engines，不发布文件。"""
+"""从固定 GitHub 提交构建 Windows / Linux 测试包，不读取 local-engines，不发布文件。"""
 
 import argparse
 import hashlib
@@ -9,6 +9,7 @@ import queue
 import re
 import shutil
 import subprocess
+import sys
 import threading
 import time
 import urllib.request
@@ -147,7 +148,8 @@ def smoke(executable, variant, network_file="pikafish.nnue", uci_options=None, u
         process.stdout.close()
 
 
-def build(variant, config, toolchain, output, jobs):
+def build(variant, config, toolchain, output, jobs, target="windows"):
+    linux = target == "linux"
     build_key = variant
     spec = config["engines"][variant]
     repository = spec.get("repository", config["repository"])
@@ -170,29 +172,35 @@ def build(variant, config, toolchain, output, jobs):
         extract_network(archive, source / "src" / network_file)
         network_source = {"url": spec["networkArchiveUrl"], "sha256": spec["networkArchiveSha256"]}
     env = os.environ.copy()
-    env["PATH"] = str(toolchain) + os.pathsep + env["PATH"]
-    env["OS"] = "Windows_NT"
+    if not linux:
+        env["PATH"] = str(toolchain) + os.pathsep + env["PATH"]
+        env["OS"] = "Windows_NT"
+    else:
+        env.pop("OS", None)
     env["LC_ALL"] = "C"
     # w64devkit 不提供 LTO 和 GBK 转码；通过额外 Makefile 适配，不修改上游源码。
     overlay = source / "src/qidao-build.mk"
     overlay.write_text("include Makefile\n"
                        "override CXXFLAGS := $(filter-out -flto -flto=full -flto=jobserver -flto-partition=one -fexec-charset=GBK,$(CXXFLAGS)) -fexec-charset=UTF-8\n"
                        "override LDFLAGS := $(filter-out -flto -flto=full -flto=jobserver -flto-partition=one -save-temps -fexec-charset=GBK,$(LDFLAGS)) -fexec-charset=UTF-8\n", encoding="utf-8")
-    make = (toolchain / "make.exe").as_posix()
+    make = "make" if linux else (toolchain / "make.exe").as_posix()
     # 子 make 继续使用相同覆盖文件，避免重新引入 LTO。
-    common = ["-f", "qidao-build.mk", f"ARCH={ARCH}", "COMP=mingw", "CXX=g++",
+    common = ["-f", "qidao-build.mk", f"ARCH={ARCH}", "COMP=gcc" if linux else "COMP=mingw", "CXX=g++",
               f'MAKE="{make}" -f qidao-build.mk', *spec.get("makeOptions", [])]
     command = [make, f"-j{jobs}", "build", *common]
     log = output / f"{build_key}-build.log"
     with log.open("w", encoding="utf-8") as stream:
         run([make, "objclean", *common], cwd=source / "src", env=env, stdout=stream, stderr=subprocess.STDOUT)
         run(command, cwd=source / "src", env=env, stdout=stream, stderr=subprocess.STDOUT)
-    binary = source / "src" / spec["executable"]
-    run([toolchain / "strip.exe", binary])
-    name = f"{variant}-{engine_id}-{spec['version']}-windows-x64-sse41-popcnt"
+    executable = spec["executable"].removesuffix(".exe") if linux else spec["executable"]
+    binary = source / "src" / executable
+    run(["strip" if linux else toolchain / "strip.exe", binary])
+    name = f"{variant}-{engine_id}-{spec['version']}-{target}-x64-sse41-popcnt"
     stage = output / name
     stage.mkdir(exist_ok=False)
-    shutil.copyfile(binary, stage / spec["executable"])
+    shutil.copyfile(binary, stage / executable)
+    if linux:
+        (stage / executable).chmod(0o700)
     if network_file:
         shutil.copyfile(source / "src" / network_file, stage / network_file)
     licenses = stage / "licenses"
@@ -203,23 +211,23 @@ def build(variant, config, toolchain, output, jobs):
     for license_file in spec.get("licenseFiles", []):
         shutil.copyfile(ROOT / license_file, licenses / Path(license_file).name)
     shutil.copyfile(overlay, stage / "qidao-build.mk")
-    report = smoke(stage / spec["executable"], variant, network_file, spec.get("uciOptions"), spec.get("uciProtocol"))
+    report = smoke(stage / executable, variant, network_file, spec.get("uciOptions"), spec.get("uciProtocol"))
     (stage / "smoke-test.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if engine_id == "fairy-stockfish":
         from engine_protocol import validate_fairy
-        protocol_report = validate_fairy(stage / spec["executable"], stage / network_file)
+        protocol_report = validate_fairy(stage / executable, stage / network_file)
         (stage / "protocol-test.json").write_text(json.dumps(protocol_report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    compiler = subprocess.check_output([str(toolchain / "g++.exe"), "--version"], text=True).splitlines()[0]
-    manifest = {"schemaVersion": 1, "id": name, "name": spec.get("name", "Pikafish" if variant == "xiangqi" else "PikaJieQi"),
+    compiler = subprocess.check_output([str("g++" if linux else toolchain / "g++.exe"), "--version"], text=True).splitlines()[0]
+    manifest = {"schemaVersion": 1, "id": name, "engineId": engine_id, "name": spec.get("name", "Pikafish" if variant == "xiangqi" else "PikaJieQi"),
                 "version": spec["version"], "variant": variant, "runtime": "native", "protocol": "uci",
-                "entrypoint": spec["executable"], "coordinates": "a0-i9", "uciOptions": spec.get("uciOptions", {}),
+                "entrypoint": executable, "coordinates": "a0-i9", "uciOptions": spec.get("uciOptions", {}),
                 "uciVariant": spec.get("uciOptions", {}).get("UCI_Variant"), "uciProtocol": spec.get("uciProtocol"),
-                "platform": "windows-x64", "requiresFeatures": ["sse4.1", "popcnt"],
+                "platform": f"{target}-x64", "os": target, "arch": "x86_64", "requiresFeatures": ["sse4.1", "popcnt"],
                 "sourceUrl": repository, "sourceCommit": spec["commit"],
                 "engineLicense": "GPL-3.0", "networkLicenseUrl": spec.get("networkLicenseUrl"),
                 "evaluation": "classical" if classical else "nnue",
                 "distribution": spec["distribution"], "verification": {"status": "smoke-passed", "application": "pending-user-test"},
-                "build": {"compiler": compiler, "toolchain": config["toolchain"], "arguments": command[1:]},
+                "build": {"compiler": compiler, "toolchain": compiler if linux else config["toolchain"], "arguments": command[1:]},
                 "networkLicense": spec.get("networkLicense"), "networkSource": network_source,
                 "assets": []}
     source_name = name + "-source.zip"
@@ -246,6 +254,7 @@ def build(variant, config, toolchain, output, jobs):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--platform", choices=["windows", "linux"], default="windows")
     parser.add_argument("--engine", choices=["xiangqi", "jieqi", "fairy-xiangqi", "all"], default="all")
     parser.add_argument("--toolchain", type=Path, default=BUILD / "w64devkit/bin")
     parser.add_argument("--output", type=Path, required=True, help="新的输出目录，不覆盖已有测试包")
@@ -270,22 +279,34 @@ def main():
     if args.preflight:
         print("固定来源和请求的分发条件检查通过")
         return
-    if os.name != "nt" or not (args.toolchain / "make.exe").is_file():
+    if args.platform == "windows" and (os.name != "nt" or not (args.toolchain / "make.exe").is_file()):
         parser.exit(1, "需要 Windows 和 w64devkit；准备步骤见 docs/engines/source-builds.md\n")
+    if args.platform == "linux" and (sys.platform != "linux" or not shutil.which("g++") or not shutil.which("make")):
+        parser.exit(1, "Linux 构建需要 Linux、g++ 和 make\n")
     args.output = args.output.resolve()
     args.output.mkdir(parents=True, exist_ok=False)
     BUILD.mkdir(exist_ok=True)
     try:
         for variant in variants:
-            build(variant, config, args.toolchain.resolve(), args.output, max(1, min(args.jobs, 16)))
+            build(variant, config, args.toolchain.resolve(), args.output, max(1, min(args.jobs, 16)), args.platform)
         entries = []
         for path in sorted(args.output.glob("*/engine-manifest.json")):
             manifest = json.loads(path.read_text(encoding="utf-8"))
             package = args.output / (path.parent.name + ".zip")
             entries.append({**manifest, "releaseTag": args.release_tag, "fileName": package.name,
                             "size": package.stat().st_size, "sha256": sha256(package),
+                            "manifestSha256": sha256(path),
                             "sourceArchive": path.parent.name + "-source.zip"})
         (args.output / "engine-release.json").write_text(json.dumps({"schemaVersion": 1, "packages": entries}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        candidates = [{key: p.get(key) for key in (
+            "id", "variant", "engineId", "name", "version", "fileName", "size", "sha256",
+            "manifestSha256", "entrypoint", "sourceCommit", "requiresFeatures", "releaseTag",
+            "uciVariant", "uciProtocol", "networkLicense", "networkLicenseUrl", "os", "arch",
+        )} | {"sourceUrl": f"{p['sourceUrl']}/tree/{p['sourceCommit']}",
+              "licenseUrl": f"{p['sourceUrl']}/blob/{p['sourceCommit']}/Copying.txt",
+              "networkPath": next((a["path"] for a in p["assets"] if a.get("role") == "evaluation-network"), None),
+              "publicDownload": False} for p in entries]
+        (args.output / "native-packages.candidate.json").write_text(json.dumps(candidates, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         archives = sorted(args.output.glob("*.zip"))
         (args.output / "SHA256SUMS.txt").write_text("".join(f"{sha256(p)}  {p.name}\n" for p in archives + [args.output / "engine-release.json"]), encoding="utf-8")
     except (OSError, ValueError, subprocess.SubprocessError) as error:

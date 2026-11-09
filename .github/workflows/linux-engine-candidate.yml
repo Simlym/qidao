@@ -1,0 +1,38 @@
+name: Linux 服务器引擎候选验收
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 计划固定标签（只生成候选，不创建或发布 Release）
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - name: 构建与 PC 同源的象棋和揭棋包并试算
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          python scripts/build_engines.py --platform linux --engine fairy-xiangqi --output dist-engines/linux-xiangqi --release-tag "$RELEASE_TAG"
+          python scripts/build_engines.py --platform linux --engine jieqi --output dist-engines/linux-jieqi --release-tag "$RELEASE_TAG"
+      - name: 安装器 Linux 回归
+        run: cargo test --manifest-path src-tauri/engine-installer/Cargo.toml --locked
+      - name: 真实 Linux 包安装与服务端试算
+        run: |
+          pip install -r backend/requirements.txt
+          python scripts/test_server_engine_candidates.py dist-engines/linux-xiangqi dist-engines/linux-jieqi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-engine-candidates
+          path: dist-engines/
+      - name: 验证真实后端容器构建
+        run: docker build --build-arg IMAGE_REGISTRY=docker.io -f backend/Dockerfile .

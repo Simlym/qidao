@@ -20,7 +20,8 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
       args:
         IMAGE_REGISTRY: ${IMAGE_REGISTRY:-docker.m.daocloud.io}
         PIP_INDEX_URL: ${PIP_INDEX_URL:-https://mirrors.aliyun.com/pypi/simple/}

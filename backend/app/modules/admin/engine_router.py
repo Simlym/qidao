@@ -1,9 +1,14 @@
-"""管理后台：配置用户自行提供的标准象棋与揭棋 UCI 引擎。"""
+"""管理后台：通过 PC 共用安装器安装与管理服务器象棋、揭棋引擎。"""
 
 import os
+import asyncio
+import json
+from contextlib import aclosing
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from fastapi.responses import StreamingResponse
+from app.engine import installation
 
 from app.core.dependencies import get_db
 from app.core.models import User
@@ -13,7 +18,7 @@ from app.engine.jieqi import reset_shared_jieqi_engine
 from app.engine.uci import reset_shared_engine
 from app.engine.profiles import profile_status
 from app.modules.auth.service import require_admin
-from .schemas import EnginePathUpdate
+from .schemas import EnginePathUpdate, EngineInstallRequest
 
 router = APIRouter(
     prefix="/api/admin/engine", tags=["admin"], dependencies=[Depends(require_admin)]
@@ -26,7 +31,7 @@ _KEYS = {"xiangqi": KEY_XIANGQI_ENGINE_PATH, "jieqi": KEY_JIEQI_ENGINE_PATH}
 def get_status():
     """返回平台信息和双棋种配置；不访问第三方下载服务。"""
     return {
-        "distribution": "user-provided",
+        "distribution": "managed",
         "xiangqi": profile_status("xiangqi"),
         "jieqi": profile_status("jieqi"),
     }
@@ -37,6 +42,64 @@ def get_variant_status(variant: str):
     if variant not in _KEYS:
         raise HTTPException(404, "不支持的棋种")
     return profile_status(variant)
+
+
+@router.get("/{variant}/installation")
+def get_installation(variant: str):
+    if variant not in _KEYS:
+        raise HTTPException(404, "不支持的棋种")
+    return {**installation.install_info(variant), "status": profile_status(variant)}
+
+
+@router.post("/{variant}/installation")
+def manage_installation(
+    variant: str, body: EngineInstallRequest, request: Request,
+    admin: User = Depends(require_admin), db: Session = Depends(get_db),
+):
+    if variant not in _KEYS:
+        raise HTTPException(404, "不支持的棋种")
+    if body.action in {"probe", "import"} and (not os.path.isabs(body.path) or not os.path.isfile(body.path)):
+        raise HTTPException(400, "请填写服务器上已存在文件的绝对路径")
+    try:
+        guard = installation.acquire_lock()
+    except ValueError as error:
+        raise HTTPException(409, str(error)) from error
+
+    async def stream():
+        def encode(event):
+            return json.dumps(event, ensure_ascii=False) + "\n"
+
+        result = None
+        try:
+            async with aclosing(installation.events(
+                variant, body.action, body.path if body.action == "probe" else body.package_id,
+                body.path if body.action == "import" else "",
+            )) as source:
+                async for event in source:
+                    if event["type"] == "error":
+                        yield encode(event)
+                        return
+                    if event["type"] == "result":
+                        result = event["data"]
+                    else:
+                        yield encode(event)
+            if not result:
+                raise ValueError("安装器未返回检测结果")
+            if await request.is_disconnected():
+                return
+            # 安装和试算全部成功后才切换配置，失败时原路径保持不变。
+            set_setting(db, _KEYS[variant], result["enginePath"])
+            db.commit()
+            reset = reset_shared_jieqi_engine if variant == "jieqi" else reset_shared_engine
+            await asyncio.to_thread(reset)
+            admin_action(request, admin.username, "install_server_engine", f"{variant}:{body.action}", db=db)
+            yield encode({"type": "complete", "data": profile_status(variant)})
+        except (OSError, ValueError, TimeoutError) as error:
+            yield encode({"type": "error", "data": {"message": str(error)}})
+        finally:
+            guard.close()
+
+    return StreamingResponse(stream(), media_type="application/x-ndjson", headers={"X-Accel-Buffering": "no", "Cache-Control": "no-store"})
 
 
 @router.put("/{variant}")
@@ -57,12 +120,17 @@ def update_engine(
         path = os.path.abspath(path)
         if not os.path.isfile(path):
             raise HTTPException(400, "服务器上找不到该引擎文件")
-    set_setting(db, _KEYS[variant], path)
-    db.commit()
-    if variant == "jieqi":
-        reset_shared_jieqi_engine()
-    else:
-        reset_shared_engine()
+    try:
+        guard = installation.acquire_lock()
+    except ValueError as error:
+        raise HTTPException(409, str(error)) from error
+    with guard:
+        set_setting(db, _KEYS[variant], path)
+        db.commit()
+        if variant == "jieqi":
+            reset_shared_jieqi_engine()
+        else:
+            reset_shared_engine()
     action = f"{variant}:configured" if path else f"{variant}:cleared"
     admin_action(request, admin.username, "update_user_engine", action, db=db)
     return profile_status(variant)

@@ -1,0 +1,12 @@
+.git
+.engine-build
+dist-engines
+dist-engine-site
+local-engines
+**/node_modules
+**/target
+**/.venv
+**/__pycache__
+**/.env
+**/data
+frontend/dist*

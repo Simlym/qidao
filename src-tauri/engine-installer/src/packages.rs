@@ -21,6 +21,10 @@ const HOSTS: &[&str] = &[
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Package {
+    #[serde(default = "default_os")]
+    pub os: String,
+    #[serde(default = "default_arch")]
+    pub arch: String,
     pub id: String,
     pub variant: String,
     pub engine_id: String,
@@ -46,6 +50,13 @@ pub struct Package {
     pub application_tested: bool,
 }
 
+fn default_os() -> String {
+    "windows".into()
+}
+fn default_arch() -> String {
+    "x86_64".into()
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Catalog {
@@ -65,6 +76,8 @@ pub fn catalog(variant: &str) -> Result<Vec<Package>, String> {
     let mut ids = HashSet::new();
     for p in &catalog.packages {
         if !ids.insert(&p.id)
+            || !matches!(p.os.as_str(), "windows" | "linux")
+            || p.arch != "x86_64"
             || !safe_component(&p.id)
             || !safe_component(&p.engine_id)
             || !safe_component(&p.version)
@@ -100,8 +113,8 @@ pub fn catalog(variant: &str) -> Result<Vec<Package>, String> {
 }
 
 pub fn compatible(p: &Package, os: &str, arch: &str, features: &[&str]) -> bool {
-    os == "windows"
-        && arch == "x86_64"
+    os == p.os
+        && arch == p.arch
         && p.requires_features
             .iter()
             .all(|f| features.contains(&f.as_str()))
@@ -245,13 +258,25 @@ fn verify_contents(directory: &Path, package: &Package, cancel: &AtomicBool) -> 
         let path = regular_file(directory, &asset.path)?;
         verify_file(&path, asset.size, &asset.sha256)?;
     }
-    let mut signature = [0u8; 2];
+    let mut signature = [0u8; 4];
     File::open(directory.join(&package.entrypoint))
         .and_then(|mut f| f.read_exact(&mut signature))
         .map_err(|e| e.to_string())?;
-    if signature != *b"MZ" {
-        return Err("引擎程序不是 Windows 可执行文件".into());
+    if (package.os == "windows" && signature[..2] != *b"MZ")
+        || (package.os == "linux" && signature != *b"\x7fELF")
+    {
+        return Err("引擎程序与目标系统不匹配".into());
     }
+    Ok(())
+}
+
+fn executable_permissions(path: &Path) -> Result<(), String> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(path, fs::Permissions::from_mode(0o700)).map_err(|e| e.to_string())?;
+    }
+    let _ = path;
     Ok(())
 }
 
@@ -428,6 +453,7 @@ pub fn verify_installation(
         return Err("引擎安装记录不匹配".into());
     }
     verify_contents(&dir, p, cancel)?;
+    executable_permissions(&dir.join(&p.entrypoint))?;
     probe(
         &dir.join(&p.entrypoint),
         cancel,
@@ -465,6 +491,7 @@ pub fn install_archive(
         total: p.size,
     });
     unpack(archive, stage.path(), p, cancel)?;
+    executable_permissions(&stage.path().join(&p.entrypoint))?;
     progress(Progress {
         phase: "testing",
         downloaded: p.size,
@@ -599,6 +626,28 @@ mod tests {
 
     fn hash(bytes: &[u8]) -> String {
         format!("{:x}", Sha256::digest(bytes))
+    }
+
+    #[test]
+    fn platform_and_cpu_are_both_required() {
+        let mut p = catalog("xiangqi").unwrap().remove(0);
+        assert!(!compatible(&p, "linux", "x86_64", &["sse4.1", "popcnt"]));
+        p.os = "linux".into();
+        assert!(compatible(&p, "linux", "x86_64", &["sse4.1", "popcnt"]));
+        assert!(!compatible(&p, "windows", "x86_64", &["sse4.1", "popcnt"]));
+        assert!(!compatible(&p, "linux", "aarch64", &["sse4.1", "popcnt"]));
+        assert!(!compatible(&p, "linux", "x86_64", &[]));
+    }
+
+    #[test]
+    fn windows_binary_cannot_be_used_as_linux_package() {
+        let (root, archive, mut p) = fixture(None, "xiangqi");
+        p.os = "linux".into();
+        let directory = root.path().join("unpacked");
+        fs::create_dir(&directory).unwrap();
+        assert!(unpack(&archive, &directory, &p, &AtomicBool::new(false))
+            .unwrap_err()
+            .contains("目标系统"));
     }
 
     fn fixture(
