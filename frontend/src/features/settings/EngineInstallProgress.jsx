@@ -4,6 +4,7 @@ const PHASES = {
   "checking-saved": "正在确认已安装的引擎，无需重新下载…",
   preparing: "正在连接下载…", storage: "正在准备本机存储…", reading: "正在读取文件…", saving: "正在保存到本机…", removing: "正在移除引擎…", importing: "正在读取安装包…", downloading: "正在下载…",
   verifying: "正在检查文件…", extracting: "正在安装…", testing: "正在检测引擎…",
+  uploading: "正在上传引擎包到服务器…",
   installed: "安装完成，准备启用…", activating: "正在启用…",
 };
 

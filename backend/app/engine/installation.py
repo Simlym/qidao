@@ -4,12 +4,31 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import time
 import anyio
 
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
 
 def installer_path() -> str:
-    return os.getenv("ENGINE_INSTALLER", "qidao-engine-installer")
+    configured = os.getenv("ENGINE_INSTALLER", "").strip()
+    if configured:
+        return configured
+    executable = "qidao-engine-installer.exe" if os.name == "nt" else "qidao-engine-installer"
+    installed = shutil.which(executable)
+    if installed:
+        return installed
+    # 源码启动不依赖工作目录或手动修改 PATH；正式部署只使用发行构建。
+    target = PROJECT_ROOT / "src-tauri" / "engine-installer" / "target"
+    profiles = ["release"]
+    if os.getenv("APP_ENV", "").lower() != "production":
+        profiles.append("debug")
+    for profile in profiles:
+        candidate = target / profile / executable
+        if candidate.is_file():
+            return str(candidate)
+    return executable
 
 
 def install_root(variant: str) -> Path:
@@ -51,7 +70,7 @@ def install_info(variant: str) -> dict:
         return info
     except (OSError, subprocess.TimeoutExpired):
         return {"packages": [], "installed": [], "installer_available": False,
-                "message": "服务器尚未部署共用引擎安装器，请更新后端部署；已有路径配置仍可使用。"}
+                "message": "未找到引擎安装器。源码启动请先编译安装器；Docker 部署请更新后端镜像。已有引擎路径配置仍保留。"}
 
 
 async def events(variant: str, action: str, value: str, archive: str = ""):

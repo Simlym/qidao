@@ -1,4 +1,5 @@
 import React from "react";
+import EngineStatusCard from "./EngineStatusCard";
 import { useNativePackageInstaller, NativeInstallProgress, NativePackageDetails } from "./NativePackageInstaller";
 import { nativeInstallationProfile } from "../../domain/xiangqi/engine/nativeInstallationProfile";
 import { activateNativeEngine, verifyNativeEngineReadiness } from "../../domain/xiangqi/engine/activateNativeEngine";
@@ -111,11 +112,9 @@ export default function NativeEngineSettings({ manager, onReady, variant = "xian
   }
   if (!supportsNativeEngine(runtime)) return null;
   return <div className="native-engine-settings engine-settings-v2">
-    <section className="engine-main-card" aria-label="本地引擎设置" aria-busy={busy}>
-      <div className={`engine-main-icon${ready && !showSetup ? " is-ready" : ""}`} aria-hidden="true">{ready && !showSetup ? "✓" : "棋"}</div>
-      <div className="engine-main-content">
-        <h3>{showSetup ? "让电脑帮你分析棋局" : ready ? `${variant === "jieqi" ? "揭棋" : "象棋"}引擎已就绪` : checking ? "正在确认已配置的引擎" : ready === false ? "引擎检测未通过" : "引擎配置已保存在本机"}</h3>
-        <p className="engine-main-description">{showSetup ? variant === "jieqi" ? "安装揭棋专用引擎，用于暗子局面的对弈和分析。" : "安装象棋引擎，用于人机对弈、局面评分和走法提示。" : ready ? "可直接用于对弈和棋局分析，无需重复下载。" : checking ? "正在自动检测这台电脑上的引擎，无需重新下载。" : "原配置已保留，请查看下方提示。"}</p>
+    <EngineStatusCard label="本地引擎设置" busy={busy} ready={ready && !showSetup}
+      title={showSetup ? "让电脑帮你分析棋局" : ready ? `${variant === "jieqi" ? "揭棋" : "象棋"}引擎已就绪` : checking ? "正在确认已配置的引擎" : ready === false ? "引擎检测未通过" : "引擎配置已保存在本机"}
+      description={showSetup ? variant === "jieqi" ? "安装揭棋专用引擎，用于暗子局面的对弈和分析。" : "安装象棋引擎，用于人机对弈、局面评分和走法提示。" : ready ? "可直接用于对弈和棋局分析，无需重复下载。" : checking ? "正在自动检测这台电脑上的引擎，无需重新下载。" : "原配置已保留，请查看下方提示。"}>
         {!showSetup && <dl className="engine-current-info"><div><dt>当前引擎</dt><dd>{name}</dd></div><div><dt>安装位置</dt><dd>{managed ? "由棋岛管理" : "自定义位置"}<button type="button" className="engine-text-button" onClick={openFolder}>打开文件夹</button></dd></div></dl>}
         {installer.busy ? <NativeInstallProgress progress={installer.progress} onCancel={installer.cancel} /> : checking ? <NativeInstallProgress progress={{ phase: ready === null && !importing ? "checking-saved" : "testing" }} /> : <>
           <div className="engine-main-actions">
@@ -129,8 +128,7 @@ export default function NativeEngineSettings({ manager, onReady, variant = "xian
         </>}
         {selected?.publicDownload && (showSetup || installer.error || installer.progress?.phase === "preparing") && <p className="engine-browser-download">下载不顺畅？<button type="button" className="engine-text-button" onClick={() => installer.openLink("download")}>用浏览器下载</button><span>下载后选择「手动导入」。</span></p>}
         {feedback && !importing && <EngineMessage message={feedback} />}
-      </div>
-    </section>
+    </EngineStatusCard>
     <details className="engine-settings-disclosure"><summary>性能设置</summary><p className="engine-fine-print">一般无需修改。参数会在下次安装或启用时生效。</p><div className="native-engine-limits"><label>计算线程<input type="number" min="1" max="8" disabled={busy} value={threads} onChange={(e) => setThreads(Math.max(1, Math.min(8, Number(e.target.value) || 1)))} /></label><label>分析内存（MB）<input type="number" min="32" max="2048" step="32" disabled={busy} value={hashMb} onChange={(e) => setHashMb(Math.max(32, Math.min(2048, Number(e.target.value) || 32)))} /></label></div><p className="engine-fine-print">建议保留一半处理器资源给界面和系统。</p>{profile && <button type="button" disabled={busy} onClick={() => enable()}>保存参数并启用</button>}</details>
     <details className="engine-settings-disclosure"><summary>引擎详情</summary>{profile && <><p>当前引擎：{name}{profile.engineVersion ? ` · ${profile.engineVersion}` : ""}</p><p className="engine-path">{profile.path}</p></>}<NativePackageDetails installer={installer} disabled={busy} />{platform && <p className="engine-fine-print">设备：{platform.os} / {platform.arch} · {platform.cpuCount} 线程 · {platform.features?.join(" / ")}</p>}</details>
     {importing && <ImportDialog variant={variant} busy={busy} candidate={candidate} message={feedback} progress={installer.progress} onCancel={installer.busy ? installer.cancel : null} packageSupported={packageSupported} onChoose={choosePath} onImport={() => { setCandidate(null); installer.run("import"); }} onActivate={() => enable(candidate)} onClose={() => { setImporting(false); setCandidate(null); setMessage(null); installer.clearMessages(); }} />}

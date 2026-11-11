@@ -16,8 +16,9 @@ Compose 构建上下文已调整为仓库根目录，通过 `backend/Dockerfile`
 cargo build --release --locked --manifest-path src-tauri/engine-installer/Cargo.toml --bin qidao-engine-installer
 ```
 
-将对应系统编译的 `qidao-engine-installer` 放入后端 PATH，或使用 `ENGINE_INSTALLER`
-配置其绝对路径。`ENGINE_INSTALL_DIR` 可修改安装根目录，默认相对于后端工作目录的
+源码启动会自动识别项目内的 `target/release` 安装器，开发环境还会识别 `target/debug`，
+无需手动修改 PATH。也可将安装器放入 PATH，或使用 `ENGINE_INSTALLER` 显式配置绝对路径；
+显式配置优先于 PATH，PATH 优先于项目构建目录。`ENGINE_INSTALL_DIR` 可修改安装根目录，默认相对于后端工作目录的
 `data/engines`。旧的 `XIANGQI_ENGINE` / `JIEQI_ENGINE` 和后台路径配置继续兼容。
 
 ## 行为
@@ -28,7 +29,11 @@ cargo build --release --locked --manifest-path src-tauri/engine-installer/Cargo.
 - 已安装版本支持重验后启用，便于回退。失败或取消不修改原配置；已完成的安装文件可能保留以便重用。
 - 连接断开时向安装器发送取消并回收进程。启用已经提交时，取消无法撤销，应以刷新后的路径为准。
 - 操作系统文件锁防止多个管理员或后端进程同时安装、导入或修改配置。
-- 手动引擎通过真实握手和指定着法试算后启用；固定 ZIP 导入要求填写服务器已有文件的绝对路径。
+- 后台系统设置采用左侧分类导航，分别管理象棋引擎、揭棋引擎与 AI 复盘。
+- ZIP 导入直接选择电脑上的棋岛固定安装包并上传，按大小和 SHA-256 自动匹配棋种、服务器平台及版本；校验和试算通过后才启用。
+- 上传流式写入临时目录，失败、取消或安装结束均清理暂存文件；单次最多 256 MiB，上传总超时 300 秒，实际大小还受当前平台固定包清单限制。
+- 内置 Nginx 为上传接口单独放宽大小限制并关闭请求缓冲；自行部署其他反向代理时也需配置相应限制及超时。
+- 高级选项保留服务器已有程序路径配置，手动引擎通过真实握手和指定着法试算后启用。
 - Fairy-Stockfish 的服务器运行封装读取包内变体与坐标协议配置，保持试算和实际对弈一致。
 
 ## Linux 发行前置条件

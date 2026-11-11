@@ -4,14 +4,23 @@ import { withApiConnection } from "./server.js";
 export const serverEngineInstallation = (variant) => request(`/admin/engine/${variant}/installation`);
 
 export function installServerEngine(variant, body, { signal, onProgress } = {}) {
+  return serverEngineOperation(variant, "installation", JSON.stringify(body), "application/json", { signal, onProgress });
+}
+
+export function uploadServerEngine(variant, file, options = {}) {
+  return serverEngineOperation(variant, "upload", file, "application/zip", options);
+}
+
+function serverEngineOperation(variant, action, body, contentType, { signal, onProgress } = {}) {
   return withApiConnection(async (connectionSignal) => {
-    const response = await fetch(`${API_BASE_URL}/admin/engine/${variant}/installation`, {
-      method: "POST", headers: authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(body), signal: connectionSignal, credentials: "omit", redirect: "error", cache: "no-store",
+    const response = await fetch(`${API_BASE_URL}/admin/engine/${variant}/${action}`, {
+      method: "POST", headers: authHeaders({ "Content-Type": contentType }),
+      body, signal: connectionSignal, credentials: "omit", redirect: "error", cache: "no-store",
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(readableErrorDetail(error.detail));
+      let message = response.status === 413 ? "文件超过服务器上传限制，请检查部署配置或选择适配的 ZIP 包。" : "引擎操作请求失败，请重试。";
+      try { message = readableErrorDetail((await response.json()).detail); } catch { /* 反向代理可能返回 HTML，保留可读提示。 */ }
+      throw new Error(message);
     }
     const reader = response.body.getReader();
     const decoder = new TextDecoder();

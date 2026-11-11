@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from fastapi.responses import StreamingResponse
 from app.engine import installation
+from .engine_upload import receive_package
 
 from app.core.dependencies import get_db
 from app.core.models import User
@@ -65,6 +66,33 @@ def manage_installation(
     except ValueError as error:
         raise HTTPException(409, str(error)) from error
 
+    return installation_response(variant, body.action, body.path if body.action == "probe" else body.package_id,
+                                 body.path if body.action == "import" else "", request, admin, db, guard)
+
+
+@router.post("/{variant}/upload")
+async def upload_installation(
+    variant: str, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db),
+):
+    """接收电脑选择的 ZIP 文件，按固定清单自动匹配棋种和服务器平台。"""
+    if variant not in _KEYS:
+        raise HTTPException(404, "不支持的棋种")
+    info = await asyncio.to_thread(installation.install_info, variant)
+    if not info["installer_available"] or not info["packages"]:
+        raise HTTPException(409, "当前服务器暂无适配的引擎安装包，暂不能上传导入")
+    try:
+        guard = installation.acquire_lock()
+    except ValueError as error:
+        raise HTTPException(409, str(error)) from error
+    try:
+        temporary, archive, package = await receive_package(request, installation.install_root(variant), info["packages"])
+    except BaseException:
+        guard.close()
+        raise
+    return installation_response(variant, "import", package["id"], str(archive), request, admin, db, guard, temporary)
+
+
+def installation_response(variant, action, value, archive, request, admin, db, guard, temporary=None):
     async def stream():
         def encode(event):
             return json.dumps(event, ensure_ascii=False) + "\n"
@@ -72,8 +100,7 @@ def manage_installation(
         result = None
         try:
             async with aclosing(installation.events(
-                variant, body.action, body.path if body.action == "probe" else body.package_id,
-                body.path if body.action == "import" else "",
+                variant, action, value, archive,
             )) as source:
                 async for event in source:
                     if event["type"] == "error":
@@ -92,12 +119,14 @@ def manage_installation(
             db.commit()
             reset = reset_shared_jieqi_engine if variant == "jieqi" else reset_shared_engine
             await asyncio.to_thread(reset)
-            admin_action(request, admin.username, "install_server_engine", f"{variant}:{body.action}", db=db)
+            admin_action(request, admin.username, "install_server_engine", f"{variant}:{action}", db=db)
             yield encode({"type": "complete", "data": profile_status(variant)})
         except (OSError, ValueError, TimeoutError) as error:
             yield encode({"type": "error", "data": {"message": str(error)}})
         finally:
             guard.close()
+            if temporary is not None:
+                temporary.cleanup()
 
     return StreamingResponse(stream(), media_type="application/x-ndjson", headers={"X-Accel-Buffering": "no", "Cache-Control": "no-store"})
 

@@ -1,6 +1,7 @@
 import React from "react";
 import AiUsageAdmin from "./AiUsageAdmin";
 import ServerEnginePanel from "./ServerEnginePanel";
+import SystemSettingsTabs from "./SystemSettingsTabs";
 import PuzzleLibrary from "./PuzzleLibrary";
 import {
   adminAdjustCredits,
@@ -122,11 +123,8 @@ export default function Admin() {
 
       {/* 系统设置：对弈引擎 + AI 复盘 */}
       {tab === "settings" && (
-        <>
-          <ServerEnginePanel variant="xiangqi" />
-          <ServerEnginePanel variant="jieqi" />
-          <LlmSettingsPanel />
-        </>
+        <SystemSettingsTabs renderPanel={(section) => section === "ai"
+          ? <LlmSettingsPanel /> : <ServerEnginePanel key={section} variant={section} />} />
       )}
 
       {tab === "ai-usage" && <AiUsageAdmin users={users} />}
