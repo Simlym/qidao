@@ -1,10 +1,13 @@
 import React from "react";
+import ServerSelect from "./ServerSelect.jsx";
 import {
-  API_BASE_URL, DEFAULT_API_BASE_URL, isOfflineConnection, probeServer, saveServerAddress, reloadForServerChange,
+  API_BASE_URL, DEFAULT_API_BASE_URL, SERVER_PRESETS, isOfflineConnection, probeServer, saveServerAddress, reloadForServerChange,
 } from "../../shared/api";
 
 export default function ServerSettings() {
-  const [address, setAddress] = React.useState(isOfflineConnection ? "" : API_BASE_URL);
+  const [selection, setSelection] = React.useState(SERVER_PRESETS.includes(API_BASE_URL) ? API_BASE_URL : "custom");
+  const [customAddress, setCustomAddress] = React.useState(isOfflineConnection || SERVER_PRESETS.includes(API_BASE_URL) ? "" : API_BASE_URL);
+  const address = selection === "custom" ? customAddress : selection;
   const [busy, setBusy] = React.useState(false);
   const [notice, setNotice] = React.useState(null);
   const probe = React.useRef(null);
@@ -49,18 +52,22 @@ export default function ServerSettings() {
         <h2>服务器（高级）</h2>
         <p>管理服务连接。通常无需修改，使用自建服务时再进行设置。</p>
       </div>
-      <div className="server-current-heading"><strong>服务地址</strong><span>{API_BASE_URL === DEFAULT_API_BASE_URL ? "使用默认服务" : "使用自定义服务"}</span></div>
+      <div className="server-current-heading"><strong>服务地址</strong><span>{isOfflineConnection ? "离线模式" : API_BASE_URL === DEFAULT_API_BASE_URL ? "使用默认服务" : SERVER_PRESETS.includes(API_BASE_URL) ? "使用预置服务" : "使用自定义服务"}</span></div>
       <dl className="server-addresses">
         <dt>当前服务器</dt><dd>{isOfflineConnection ? "离线模式 · 可导入本地引擎对弈" : API_BASE_URL}</dd>
       </dl>
       <p className="server-description">各服务器的账号、会员、训练进度和棋谱相互独立。切换不会迁移数据；返回原服务器可继续使用原账号。</p>
       <div className="server-edit-card">
       <h3>连接其他服务器</h3>
-      <label className="server-address-input">服务器 API 地址
+      <ServerSelect value={selection} disabled={busy}
+        options={[...SERVER_PRESETS.map((base) => ({ value: base, label: base, badge: base === DEFAULT_API_BASE_URL ? "默认" : null })),
+          { value: "custom", label: "自定义服务器" }]}
+        onChange={(value) => { setSelection(value); setNotice(null); }} />
+      {selection === "custom" && <label className="server-address-input server-custom-address">服务器 API 地址
         <input type="url" value={address} disabled={busy} spellCheck={false} autoCapitalize="none" aria-describedby="server-address-help"
           placeholder="https://chess.example.com/api"
-          onChange={(event) => { setAddress(event.target.value); setNotice(null); }} />
-      </label>
+          onChange={(event) => { setCustomAddress(event.target.value); setNotice(null); }} />
+      </label>}
       <p id="server-address-help" className="server-help">请连接你信任的服务。检测连接不发送当前账号或游客信息。</p>
       <p className="server-warning">连接或恢复默认后会重新加载页面。象棋已保存的回合可在原服务器的「本机对局」中继续；正在计算的回合及其他未保存内容可能丢失。</p>
       <div className="server-actions">

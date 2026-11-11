@@ -22,6 +22,11 @@ const offlineClient = import.meta.env?.VITE_OFFLINE_CLIENT === true;
 const configured = (offlineClient ? "https://offline.invalid/api" : (import.meta.env?.VITE_API_BASE_URL || defaultApiBase(runtime))).trim().replace(/\/+$/, "");
 export const DEFAULT_API_BASE_URL = new URL(configured || defaultApiBase(runtime), origin).href;
 export const allowHttpServer = Boolean(import.meta.env?.DEV);
+// 默认服务始终列在首位；离线占位地址不展示给用户。
+export const SERVER_PRESETS = [...new Set([
+  ...(offlineClient ? [] : [DEFAULT_API_BASE_URL]),
+  ...(import.meta.env?.VITE_API_SERVERS || []),
+])];
 
 function readServer() {
   // Web 的后端由站点部署决定，忽略旧版本保存的客户端切换设置。

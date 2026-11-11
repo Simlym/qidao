@@ -19,6 +19,18 @@ function storage() {
   };
 }
 
+test("预置服务包含默认地址并去重，离线包隐藏占位地址", async () => {
+  const presets = ["https://default.example/api", "https://backup.example/api", "https://backup.example/api"];
+  for (const offline of [false, true]) {
+    const source = readFileSync(new URL("./server.js", import.meta.url), "utf8")
+      .replaceAll("import.meta.env", `(${JSON.stringify({ VITE_API_BASE_URL: presets[0], VITE_API_SERVERS: presets, VITE_OFFLINE_CLIENT: offline })})`)
+      .replace('"../../platform/runtime.js"', JSON.stringify(new URL("../../platform/runtime.js", import.meta.url).href));
+    const server = await import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}`);
+    assert.deepEqual(server.SERVER_PRESETS, [presets[0], presets[1]]);
+    assert.equal(server.SERVER_PRESETS.includes("https://offline.invalid/api"), false);
+  }
+});
+
 test("离线客户端不发业务请求，连接自建服务后恢复在线请求", () => {
   const source = readFileSync(new URL("./server.js", import.meta.url), "utf8")
     .replaceAll("import.meta.env", '({ VITE_OFFLINE_CLIENT: true })')

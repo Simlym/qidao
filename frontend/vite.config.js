@@ -26,6 +26,23 @@ export default defineConfig(({ mode, command }) => {
   const label = mode === "android" ? "Android" : "PC";
   const configFile = mode === "android" ? ".env.android.local" : ".env.tauri.local";
   const release = command === "build";
+  let serverPresets = [];
+  if (packagedClient && env.VITE_API_SERVERS?.trim()) {
+    try {
+      const values = JSON.parse(env.VITE_API_SERVERS);
+      if (!Array.isArray(values)) throw new Error();
+      serverPresets = [...new Set(values.map((value) => {
+        const url = new URL(value.trim().replace(/\/+$/, ""));
+        const loopback = /^(localhost|127(?:\.\d+){3}|\[::1\])$/i.test(url.hostname);
+        if (!(release ? url.protocol === "https:" : ["http:", "https:"].includes(url.protocol))
+            || !url.pathname.endsWith("/api") || url.search || url.hash || url.username || url.password
+            || (release && loopback)) throw new Error();
+        return url.href;
+      }))];
+    } catch {
+      throw new Error("VITE_API_SERVERS 须为服务器地址的 JSON 数组；地址规则与 VITE_API_BASE_URL 相同，发布时必须使用非回环 HTTPS 地址并以 /api 结尾。");
+    }
+  }
 
   if (!offlineClient && packagedClient && (release || mode === "android" || apiBase)) {
     let url;
@@ -45,6 +62,7 @@ export default defineConfig(({ mode, command }) => {
     define: {
       "import.meta.env.VITE_API_BASE_URL": JSON.stringify(offlineClient ? "" : apiBase),
       "import.meta.env.VITE_OFFLINE_CLIENT": JSON.stringify(offlineClient),
+      "import.meta.env.VITE_API_SERVERS": JSON.stringify(serverPresets),
     },
     server: {
       port: devPort,
