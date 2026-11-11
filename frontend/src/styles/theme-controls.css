@@ -77,6 +77,13 @@ body:not([data-app-theme="classic"]) .engine-import-dialog :focus-visible { outl
   .native-engine-settings, .pv-preview-dialog, .engine-setup-guide) { color: var(--app-text); background: var(--app-surface); border-color: var(--app-border); }
 .app-theme-custom :is(.engine-setup-guide strong, .engine-setup-summary strong) { color: var(--app-text); }
 .app-theme-custom :is(.engine-setup-guide p, .engine-setup-summary span, .play-setup-label) { color: var(--app-muted); }
+.app-theme-custom .play-setup-engine-details { color: var(--app-muted); }
+.app-theme-custom .play-setup.panel > .play-setup-cloud-start {
+  color: var(--app-text); background: var(--app-surface); border-color: var(--app-border);
+}
+.app-theme-custom .play-setup.panel > .play-setup-cloud-start:hover:not(:disabled) {
+  color: var(--app-accent); background: var(--app-accent-soft); border-color: var(--app-accent);
+}
 .app-theme-custom :is(.coach-rec-no, .member-badge) { color: var(--app-on-accent); background: var(--app-accent); }
 .app-theme-custom :is(.rating-num, .rating-title, .coach-progress-head, .hint-strip strong) { color: var(--app-accent); }
 .app-theme-custom :is(.skill-chips span, .bar-track, .level-card.locked) { color: var(--app-muted); background: var(--app-surface-soft); }
