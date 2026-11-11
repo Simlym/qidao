@@ -6,14 +6,6 @@
 .ai-usage-table { overflow-x: auto; max-width: 100%; }
 .ai-usage-table table { border-collapse: collapse; width: 100%; white-space: nowrap; }
 .ai-usage-table th, .ai-usage-table td { padding: 10px; text-align: left; border-bottom: 1px solid var(--app-border, #e9e1d7); }
-.ai-policy-form { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px; margin: 18px 0; }
-.ai-policy-form label { display: flex; flex-direction: column; gap: 7px; }
-.ai-policy-form input, .ai-usage-admin select { padding: 9px; max-width: 210px; }
-.ai-usage-admin .panel { margin: 16px 0; }
-.ai-usage-admin button { padding: 9px 14px; border: 1px solid #cdbca7; border-radius: 8px; background: #faf7f1; color: #714521; cursor: pointer; }
-.ai-usage-admin button:disabled { opacity: .55; cursor: default; }
-@media (max-width: 600px) { .ai-policy-form label { width: 100%; } .ai-policy-form input { max-width: 100%; } }
-
 /* 账户页面沿用设置中心的文字层级与主题配色。 */
 .ai-usage-page { color: var(--app-text, #423b34); font-size: 14px; line-height: 1.7; }
 .ai-account-card { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px; border: 1px solid var(--app-border, #e8e1d7); border-radius: 12px; background: var(--app-surface-soft, #f7f3ed); }

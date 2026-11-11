@@ -100,6 +100,7 @@ export default function Admin() {
           <button
             key={t.key}
             className={tab === t.key ? "active" : ""}
+            aria-pressed={tab === t.key}
             onClick={() => setTab(t.key)}
           >
             {t.label}
@@ -136,7 +137,7 @@ export default function Admin() {
       {tab === "users" && (
       <div className="panel">
         <h3>用户管理</h3>
-        <div className="admin-table-wrap"><table className="admin-table">
+        <div className="admin-table-wrap" role="region" aria-label="用户列表" tabIndex={0}><table className="admin-table">
           <thead>
             <tr><th>ID</th><th>用户名</th><th>角色</th><th>会员</th><th>积分</th><th>作答</th><th>已学</th><th></th></tr>
           </thead>
@@ -521,6 +522,7 @@ function LogsPanel() {
           <button
             key={f.key}
             className={filter === f.key ? "active" : ""}
+            aria-pressed={filter === f.key}
             onClick={() => pickFilter(f.key)}
           >
             {f.label}
@@ -530,7 +532,7 @@ function LogsPanel() {
 
       {err && <div className="import-error">{err}</div>}
 
-      <div className="admin-table-wrap"><table className="admin-table">
+      <div className="admin-table-wrap" role="region" aria-label="安全审计日志" tabIndex={0}><table className="admin-table">
         <thead>
           <tr><th>时间</th><th>类型</th><th>IP</th><th>用户/操作者</th><th>动作</th><th>目标</th></tr>
         </thead>

@@ -1,0 +1,72 @@
+/* 后台沿用设置中心的主题、控件尺寸与信息层级。 */
+.admin { min-width: 0; color: var(--app-text, #423b34); font-size: 14px; line-height: 1.7; }
+.admin .admin-tabs { gap: 6px; margin-bottom: 20px; padding: 5px; border: 1px solid var(--app-border, #e3d7c5); border-radius: 12px; background: var(--app-surface-soft, #eee9e0); }
+.admin .admin-tabs > button { min-height: 40px; padding: 8px 18px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--app-muted, #817365); font: inherit; font-size: 13px; font-weight: 600; }
+.admin .admin-tabs > button:hover { background: var(--app-accent-soft, #f0e5d4); color: var(--app-accent, #8b5d31); }
+.admin .admin-tabs > button.active:not(:disabled) { background: var(--app-surface, #fffaf3); border-color: var(--app-border, #e3d7c5); color: var(--app-accent, #8b5d31); box-shadow: 0 2px 6px #33231508; }
+.admin .panel > h3 { font-size: 17px; }
+.admin .admin-table-wrap { border: 1px solid var(--app-border, #e3d7c5); border-radius: 10px; }
+.admin .admin-table :is(th, td) { padding: 12px 14px; border-bottom-color: var(--app-border, #e3d7c5); }
+.admin .admin-table th { background: var(--app-surface-soft, #eee9e0); color: var(--app-muted, #817365); white-space: nowrap; }
+.admin .admin-table tbody tr:last-child td { border-bottom: 0; }
+.admin .admin-table tbody tr:hover { background: var(--app-surface-soft, #eee9e0); }
+/* 公共表单覆盖题库编辑、训练反馈、棋谱导入和登录等入口。 */
+:is(.admin, .puzzle-feedback, .import-form, .auth-form) :is(.import-input, .import-textarea),
+.ai-usage-admin :is(input, select) {
+  min-width: 0; min-height: 42px; padding: 9px 12px;
+  border: 1px solid var(--app-border, #ded5ca); border-radius: 8px;
+  background: var(--app-surface, #fffdf9); color: var(--app-text, #423b34);
+  font-family: inherit; font-size: 14px; line-height: 1.5;
+}
+:is(.admin, .puzzle-feedback, .import-form, .auth-form) :is(.import-input, .import-textarea):hover:not(:disabled),
+.ai-usage-admin :is(input, select):hover:not(:disabled) { border-color: var(--app-accent, #8b5d31); }
+:is(.admin, .puzzle-feedback, .import-form, .auth-form) :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--app-accent, #8b5d31); outline-offset: 3px;
+}
+:is(.admin, .puzzle-feedback, .import-form, .auth-form) :is(input, select, textarea):disabled { opacity: .55; cursor: not-allowed; }
+:is(.admin, .puzzle-feedback, .import-form, .auth-form) :is(input, textarea)::placeholder { color: var(--app-muted, #887e74); opacity: .8; }
+:is(.admin, .puzzle-feedback, .import-form, .auth-form) .btn-import-submit { min-height: 40px; background: var(--app-accent, #8b5d31); color: var(--app-on-accent, #fff); font: inherit; font-size: 13px; font-weight: 600; }
+.admin .btn-import-submit:disabled { opacity: .5; cursor: default; }
+.admin .ai-usage-admin { display: grid; gap: 18px; }
+.admin .ai-usage-admin > .panel { min-width: 0; margin: 0; padding: 24px; }
+.ai-admin-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.admin .ai-admin-heading h3 { margin: 0; color: var(--app-text, #423b34); font-size: 17px; }
+.ai-admin-heading .tag { margin: 0; background: var(--app-accent-soft, #f0e5d4); color: var(--app-accent, #8b5d31); font-size: 12px; }
+.ai-admin-description { margin: 8px 0 20px; color: var(--app-muted, #887e74); font-size: 13px; }
+.ai-policy-form { display: grid; gap: 22px; margin-top: 22px; }
+.ai-policy-form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.ai-policy-form legend { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; width: 100%; padding: 0; margin-bottom: 12px; font-size: 14px; font-weight: 600; }
+.ai-policy-form legend span { color: var(--app-muted, #887e74); font-size: 12px; font-weight: 400; }
+.ai-policy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 14px; }
+.ai-policy-limits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ai-usage-admin :is(.ai-policy-grid, .ai-adjust-form) label { display: flex; flex-direction: column; min-width: 0; gap: 8px; font-size: 13px; }
+.ai-policy-grid label { padding: 14px; border: 1px solid var(--app-border, #e3d7c5); border-radius: 10px; background: var(--app-surface-soft, #f7f3ed); }
+.ai-input-unit { position: relative; display: block; }
+.ai-usage-admin .ai-input-unit input { width: 100%; padding-right: 92px; font-variant-numeric: tabular-nums; }
+.ai-input-unit > span { position: absolute; right: 28px; top: 50%; transform: translateY(-50%); color: var(--app-muted, #887e74); font-size: 11px; pointer-events: none; }
+.ai-policy-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 18px; border-top: 1px solid var(--app-border, #e3d7c5); }
+.ai-policy-footer p { margin: 0; }
+.ai-cost-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0 12px; }
+.ai-cost-grid > div { min-width: 0; padding: 18px; border: 1px solid var(--app-border, #e3d7c5); border-radius: 10px; background: var(--app-surface-soft, #f7f3ed); }
+.ai-cost-grid span { color: var(--app-muted, #887e74); font-size: 12px; }
+.ai-cost-grid strong { display: block; margin: 8px 0; font-size: clamp(20px, 2vw, 27px); line-height: 1.4; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ai-cost-grid small { margin-left: 6px; color: var(--app-muted, #887e74); font-size: 12px; font-weight: 400; }
+.ai-cost-grid p { margin: 0; color: var(--app-muted, #887e74); font-size: 12px; }
+.ai-user-picker { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.ai-user-picker label { flex-shrink: 0; font-size: 13px; }
+.ai-user-picker select { width: min(100%, 320px); }
+.ai-adjust-form { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px; margin: 20px 0 14px; }
+.ai-adjust-form label { flex: 1 1 200px; }
+.ai-admin-notice { margin: 0; padding: 12px 16px; border: 1px solid var(--app-border, #e3d7c5); border-radius: 10px; color: var(--app-accent, #8b5d31); background: var(--app-accent-soft, #f0e5d4); }
+@media (max-width: 600px) {
+  .admin .admin-tabs > button { padding-inline: 14px; }
+  .admin .ai-usage-admin > .panel { padding: 18px; }
+  .ai-policy-limits, .ai-cost-grid { grid-template-columns: minmax(0, 1fr); }
+  .ai-policy-grid { gap: 10px; }
+  .ai-policy-footer .ai-usage-button, .ai-adjust-form .ai-usage-button { width: 100%; }
+  .ai-cost-grid > div { padding: 14px 16px; }
+  .ai-cost-grid strong { font-size: 24px; }
+}
+/* 明确后台主操作状态，避免公共按钮规则覆盖主题主色。 */
+.admin .ai-usage-admin .ai-usage-button.ai-usage-login { background: var(--app-accent, #8b5d31); border-color: var(--app-accent, #8b5d31); color: var(--app-on-accent, #fff); }
+.admin .ai-usage-admin .ai-usage-button.ai-usage-login:hover:not(:disabled) { background: color-mix(in srgb, var(--app-accent, #8b5d31) 88%, var(--app-text, #423b34)); color: var(--app-on-accent, #fff); }
