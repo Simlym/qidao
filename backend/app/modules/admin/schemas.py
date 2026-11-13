@@ -109,3 +109,31 @@ class EngineInstallRequest(BaseModel):
     action: Literal["download", "verify", "import", "probe"] = "download"
     package_id: str = Field(default="", max_length=150)
     path: str = Field(default="", max_length=1000)
+
+
+class EngineInstallationStatus(BaseModel):
+    phase: Literal["idle", "downloading", "extracting", "testing", "activating", "completed", "failed"]
+    received: int = 0
+    total: int = 0
+    error: str = ""
+
+
+class EngineOnlinePackage(BaseModel):
+    supported: bool
+    name: str
+    version: str
+    size: int
+    source_url: str
+    reason: str
+
+
+class ServerEngineStatus(BaseModel):
+    variant: str
+    configured_path: str
+    effective_path: str
+    available: bool
+    source: str
+    os: str
+    arch: str
+    online_package: EngineOnlinePackage
+    installation: EngineInstallationStatus

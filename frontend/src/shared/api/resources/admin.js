@@ -16,7 +16,8 @@ export const adminEditPuzzle = (id, body) => request(`/admin/puzzle-library/puzz
 export const adminExportPuzzles = (filters) => request(`/admin/puzzle-library/export?${new URLSearchParams(filters)}`);
 export const adminCreatePuzzle = (payload) => request("/admin/puzzles", { method: "POST", body: payload });
 export const adminDeletePuzzle = (id) => request(`/admin/puzzles/${id}`, { method: "DELETE" });
-export const adminGetVariantEngine = (variant) => request(`/admin/engine/${variant}`);
+export const adminGetVariantEngine = (variant, options) => request(`/admin/engine/${variant}`, options);
+export const adminInstallVariantEngine = (variant) => request(`/admin/engine/${variant}/install`, { method: "POST" });
 export const adminUpdateVariantEngine = (variant, path) => request(`/admin/engine/${variant}`, { method: "PUT", body: { path } });
 export const adminGetLlmSettings = () => request("/admin/settings/llm");
 export const adminUpdateLlmSettings = (payload) => request("/admin/settings/llm", { method: "PUT", body: payload });

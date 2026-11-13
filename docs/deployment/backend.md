@@ -179,7 +179,11 @@ docker compose up -d --build frontend
 
 ### 服务端引擎与 LLM
 
-镜像不包含第三方引擎。自行取得适配 Linux、CPU 架构和指令集的引擎及权重，放在根目录 `local-engines/`，该目录挂载到 `/app/data/engines`。需要赋予 Linux 可执行权限；Windows `.exe` 不能直接用于 Linux 容器。
+镜像不预装第三方引擎。管理员可进入「系统设置 → 服务器象棋引擎」点击「下载并安装」，由服务器从官方固定版本发布页下载 Pikafish，校验 SHA-256、解压程序及权重、握手并试算后自动启用。页面显示进度，离开页面不影响后台安装；失败保留原配置，服务重启中断后可重试。在线安装目前支持 Windows x86_64 和 glibc 2.38+ 的 Linux x86_64，Compose 使用 Debian Trixie 镜像满足此要求；其他系统及揭棋仍需手动配置专用引擎。
+
+Compose 将在线安装目录设为 `/app/data/engines`，文件通过 `local-engines/` 持久化。源码运行的官方包默认保存到 `backend/data/engine/installed`，可通过 `ENGINE_INSTALL_DIR` 指定可写的持久化目录。服务器需要能够通过 HTTPS 访问 GitHub 发布附件。在线安装仅管理员可触发，并发安装及安装期间手动改配置会被阻止。已有的固定 ZIP 下载、上传与版本管理入口继续保留；服务器没有对应固定 ZIP 时，象棋面板提供此官方包下载入口。
+
+手动配置时，自行取得适配 Linux、CPU 架构和指令集的引擎及权重，放在根目录 `local-engines/`，该目录挂载到 `/app/data/engines`。需要赋予 Linux 可执行权限；Windows `.exe` 不能直接用于 Linux 容器。
 
 例如文件放在 `local-engines/xiangqi/pikafish`，配置 `XIANGQI_ENGINE=/app/data/engines/xiangqi/pikafish`。揭棋单独使用 `JIEQI_ENGINE`，不能复用不支持揭棋的普通引擎。修改环境变量后执行 `docker compose up -d backend`，也可在管理后台设置容器内绝对路径。许可和来源见[引擎说明](../engines/README.md)。
 

@@ -6,7 +6,7 @@ COPY src-tauri/engine-installer ./src-tauri/engine-installer
 COPY docs/engines ./docs/engines
 RUN cargo build --release --locked --manifest-path src-tauri/engine-installer/Cargo.toml --bin qidao-engine-installer
 
-FROM ${IMAGE_REGISTRY}/library/python:3.12-slim
+FROM ${IMAGE_REGISTRY}/library/python:3.12-slim-trixie
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

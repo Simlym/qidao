@@ -8,7 +8,7 @@ from contextlib import aclosing
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from fastapi.responses import StreamingResponse
-from app.engine import installation
+from app.engine import installation, installer
 from .engine_upload import receive_package
 
 from app.core.dependencies import get_db
@@ -19,7 +19,7 @@ from app.engine.jieqi import reset_shared_jieqi_engine
 from app.engine.uci import reset_shared_engine
 from app.engine.profiles import profile_status
 from app.modules.auth.service import require_admin
-from .schemas import EnginePathUpdate, EngineInstallRequest
+from .schemas import EnginePathUpdate, EngineInstallRequest, EngineInstallationStatus, ServerEngineStatus
 
 router = APIRouter(
     prefix="/api/admin/engine", tags=["admin"], dependencies=[Depends(require_admin)]
@@ -38,11 +38,27 @@ def get_status():
     }
 
 
-@router.get("/{variant}")
+@router.get("/{variant}", response_model=ServerEngineStatus)
 def get_variant_status(variant: str):
     if variant not in _KEYS:
         raise HTTPException(404, "不支持的棋种")
-    return profile_status(variant)
+    return {**profile_status(variant), "online_package": installer.package_info(variant),
+            "installation": installer.installation_status() if variant == "xiangqi" else {"phase": "idle"}}
+
+
+@router.post("/{variant}/install", status_code=202, response_model=EngineInstallationStatus)
+def install_engine(variant: str, request: Request, db: Session = Depends(get_db),
+                   admin: User = Depends(require_admin)):
+    if variant not in _KEYS:
+        raise HTTPException(404, "不支持的棋种")
+    try:
+        status = installer.start_installation(variant)
+    except ValueError as error:
+        raise HTTPException(409, str(error)) from error
+    except OSError as error:
+        raise HTTPException(400, "服务器安装目录不可写，请检查权限") from error
+    admin_action(request, admin.username, "install_server_engine", variant, db=db)
+    return status
 
 
 @router.get("/{variant}/installation")

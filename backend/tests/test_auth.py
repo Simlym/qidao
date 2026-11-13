@@ -136,6 +136,58 @@ def test_admin_can_configure_xiangqi_engine(client, tmp_path):
     assert saved.json()["available"] is True
 
 
+def test_server_engine_online_install_requires_admin(client, monkeypatch):
+    from app.engine import installer
+
+    calls = []
+    monkeypatch.setattr(installer, "start_installation", lambda variant: calls.append(variant))
+    assert client.post("/api/admin/engine/xiangqi/install").status_code == 401
+    client.post("/api/auth/register", json={"username": "alice", "password": "password1"})
+    user = client.post("/api/auth/register", json={"username": "bob", "password": "password2"}).json()
+    response = client.post("/api/admin/engine/xiangqi/install", headers={"Authorization": f"Bearer {user['token']}"})
+    assert response.status_code == 403
+    assert not calls
+
+
+def test_admin_starts_install_and_reads_progress(client, monkeypatch, tmp_path):
+    from app.engine import installer
+
+    monkeypatch.setenv("ENGINE_INSTALL_DIR", str(tmp_path / "managed"))
+    monkeypatch.setattr(installer, "platform_info", lambda: {"os": "linux", "arch": "x86_64"})
+    monkeypatch.setattr(installer.platform, "libc_ver", lambda: ("glibc", "2.41"))
+    calls = []
+
+    def start(variant):
+        calls.append(variant)
+        return {"phase": "downloading", "received": 0, "total": 100}
+
+    monkeypatch.setattr(installer, "start_installation", start)
+    admin = client.post("/api/auth/register", json={"username": "alice", "password": "password1"}).json()
+    headers = {"Authorization": f"Bearer {admin['token']}"}
+    response = client.post("/api/admin/engine/xiangqi/install", headers=headers)
+    assert response.status_code == 202
+    assert calls == ["xiangqi"]
+    assert response.json()["phase"] == "downloading"
+    status = client.get("/api/admin/engine/xiangqi", headers=headers).json()
+    assert status["online_package"]["supported"] is True
+    assert status["installation"]["phase"] == "idle"
+    assert client.post("/api/admin/engine/unknown/install", headers=headers).status_code == 404
+
+
+def test_install_lock_prevents_manual_config_change(client, monkeypatch, tmp_path):
+    from app.engine import installer
+
+    monkeypatch.setenv("ENGINE_INSTALL_DIR", str(tmp_path / "managed"))
+    admin = client.post("/api/auth/register", json={"username": "alice", "password": "password1"}).json()
+    headers = {"Authorization": f"Bearer {admin['token']}"}
+    handle = installer.acquire_lock()
+    try:
+        response = client.put("/api/admin/engine/xiangqi", headers=headers, json={"path": ""})
+        assert response.status_code == 409
+    finally:
+        handle.close()
+
+
 def test_per_user_data_isolation(client):
     a = client.post("/api/auth/register", json={"username": "alice", "password": "password1"})
     ta = a.json()["token"]

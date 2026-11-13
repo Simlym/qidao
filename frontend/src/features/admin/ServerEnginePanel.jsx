@@ -3,6 +3,7 @@ import EngineStatusCard from "../settings/EngineStatusCard";
 import EngineInstallProgress from "../settings/EngineInstallProgress";
 import EngineMessage from "../settings/EngineSetupFeedback";
 import useServerEngineInstaller from "./useServerEngineInstaller";
+import OfficialServerEngineDownload from "./OfficialServerEngineDownload";
 import "../settings/native-engine-settings.css";
 import "./server-engine-settings.css";
 
@@ -45,7 +46,7 @@ export default function ServerEnginePanel({ variant }) {
       <div><h3>服务器{name}引擎</h3><p>用于云端对弈、复盘与训练，与个人设备的本地引擎独立管理。</p></div>
       {info && <span className="server-engine-platform">{OS_NAMES[info.status.os] || info.status.os} · {info.status.arch}</span>}
     </header>
-    <EngineStatusCard label={`服务器${name}引擎状态`} title={title} description={description} busy={busy} ready={ready === true && !setup}>
+    {variant === "xiangqi" && info && !info.packages.length ? <OfficialServerEngineDownload variant={variant} configuredPath={info.status.effective_path} onComplete={refresh} /> : <EngineStatusCard label={`服务器${name}引擎状态`} title={title} description={description} busy={busy} ready={ready === true && !setup}>
       {configured && !setup && <dl className="engine-current-info">
         <div><dt>当前引擎</dt><dd>{currentName}</dd></div>
         <div><dt>安装位置</dt><dd>{current ? "服务器 · 由棋岛管理" : "服务器 · 自定义位置"}</dd></div>
@@ -64,7 +65,7 @@ export default function ServerEnginePanel({ variant }) {
         : spec ? `已选择服务器适配版本 · 约 ${(spec.size / 1048576).toFixed(1)} MB · 安装成功后再替换当前配置`
           : "当前平台暂无适配的在线安装包，可配置服务器已有的引擎。"}</p>}
       {feedback && <EngineMessage message={feedback} />}
-    </EngineStatusCard>
+    </EngineStatusCard>}
 
     {manual && <div className="server-engine-manual">
       <div className="server-engine-manual-heading"><h4>高级：服务器程序路径</h4><button type="button" className="engine-text-button" disabled={busy} onClick={() => setManual(false)}>收起</button></div>
