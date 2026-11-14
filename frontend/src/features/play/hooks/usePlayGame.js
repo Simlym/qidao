@@ -172,7 +172,7 @@ export function usePlayGame({ engine, onCreditsChanged }) {
       if (d.engine_move) {
         moves.current.push(d.engine_move);
         moveTimes.current.push(Date.now() - t0);
-        playSound(d.status === "check" ? "check" : "move");
+        playSound(d.status === "check" ? "check" : "move", "象棋·电脑先手");
       }
       setMoveLog([...moves.current]);
       setTimesLog([...moveTimes.current]);
@@ -200,7 +200,7 @@ export function usePlayGame({ engine, onCreditsChanged }) {
     setStatus("resigned");
     setOver({ winner: "engine", status: "resigned" });
     setOverDismissed(false);
-    playSound("lose");
+    playSound("lose", "象棋·认输");
   }
 
   async function onMove(move) {
@@ -223,7 +223,7 @@ export function usePlayGame({ engine, onCreditsChanged }) {
     setMoveLog([...moves.current]);
     setTimesLog([...moveTimes.current]);
     const humanPosition = getLocalPositionState(afterHumanFen);
-    playSound(humanPosition.status === "check" ? "check" : isCapture(fen, move) ? "capture" : "move");
+    playSound(humanPosition.status === "check" ? "check" : isCapture(fen, move) ? "capture" : "move", "象棋·玩家落子");
     const movedAt = Date.now();
     try {
       const t0 = Date.now();
@@ -243,7 +243,7 @@ export function usePlayGame({ engine, onCreditsChanged }) {
       if (d.engine_move) {
         moves.current.push(d.engine_move);
         moveTimes.current.push(engineMs);
-        playSound(isCapture(afterHumanFen, d.engine_move) ? "capture" : "move");
+        playSound(isCapture(afterHumanFen, d.engine_move) ? "capture" : "move", "象棋·电脑应着");
       }
       setMoveLog([...moves.current]);
       setTimesLog([...moveTimes.current]);
@@ -255,11 +255,11 @@ export function usePlayGame({ engine, onCreditsChanged }) {
         setOverDismissed(false);
         setLegalMoves([]);
         const verdict = d.winner === "human" ? "win" : d.winner === "draw" ? "draw" : "lose";
-        setTimeout(() => { if (epoch.current.isCurrent(ticket)) playSound(verdict); }, 300);
+        setTimeout(() => { if (epoch.current.isCurrent(ticket)) playSound(verdict, "象棋·终局"); }, 300);
 
       } else {
         if (d.status === "check") setTimeout(() => {
-          if (epoch.current.isCurrent(ticket)) playSound("check");
+          if (epoch.current.isCurrent(ticket)) playSound("check", "象棋·电脑将军");
         }, 250);
         setLegalMoves(d.legal_moves || []);
         setYourTurn(true);

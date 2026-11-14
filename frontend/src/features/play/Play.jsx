@@ -17,6 +17,7 @@ import { createEngineManager } from "../../domain/xiangqi/engine/createEngineMan
 import { runtime, usesDesktopLayout } from "../../platform/runtime";
 import { soundThemeLabel } from "../../shared/sounds";
 import { useSoundPreferences } from "../../shared/hooks/useSoundPreferences";
+import { useGameSoundOutput } from "../../shared/hooks/useGameSoundOutput";
 import { BoardAppearancePanel, BoardAppearanceDialog } from "../../shared/ui/BoardAppearance";
 import EngineAnalysisView from "../analysis/EngineAnalysisView";
 import { LEVELS, capturedPieces, describeEval, fmtDuration } from "./model";
@@ -42,6 +43,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
     moveLog, timesLog, overDismissed, setOverDismissed,
     start, restart: leaveGame, resign, onMove, undo, restore, localNotice,
   } = usePlayGame({ engine: positionEngine, onCreditsChanged });
+  useGameSoundOutput(Boolean(fen));
   const { requestExit, exitDialog } = useGameExit({ active: Boolean(fen), finished: Boolean(over), onExit: leaveGame, savedLocally: true });
   const {
     showEval, setShowEval, evalData, evalLoading,

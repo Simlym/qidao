@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { soundMuted, soundTheme, subscribeSoundPreferences } from "../sounds";
+import { soundMuted, soundTheme, soundKeepAlive, subscribeSoundPreferences } from "../sounds";
+
+const readPreferences = () => ({ muted: soundMuted(), theme: soundTheme(), keepAlive: soundKeepAlive() });
 
 export function useSoundPreferences() {
-  const [preferences, setPreferences] = useState(() => ({ muted: soundMuted(), theme: soundTheme() }));
+  const [preferences, setPreferences] = useState(readPreferences);
   useEffect(() => {
-    const update = () => setPreferences({ muted: soundMuted(), theme: soundTheme() });
+    const update = () => setPreferences(readPreferences());
     const unsubscribe = subscribeSoundPreferences(update);
     window.addEventListener("storage", update);
     update();

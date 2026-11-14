@@ -7,7 +7,7 @@ import BrowserEngineSettings from "./BrowserEngineSettings";
 import { createEngineManager } from "../../domain/xiangqi/engine/createEngineManager";
 import { evalPosition, evalJieqiPosition, getCosmetics, purchaseCosmetic } from "../../shared/api";
 import { useCosmeticPreferences, setCosmeticPreference } from "../../shared/preferences/cosmetics";
-import { playSound, prepareSounds, setSoundMuted, setSoundTheme, soundThemeLabel } from "../../shared/sounds";
+import { playSound, prepareSounds, setSoundMuted, setSoundTheme, soundThemeLabel, setSoundKeepAlive } from "../../shared/sounds";
 import { analysisPreferences, saveAnalysisPreferences } from "../../shared/preferences/analysisPreferences";
 import { runtime, supportsNativeEngine, isTauriRuntime } from "../../platform/runtime";
 import { useSoundPreferences } from "../../shared/hooks/useSoundPreferences";
@@ -88,7 +88,7 @@ const STYLE_PRESETS = [
 
 export default function Settings({ user, credits, onCreditsChanged, onRequireLogin, initialSection = "general", onSectionChange }) {
   const [section, setSection] = React.useState(() => SECTIONS.some((item) => item.key === initialSection) ? initialSection : "general");
-  const { muted, theme } = useSoundPreferences();
+  const { muted, theme, keepAlive } = useSoundPreferences();
   React.useEffect(() => { prepareSounds(); }, [theme, muted]);
   const appearance = useCosmeticPreferences();
   const [appearanceCategory, setAppearanceCategory] = React.useState("presets");
@@ -198,6 +198,13 @@ export default function Settings({ user, credits, onCreditsChanged, onRequireLog
                 <label className="settings-switch">
                   <span aria-hidden="true">{muted ? "已关闭" : "已开启"}</span>
                   <input type="checkbox" role="switch" aria-labelledby="sound-toggle-title" aria-describedby="sound-toggle-help" checked={!muted} onChange={(event) => changeMuted(!event.target.checked)} />
+                </label>
+              </div>
+              <div className="settings-row">
+                <div><strong id="sound-keep-alive-title">防止短音丢失</strong><p id="sound-keep-alive-help">显示器、电视等外接音频漏掉首声时开启。对局页面可见且音效开启时，用很轻的低频信号保持输出，可能略增耗电。</p></div>
+                <label className="settings-switch">
+                  <span aria-hidden="true">{keepAlive ? "已开启" : "已关闭"}</span>
+                  <input type="checkbox" role="switch" aria-labelledby="sound-keep-alive-title" aria-describedby="sound-keep-alive-help" checked={keepAlive} onChange={(event) => setSoundKeepAlive(event.target.checked)} />
                 </label>
               </div>
               <div className="settings-row settings-sound-preview">

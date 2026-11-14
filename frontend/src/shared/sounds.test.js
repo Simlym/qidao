@@ -6,6 +6,8 @@ async function setup(t, { state = "running", theme = "beep", fetchFails = false 
   const values = new Map([["xq_sound_theme", theme]]);
   const started = [];
   const playedUrls = [];
+  const oscillators = [];
+  const gains = [];
   let finishResume;
   class Context {
     state = state;
@@ -14,11 +16,16 @@ async function setup(t, { state = "running", theme = "beep", fetchFails = false 
     destination = {};
     resume() { return new Promise((resolve) => { finishResume = () => { this.state = "running"; resolve(); }; }); }
     createOscillator() {
-      return { frequency: { setValueAtTime() {}, exponentialRampToValueAtTime() {} },
-        connect: () => ({ connect() {} }), start: () => started.push("tone"), stop() {} };
+      const oscillator = { frequency: { setValueAtTime() {}, exponentialRampToValueAtTime() {} },
+        connect: () => ({ connect() {} }), start: () => started.push("tone"),
+        stop() { this.stopped = true; }, disconnect() { this.disconnected = true; } };
+      oscillators.push(oscillator);
+      return oscillator;
     }
     createGain() {
-      return { gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} } };
+      const gain = { gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, disconnect() { this.disconnected = true; } };
+      gains.push(gain);
+      return gain;
     }
     createBuffer() { return { sampleRate: 24000, getChannelData: () => new Float32Array(7200) }; }
     createBiquadFilter() { return { frequency: {}, Q: {}, connect: () => ({ connect() {} }) }; }
@@ -27,8 +34,9 @@ async function setup(t, { state = "running", theme = "beep", fetchFails = false 
     }
     decodeAudioData(data) { return Promise.resolve({ decoded: true, url: data.url }); }
   }
-  const previous = Object.fromEntries(["window", "localStorage", "fetch"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
-  globalThis.window = { AudioContext: Context };
+  const previous = Object.fromEntries(["window", "document", "localStorage", "fetch"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  globalThis.window = Object.assign(new EventTarget(), { AudioContext: Context });
+  globalThis.document = Object.assign(new EventTarget(), { visibilityState: "visible" });
   globalThis.localStorage = { getItem: (key) => values.get(key), setItem: (key, value) => values.set(key, value) };
   globalThis.fetch = async (url) => {
     if (fetchFails) throw new Error("离线");
@@ -41,8 +49,87 @@ async function setup(t, { state = "running", theme = "beep", fetchFails = false 
     }
   });
   const sounds = await import(`./sounds.js?test=${sequence++}`);
-  return { ...sounds, started, playedUrls, resume: () => finishResume(), flush: () => new Promise((resolve) => setImmediate(resolve)) };
+  return { ...sounds, started, playedUrls, oscillators, gains, values,
+    visibility(state) { document.visibilityState = state; document.dispatchEvent(new Event("visibilitychange")); },
+    resume: () => finishResume(), flush: () => new Promise((resolve) => setImmediate(resolve)) };
 }
+
+test("外接音频兼容默认关闭，只在开启且对局活动时保持输出", async (t) => {
+  const s = await setup(t);
+  assert.equal(s.soundKeepAlive(), false);
+  s.prepareSounds();
+  assert.deepEqual(s.started, []);
+  s.setSoundKeepAlive(true);
+  assert.equal(s.soundKeepAlive(), true);
+  assert.deepEqual(s.started, []);
+  const release = s.retainSoundOutput();
+  assert.deepEqual(s.started, ["tone"]);
+  assert.equal(s.oscillators[0].frequency.value, 20);
+  assert.equal(s.gains[0].gain.value, 0.001);
+  s.prepareSounds();
+  assert.equal(s.oscillators.length, 1);
+  release();
+  assert.equal(s.oscillators[0].stopped, true);
+  assert.equal(s.oscillators[0].disconnected, true);
+  assert.equal(s.gains[0].disconnected, true);
+  release();
+});
+
+test("保持输出在静音、切后台和关闭选项时停止，再启用时恢复", async (t) => {
+  const s = await setup(t);
+  s.setSoundKeepAlive(true);
+  const release = s.retainSoundOutput();
+  s.setSoundMuted(true);
+  assert.equal(s.oscillators[0].stopped, true);
+  s.setSoundMuted(false);
+  assert.equal(s.oscillators.length, 2);
+  s.visibility("hidden");
+  assert.equal(s.oscillators[1].stopped, true);
+  s.prepareSounds();
+  assert.equal(s.oscillators.length, 2);
+  s.visibility("visible");
+  assert.equal(s.oscillators.length, 3);
+  s.setSoundKeepAlive(false);
+  assert.equal(s.oscillators[2].stopped, true);
+  s.setSoundKeepAlive(true);
+  assert.equal(s.oscillators.length, 4);
+  release();
+});
+
+test("多个棋盘共用一路保持输出，最后离开及迟到唤醒均不遗留信号", async (t) => {
+  const s = await setup(t, { state: "suspended" });
+  s.setSoundKeepAlive(true);
+  const first = s.retainSoundOutput();
+  const second = s.retainSoundOutput();
+  first(); second();
+  s.resume();
+  await s.flush();
+  assert.deepEqual(s.started, []);
+  const third = s.retainSoundOutput();
+  const fourth = s.retainSoundOutput();
+  assert.equal(s.oscillators.length, 1);
+  third();
+  assert.equal(s.oscillators[0].stopped, undefined);
+  fourth();
+  assert.equal(s.oscillators[0].stopped, true);
+});
+
+test("其他标签页关闭兼容选项或页面离开时释放保持输出", async (t) => {
+  const s = await setup(t);
+  s.setSoundKeepAlive(true);
+  const release = s.retainSoundOutput();
+  s.values.set("xq_sound_keep_alive", "0");
+  window.dispatchEvent(new Event("storage"));
+  assert.equal(s.oscillators[0].stopped, true);
+  s.setSoundKeepAlive(true);
+  window.dispatchEvent(new Event("pagehide"));
+  assert.equal(s.oscillators[1].stopped, true);
+  window.dispatchEvent(new Event("pageshow"));
+  assert.equal(s.oscillators.length, 3);
+  release();
+  window.dispatchEvent(new Event("pageshow"));
+  assert.equal(s.oscillators.length, 3);
+});
 
 test("第一步等待音频恢复后才启动短音，避免首次落子丢声", async (t) => {
   const s = await setup(t, { state: "suspended" });

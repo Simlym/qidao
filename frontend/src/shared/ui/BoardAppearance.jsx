@@ -2,7 +2,7 @@ import React from "react";
 import { getCosmetics } from "../api";
 import { setCosmeticPreference, useCosmeticPreferences } from "../preferences/cosmetics";
 import { useSoundPreferences } from "../hooks/useSoundPreferences";
-import { previewSound, setSoundMuted, setSoundTheme, SOUND_THEMES } from "../sounds";
+import { previewSound, setSoundMuted, setSoundTheme, setSoundKeepAlive, SOUND_THEMES } from "../sounds";
 import "./board-appearance.css";
 
 // 离线时仍允许选择基础免费款；付费款必须由服务端确认已拥有。
@@ -28,7 +28,7 @@ export function BoardAppearancePanel({ user, initialCategory = "board" }) {
   const [showLocked, setShowLocked] = React.useState(false);
   const [notice, setNotice] = React.useState("");
   const appearance = useCosmeticPreferences();
-  const { muted, theme } = useSoundPreferences();
+  const { muted, theme, keepAlive } = useSoundPreferences();
   React.useEffect(() => {
     let active = true;
     setCatalog(BASIC_ITEMS);
@@ -52,6 +52,7 @@ export function BoardAppearancePanel({ user, initialCategory = "board" }) {
     setCosmeticPreference("piece", "classic");
     setSoundTheme("wood");
     setSoundMuted(false);
+    setSoundKeepAlive(false);
     setNotice("已恢复默认棋盘、棋子和音效");
   }
 
@@ -62,6 +63,8 @@ export function BoardAppearancePanel({ user, initialCategory = "board" }) {
     </div>
     {category === "sound" && <div className="appearance-sound-controls">
       <label><input type="checkbox" role="switch" checked={!muted} onChange={(event) => setSoundMuted(!event.target.checked)} />对弈音效{muted ? "已关闭" : "已开启"}</label>
+      <label><input type="checkbox" role="switch" checked={keepAlive} onChange={(event) => setSoundKeepAlive(event.target.checked)} />防止短音丢失</label>
+      <small>显示器或电视漏掉首声时开启。对局页面可见时，用很轻的低频信号保持音频输出。</small>
       <div>{[["move", "走子"], ["capture", "吃子"], ["check", "将军"]].map(([key, label]) => <button key={key} onClick={() => previewSound(key)}>试听{label}</button>)}</div>
       <small>试听只播放一次，不改变音效开关。</small>
     </div>}

@@ -10,12 +10,14 @@ import EngineAnalysisView from "./EngineAnalysisView";
 import EngineSetupGuide from "../../shared/ui/EngineSetupGuide";
 import { analysisReducer, createAnalysis, recommendedMove } from "./freeAnalysisState.js";
 import { playSound, prepareSounds } from "../../shared/sounds";
+import { useGameSoundOutput } from "../../shared/hooks/useGameSoundOutput";
 import { isCapture } from "../play/model.js";
 import "./freeAnalysis.css";
 
 const engine = createEngineManager({ remoteEvaluate: evalPosition, remoteStream: streamEvalPosition });
 
 export default function FreeAnalysis({ initialFen = INITIAL_FEN, onOpenSettings }) {
+  useGameSoundOutput();
   const [state, dispatch] = React.useReducer(analysisReducer, initialFen, createAnalysis);
   const [flipped, setFlipped] = React.useState(false);
   const [localRuntime, setLocalRuntime] = React.useState(null);

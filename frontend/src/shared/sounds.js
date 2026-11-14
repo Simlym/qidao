@@ -3,6 +3,70 @@
 
 let ctx = null;
 let noiseBuf = null;
+let soundSequence = 0;
+let outputUsers = 0;
+let outputSignal = null;
+
+function stopOutputSignal() {
+  if (!outputSignal) return;
+  outputSignal.oscillator.stop();
+  outputSignal.oscillator.disconnect();
+  outputSignal.gain.disconnect();
+  outputSignal = null;
+}
+
+function syncOutputSignal() {
+  const enabled = outputUsers > 0 && soundKeepAlive() && !soundMuted() && document.visibilityState !== "hidden";
+  if (!enabled) { stopOutputSignal(); return; }
+  if (!ctx || ctx.state !== "running" || outputSignal) return;
+  try {
+    // 数字音频接收设备可能在全静音后关闭输出，running 状态也不能避免吞掉下一段短音。
+    // 仅在用户开启兼容选项且对局页面可见时，发送很轻的低频信号保持输出。
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.frequency.value = 20;
+    gain.gain.value = 0.001;
+    oscillator.connect(gain).connect(ctx.destination);
+    oscillator.start();
+    outputSignal = { oscillator, gain };
+  } catch (error) { traceSound("保持输出失败", { error: String(error) }); }
+}
+
+function refreshOutputSignal() {
+  if (outputUsers > 0 && soundKeepAlive() && !soundMuted() && document.visibilityState !== "hidden") prepareSounds();
+  else syncOutputSignal();
+}
+
+// 引用计数兼容多个棋盘；最后一个对局离开后释放音频，不在其他页面持续输出。
+export function retainSoundOutput() {
+  outputUsers++;
+  if (outputUsers === 1) {
+    document.addEventListener("visibilitychange", refreshOutputSignal);
+    window.addEventListener("storage", refreshOutputSignal);
+    window.addEventListener("pagehide", stopOutputSignal);
+    window.addEventListener("pageshow", refreshOutputSignal);
+  }
+  refreshOutputSignal();
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    outputUsers--;
+    if (outputUsers === 0) {
+      document.removeEventListener("visibilitychange", refreshOutputSignal);
+      window.removeEventListener("storage", refreshOutputSignal);
+      window.removeEventListener("pagehide", stopOutputSignal);
+      window.removeEventListener("pageshow", refreshOutputSignal);
+    }
+    syncOutputSignal();
+  };
+}
+
+if (import.meta.hot) import.meta.hot.dispose(stopOutputSignal);
+
+function traceSound(event, details) {
+  if (import.meta.env?.DEV) console.info(`[对弈音效] ${event} ${JSON.stringify(details)}`);
+}
 const samples = {
   move: new URL("./audio/move.wav", import.meta.url),
   capture: new URL("./audio/capture.wav", import.meta.url),
@@ -69,12 +133,14 @@ export function prepareSounds() {
   try {
     const c = audioCtx();
     if (c) preloadSamples(c);
-    if (c && c.state !== "running") c.resume().catch(() => {});
+    if (c && c.state !== "running") c.resume().then(syncOutputSignal).catch(() => {});
+    else syncOutputSignal();
   } catch { /* 音频不可用不影响走棋 */ }
 }
 
 const MUTE_KEY = "xq_sound_muted";
 const THEME_KEY = "xq_sound_theme";
+const KEEP_ALIVE_KEY = "xq_sound_keep_alive";
 const preferenceListeners = new Set();
 
 export function subscribeSoundPreferences(listener) {
@@ -121,6 +187,19 @@ export function setSoundMuted(muted) {
   try {
     localStorage.setItem(MUTE_KEY, muted ? "1" : "0");
   } catch { /* 隐私模式等存不了就算了 */ }
+  refreshOutputSignal();
+  notifyPreferences();
+}
+
+export function soundKeepAlive() {
+  try { return localStorage.getItem(KEEP_ALIVE_KEY) === "1"; }
+  catch { return false; }
+}
+
+export function setSoundKeepAlive(enabled) {
+  try { localStorage.setItem(KEEP_ALIVE_KEY, enabled ? "1" : "0"); }
+  catch { /* 设备存储不可用时不影响走棋 */ }
+  refreshOutputSignal();
   notifyPreferences();
 }
 
@@ -390,20 +469,25 @@ const THEMES = {
 };
 
 // name: move | capture | check | win | lose | draw
-export function playSound(name) {
-  playEventSound(name, false);
+export function playSound(name, source = "未标记") {
+  playEventSound(name, false, source);
 }
 
 // 显式试听只绕过本次静音，不修改用户的对局音效开关。
 export function previewSound(name = "move") {
-  playEventSound(name, true);
+  playEventSound(name, true, "音效试听");
 }
 
-function playEventSound(name, preview) {
-  if (!preview && soundMuted()) return;
+function playEventSound(name, preview, source) {
+  const id = ++soundSequence;
+  const requestedAt = Date.now();
+  const muted = soundMuted();
+  const details = { id, source, name, theme: soundTheme(), muted };
+  traceSound("收到请求", { ...details, time: new Date(requestedAt).toISOString(), state: ctx?.state || "未创建" });
+  if (!preview && muted) { traceSound("已静音，跳过", details); return; }
   try {
     const c = audioCtx();
-    if (!c) return;
+    if (!c) { traceSound("设备不支持音频", details); return; }
     const key = soundTheme();
     const fallback = (THEMES[key] || THEMES.wood)[name];
     if (!fallback) return;
@@ -411,19 +495,28 @@ function playEventSound(name, preview) {
     const fn = () => {
       const url = SAMPLED_THEMES[key]?.[name];
       const buffer = url && sampleBuffers.get(url.href);
+      traceSound("开始播放", { ...details, state: c.state, currentTime: c.currentTime,
+        elapsedMs: Date.now() - requestedAt, mode: buffer ? "音效文件" : "合成音",
+        duration: buffer?.duration, sampleRate: c.sampleRate,
+        baseLatency: c.baseLatency, outputLatency: c.outputLatency, file: url?.pathname });
       if (!buffer) return fallback(c);
-      const source = c.createBufferSource();
-      source.buffer = buffer;
-      source.connect(c.destination);
-      source.start();
+      const node = c.createBufferSource();
+      node.buffer = buffer;
+      node.connect(c.destination);
+      node.onended = () => traceSound("播放结束", { ...details, state: c.state,
+        currentTime: c.currentTime, elapsedMs: Date.now() - requestedAt });
+      node.start();
     };
     if (c.state === "running") fn(c);
     else {
-      const requestedAt = Date.now();
+      traceSound("等待唤醒", { ...details, state: c.state });
       c.resume().then(() => {
         // 恢复失败、切换音色、静音或长时间挂起后，不补播旧局面的声音。
-        if (c.state === "running" && Date.now() - requestedAt < 250 && (preview || !soundMuted()) && soundTheme() === key) fn(c);
-      }).catch(() => {});
+        const elapsedMs = Date.now() - requestedAt;
+        if (c.state === "running" && elapsedMs < 250 && (preview || !soundMuted()) && soundTheme() === key) fn(c);
+        else traceSound("唤醒后丢弃", { ...details, state: c.state, elapsedMs,
+          currentMuted: soundMuted(), currentTheme: soundTheme() });
+      }).catch((error) => traceSound("唤醒失败", { ...details, error: String(error) }));
     }
-  } catch { /* 设备不支持音频时仍可正常走棋 */ }
+  } catch (error) { traceSound("播放异常", { ...details, error: String(error), stack: error?.stack }); }
 }

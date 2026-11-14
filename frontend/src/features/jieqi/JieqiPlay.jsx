@@ -9,6 +9,7 @@ import { useGameExit } from "../play/hooks/useGameExit";
 import { useBackAction } from "../../shared/hooks/useBackAction";
 import { createReplyPacer } from "../play/replyPacer";
 import { playSound, prepareSounds } from "../../shared/sounds";
+import { useGameSoundOutput } from "../../shared/hooks/useGameSoundOutput";
 import { jieqiMoveSound } from "./gameSounds.js";
 import JieqiSetup from "./components/JieqiSetup";
 import { createEngineManager } from "../../domain/xiangqi/engine/createEngineManager";
@@ -41,6 +42,7 @@ export default function JieqiPlay({ onOpenSettings }) {
   const [resignedSide, setResignedSide] = React.useState(null);
   const [resultDismissed, setResultDismissed] = React.useState(false);
   const [fen, setFen] = React.useState(null);
+  useGameSoundOutput(Boolean(fen));
   const [gameMode, setGameMode] = React.useState("human-ai");
   const [humanSide, setHumanSide] = React.useState("w");
   const [level, setLevel] = React.useState("medium");
@@ -140,7 +142,7 @@ export default function JieqiPlay({ onOpenSettings }) {
       if (gameMode === "human-ai" && humanSide === "b") {
         const reply = await engineTurn(position, "engine");
         if (requestId !== turnReqId.current) return;
-        playSound(jieqiMoveSound(position, reply.move, reply.status, reply.winner));
+        playSound(jieqiMoveSound(position, reply.move, reply.status, reply.winner), "揭棋·电脑先手");
         position = reply.fen;
         setLastMove(reply.move);
         movesRef.current = [reply.move];
@@ -203,7 +205,7 @@ export default function JieqiPlay({ onOpenSettings }) {
       setLegalMoves(finalWinner ? [] : legalJieqiMoves(next));
       setWinner(finalWinner);
       setPendingFlip(null);
-      playSound(jieqiMoveSound(previous, recordedMove, status, finalWinner));
+      playSound(jieqiMoveSound(previous, recordedMove, status, finalWinner), "揭棋·自由翻子");
       if (finalWinner) saveGame(finalWinner);
     } catch (reason) {
       setPendingFlip(null);
@@ -265,7 +267,7 @@ export default function JieqiPlay({ onOpenSettings }) {
     setMoves([...movesRef.current]);
     setLegalMoves([]);
 
-    playSound(jieqiMoveSound(previous, recordedHumanMove, humanStatus, humanWinner));
+    playSound(jieqiMoveSound(previous, recordedHumanMove, humanStatus, humanWinner), "揭棋·玩家落子");
 
     if (humanWinner) {
       setWinner(humanWinner);
@@ -285,7 +287,7 @@ export default function JieqiPlay({ onOpenSettings }) {
       if (!await replyPacer.current.waitSince(movedAt)) return;
       if (requestId !== turnReqId.current) return;
       movesRef.current.push(reply.move);
-      playSound(jieqiMoveSound(afterHuman, reply.move, reply.status, reply.winner));
+      playSound(jieqiMoveSound(afterHuman, reply.move, reply.status, reply.winner), "揭棋·电脑应着");
       positionsRef.current.push(reply.fen);
       setFen(reply.fen);
       setLastMove(reply.move);
@@ -416,7 +418,7 @@ export default function JieqiPlay({ onOpenSettings }) {
     const finalWinner = gameMode === "free" ? currentSide === "w" ? "b" : "w" : "engine";
     setWinner(finalWinner);
     setError("");
-    playSound(gameMode === "free" ? "win" : "lose");
+    playSound(gameMode === "free" ? "win" : "lose", "揭棋·认输");
     saveGame(finalWinner);
   }
 
