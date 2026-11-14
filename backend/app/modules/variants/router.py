@@ -5,8 +5,16 @@ from fastapi import APIRouter, HTTPException, Request
 from app.engine.contract import EngineEvalRequest, EngineEvalResponse, response_from_result, stream_engine
 from app.engine.jieqi import get_shared_jieqi_engine
 from app.core.rate_limit import limiter
+from .schemas import EngineStatus
 
 router = APIRouter(prefix="/api/variants", tags=["variants"])
+
+
+@router.get("/jieqi/engine", response_model=EngineStatus)
+def jieqi_engine_status():
+    engine = get_shared_jieqi_engine()
+    return EngineStatus(available=engine is not None,
+                        label="云端揭棋引擎" if engine is not None else "云端揭棋引擎未就绪")
 
 
 @router.post("/jieqi/eval", response_model=EngineEvalResponse)

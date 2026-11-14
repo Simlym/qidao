@@ -39,7 +39,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
   const {
     fen, legalMoves, lastMove, yourTurn, thinking, over,
     level, setLevel, humanSide, setHumanSide, status, saved, savedGameId, canUndo,
-    engineInfo, startError, moveError, localReady, localRuntime,
+    engineInfo, startError, moveError, localReady, localRuntime, localChecking,
     moveLog, timesLog, overDismissed, setOverDismissed,
     start, restart: leaveGame, resign, onMove, undo, restore, localNotice,
   } = usePlayGame({ engine: positionEngine, onCreditsChanged });
@@ -119,7 +119,7 @@ export default function Play({ onGoReview, user, onCreditsChanged, onRequireLogi
       <PlaySetup
         engineInfo={engineInfo} humanSide={humanSide} onHumanSideChange={setHumanSide}
         level={level} onLevelChange={setLevel} localReady={localReady}
-        localRuntime={localRuntime} onOpenSettings={onOpenSettings}
+        localRuntime={localRuntime} localChecking={localChecking} onOpenSettings={onOpenSettings}
         onStart={start} thinking={thinking} startError={startError}
       />
       {onFreeAnalysis && <section className="panel play-lobby-analysis"><h3>自由分析</h3><p className="muted">红黑双方都由你走棋，引擎只提供评分与候选线路。</p><button onClick={() => onFreeAnalysis()}>进入自由分析</button></section>}

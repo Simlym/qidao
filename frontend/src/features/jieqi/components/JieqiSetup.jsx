@@ -1,12 +1,14 @@
 import React from "react";
 import { LEVELS } from "../model";
-import EngineSetupGuide from "../../../shared/ui/EngineSetupGuide";
+import EngineReadiness from "../../../shared/ui/EngineReadiness";
+import { useCloudEngineStatus } from "../../../shared/hooks/useCloudEngineStatus";
 
 // 揭棋两种对局模式共用的设置面板。
 export default function JieqiSetup({
   gameMode, onGameModeChange, humanSide, onHumanSideChange, level,
   onLevelChange, runtimeKind, onOpenSettings, error, onStart, thinking,
 }) {
+  const cloud = useCloudEngineStatus("jieqi");
   return (
       <div className="panel play-setup">
         <h2>揭棋对弈</h2>
@@ -40,23 +42,6 @@ export default function JieqiSetup({
               ))}
             </div>
           </div>
-          <div className="engine-setup-summary">
-            <div>
-              <strong>当前引擎</strong>
-              <span>
-                {runtimeKind === "native"
-                  ? "PC 原生揭棋引擎 · 已就绪"
-                  : runtimeKind === "wasm"
-                  ? "揭棋 WASM 引擎 · 已就绪"
-                  : runtimeKind === "remote"
-                  ? "云端揭棋引擎"
-                  : "正在检测可用引擎…"}
-              </span>
-            </div>
-            {onOpenSettings && (
-              <button className="btn-newgame" onClick={onOpenSettings}>引擎设置</button>
-            )}
-          </div>
         </>}
         {gameMode === "free" && <>
           <div className="play-setup-row">
@@ -67,23 +52,9 @@ export default function JieqiSetup({
               ))}
             </div>
           </div>
-          <div className="engine-setup-summary">
-            <div>
-              <strong>局面分析</strong>
-              <span>
-                {runtimeKind === "native"
-                  ? "PC 原生揭棋引擎 · 自动分析与走子提示"
-                  : runtimeKind === "wasm"
-                  ? "揭棋 WASM 引擎 · 自动分析与走子提示"
-                  : runtimeKind === "remote"
-                  ? "云端揭棋引擎 · 自动分析与走子提示"
-                  : "正在检测可用引擎…"}
-              </span>
-            </div>
-            {onOpenSettings && <button className="btn-newgame" onClick={onOpenSettings}>引擎设置</button>}
-          </div>
         </>}
-        <EngineSetupGuide variant="jieqi" localReady={runtimeKind === "native" || runtimeKind === "wasm"} onOpenSettings={onOpenSettings} />
+        <EngineReadiness variant="jieqi" localReady={runtimeKind === "native" || runtimeKind === "wasm"}
+          localChecking={!runtimeKind} localRuntime={runtimeKind} cloudState={cloud.status} cloudLabel={cloud.label} onOpenSettings={onOpenSettings} />
         {error && <div className="import-error">{error}</div>}
         <button className="btn-start" onClick={onStart} disabled={thinking}>
           {thinking ? "引擎启动中…" : gameMode === "free" ? "开始自由翻子" : "开始揭棋"}

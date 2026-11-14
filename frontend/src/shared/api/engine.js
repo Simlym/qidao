@@ -84,7 +84,8 @@ async function streamEngine(path, fen, options = {}) {
 
 export const evalPosition = async (fen, options = {}) => normalizeEngineResult(await request("/play/eval", { method: "POST", body: enginePayload(fen, options), signal: options.signal }));
 export const streamEvalPosition = (fen, options = {}) => streamEngine("/play/eval/stream", fen, options);
-export const getPlayEngine = () => request("/play/engine");
+export const getPlayEngine = (options) => request("/play/engine", options);
+export const getJieqiEngine = (options) => request("/variants/jieqi/engine", options);
 export const getBookMoves = (fen) => request(`/play/book?fen=${encodeURIComponent(fen)}`);
 export const getHint = (fen) => request("/play/hint", { method: "POST", body: { fen } });
 export const coachHintMove = (fen, move) => request("/play/coach", { method: "POST", body: { fen, move } });

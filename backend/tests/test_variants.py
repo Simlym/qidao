@@ -9,6 +9,15 @@ client = TestClient(app)
 JIEQI_FEN = "xxxxkxxxx/9/1x5x1/x1x1x1x1x/9/9/X1X1X1X1X/1X5X1/9/XXXXKXXXX w A2B2N2R2C2P5a2b2n2r2c2p5 - 0 1"
 
 
+def test_public_jieqi_engine_status_without_exposing_server_path(monkeypatch):
+    monkeypatch.setattr(variants, "get_shared_jieqi_engine", lambda: object())
+    response = client.get("/api/variants/jieqi/engine")
+    assert response.status_code == 200
+    assert response.json() == {"available": True, "label": "云端揭棋引擎"}
+    monkeypatch.setattr(variants, "get_shared_jieqi_engine", lambda: None)
+    assert client.get("/api/variants/jieqi/engine").json()["available"] is False
+
+
 def test_jieqi_engine_unavailable(monkeypatch):
     monkeypatch.setattr(variants, "get_shared_jieqi_engine", lambda: None)
     response = client.post("/api/variants/jieqi/eval", json={"fen": JIEQI_FEN, "depth": 6})

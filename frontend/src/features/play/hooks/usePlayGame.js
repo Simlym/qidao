@@ -32,6 +32,7 @@ export function usePlayGame({ engine, onCreditsChanged }) {
   const [startError, setStartError] = React.useState("");
   const [moveError, setMoveError] = React.useState("");
   const [localReady, setLocalReady] = React.useState(false);
+  const [localChecking, setLocalChecking] = React.useState(true);
   const [localRuntime, setLocalRuntime] = React.useState(null);
   const [moveLog, setMoveLog] = React.useState([]);
   const [timesLog, setTimesLog] = React.useState([]);
@@ -59,7 +60,9 @@ export function usePlayGame({ engine, onCreditsChanged }) {
 
   React.useEffect(() => {
     let active = true;
-    getPlayEngine().then((info) => { if (active) setEngineInfo(info); }).catch(() => {});
+    getPlayEngine().then((info) => { if (active) setEngineInfo(info); }).catch(() => {
+      if (active) setEngineInfo({ available: false, engine: "unavailable", label: "暂时无法连接云端引擎" });
+    });
     engine.availableKinds()
       .then((kinds) => {
         if (!active) return;
@@ -67,7 +70,8 @@ export function usePlayGame({ engine, onCreditsChanged }) {
         setLocalRuntime(kind);
         setLocalReady(Boolean(kind));
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => { if (active) setLocalChecking(false); });
     return () => { active = false; stopSearch(); epoch.current.dispose(); };
   }, [engine]);
 
@@ -309,7 +313,7 @@ export function usePlayGame({ engine, onCreditsChanged }) {
   return {
     fen, legalMoves, lastMove, yourTurn, thinking, over,
     level, setLevel, humanSide, setHumanSide, status, saved, savedGameId, canUndo,
-    engineInfo, startError, moveError, localReady, localRuntime,
+    engineInfo, startError, moveError, localReady, localRuntime, localChecking,
     moveLog, timesLog, overDismissed, setOverDismissed,
     start, restart, resign, onMove, undo, restore, localNotice,
   };

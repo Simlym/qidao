@@ -1,0 +1,19 @@
+.engine-readiness { margin: 18px 0; padding: 16px 18px; border: 1px solid var(--border, #dfd5c8); border-radius: 12px; background: var(--panel-bg, #faf7f1); }
+.engine-readiness-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 12px; font-size: 14px; }
+.engine-readiness-heading > span { font-size: 12px; color: var(--text-muted, #82776b); }
+.engine-readiness-items { display: flex; flex-wrap: wrap; gap: 10px; }
+.engine-readiness-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border, #e3dbcf); border-radius: 9px; background: var(--bg, #fffdf9); font-size: 13px; }
+.engine-readiness-item > svg { width: 21px; height: 21px; flex-shrink: 0; color: var(--text-muted, #82776b); }
+.engine-readiness-label { font-weight: 600; }
+.engine-readiness-value { display: inline-flex; align-items: center; gap: 5px; color: var(--text-muted, #82776b); }
+.engine-readiness-mark { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%; background: #eeeae3; font-size: 11px; font-weight: 700; }
+.engine-readiness-item.is-ready, .engine-readiness-item.is-builtin { border-color: #bfdbca; }
+.engine-readiness-item.is-ready > svg, .engine-readiness-item.is-builtin > svg, .engine-readiness-item.is-ready .engine-readiness-value, .engine-readiness-item.is-builtin .engine-readiness-value { color: #317249; }
+.engine-readiness-item.is-ready .engine-readiness-mark, .engine-readiness-item.is-builtin .engine-readiness-mark { background: #e2f0e6; }
+.engine-readiness-item.is-error .engine-readiness-value { color: #986626; }
+.engine-readiness-item.is-error .engine-readiness-mark { background: #f9ecd7; }
+.engine-readiness-details { margin-top: 12px; color: var(--text-muted, #82776b); font-size: 12px; }
+.engine-readiness-details summary { cursor: pointer; width: fit-content; }
+.engine-readiness-details p { margin: 8px 0; line-height: 1.7; }
+.engine-readiness > .btn-newgame { margin-top: 12px; }
+@media (max-width: 480px) { .engine-readiness-items { flex-direction: column; } .engine-readiness-item { justify-content: flex-start; } .engine-readiness-value { margin-left: auto; } }

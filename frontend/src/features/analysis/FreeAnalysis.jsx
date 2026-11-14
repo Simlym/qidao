@@ -7,7 +7,8 @@ import { evalPosition, streamEvalPosition } from "../../shared/api";
 import { usePlayAnalysis } from "../play/hooks/usePlayAnalysis";
 import { describeEval } from "../play/model";
 import EngineAnalysisView from "./EngineAnalysisView";
-import EngineSetupGuide from "../../shared/ui/EngineSetupGuide";
+import EngineReadiness from "../../shared/ui/EngineReadiness";
+import { useCloudEngineStatus } from "../../shared/hooks/useCloudEngineStatus";
 import { analysisReducer, createAnalysis, recommendedMove } from "./freeAnalysisState.js";
 import { playSound, prepareSounds } from "../../shared/sounds";
 import { useGameSoundOutput } from "../../shared/hooks/useGameSoundOutput";
@@ -21,6 +22,8 @@ export default function FreeAnalysis({ initialFen = INITIAL_FEN, onOpenSettings 
   const [state, dispatch] = React.useReducer(analysisReducer, initialFen, createAnalysis);
   const [flipped, setFlipped] = React.useState(false);
   const [localRuntime, setLocalRuntime] = React.useState(null);
+  const [localChecking, setLocalChecking] = React.useState(true);
+  const cloud = useCloudEngineStatus();
   const [copied, setCopied] = React.useState("");
   const [showHint, setShowHint] = React.useState(true);
   const current = state.positions[state.cursor];
@@ -41,7 +44,7 @@ export default function FreeAnalysis({ initialFen = INITIAL_FEN, onOpenSettings 
     let active = true;
     engine.availableKinds().then((kinds) => {
       if (active) setLocalRuntime(kinds.includes("native") ? "native" : kinds.includes("wasm") ? "wasm" : null);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => { if (active) setLocalChecking(false); });
     return () => { active = false; };
   }, []);
 
@@ -80,12 +83,12 @@ export default function FreeAnalysis({ initialFen = INITIAL_FEN, onOpenSettings 
     <aside className="panel free-analysis-inspector">
       <div className="free-analysis-heading"><h2>自由分析</h2><span>双方手动</span></div>
       <p className="muted free-analysis-description">回看后可改走其他变化，后续着法将被替换。</p>
-      <EngineSetupGuide localReady={Boolean(localRuntime)} onOpenSettings={onOpenSettings} />
+      <EngineReadiness localReady={Boolean(localRuntime)} localRuntime={localRuntime} localChecking={localChecking}
+        cloudState={cloud.status} cloudLabel={cloud.label} onOpenSettings={onOpenSettings} />
       <div className="free-analysis-tools">
         <button aria-pressed={showEval} onClick={() => setShowEval((value) => !value)}>局面评分 {showEval ? "开" : "关"}</button>
         <button aria-pressed={showHint} onClick={() => setShowHint((value) => !value)}>走棋箭头 {showHint ? "开" : "关"}</button>
         <button onClick={copyFen}>复制局面</button>
-        {onOpenSettings && <button onClick={onOpenSettings}>引擎设置</button>}
       </div>
       {copied && <p role="status">{copied}</p>}
       <div className="free-analysis-recommendation" role="status">
