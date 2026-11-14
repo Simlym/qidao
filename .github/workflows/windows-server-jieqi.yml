@@ -1,0 +1,31 @@
+name: Windows 无编译器揭棋在线安装验收
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - backend/app/engine/installer_bootstrap.py
+      - backend/app/engine/server-installer.json
+      - backend/app/engine/installation.py
+      - scripts/test_public_server_jieqi.py
+      - .github/workflows/windows-server-jieqi.yml
+
+permissions:
+  contents: read
+
+jobs:
+  download:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 仅安装 Python 依赖，不编译安装器
+        run: pip install -r backend/requirements.txt
+      - name: 自动准备组件、公开下载及管理接口揭棋试算
+        env:
+          PYTHONIOENCODING: utf-8
+        run: python scripts/test_public_server_jieqi.py

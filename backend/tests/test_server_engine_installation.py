@@ -118,6 +118,7 @@ def test_disconnected_stream_closes_installer_and_preserves_path(monkeypatch, tm
 
 
 def test_source_start_finds_installer_without_path_configuration(monkeypatch, tmp_path):
+    monkeypatch.setenv("ENGINE_INSTALL_DIR", str(tmp_path / "managed"))
     monkeypatch.setattr(installation, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(installation.shutil, "which", lambda name: None)
     monkeypatch.delenv("ENGINE_INSTALLER", raising=False)
@@ -137,6 +138,7 @@ def test_source_start_finds_installer_without_path_configuration(monkeypatch, tm
 
 
 def test_production_does_not_use_debug_installer(monkeypatch, tmp_path):
+    monkeypatch.setenv("ENGINE_INSTALL_DIR", str(tmp_path / "managed"))
     monkeypatch.setattr(installation, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(installation.shutil, "which", lambda name: None)
     monkeypatch.delenv("ENGINE_INSTALLER", raising=False)

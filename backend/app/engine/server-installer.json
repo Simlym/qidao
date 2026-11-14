@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "releaseTag": "engines-20261114.2",
+  "fileName": "qidao-engine-installer-windows-x64.exe",
+  "size": 4164608,
+  "sha256": "99b3fe1df251e25f7652fc447910599cb725cb6578117e09edefd1713f3a54bc",
+  "sourceCommit": "b2f5e0b7b2755d182f76f72dcc443f80b987645d",
+  "workflowUrl": "https://github.com/Simlym/qidao/actions/runs/43596349101"
+}

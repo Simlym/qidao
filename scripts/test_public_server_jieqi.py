@@ -1,7 +1,8 @@
-"""在 Linux 经管理员 API 匿名下载正式揭棋包，验证启用、重验与篡改拒绝。"""
+"""经管理员 API 匿名下载当前平台揭棋包，验证启用、重验与篡改拒绝。"""
 
 import json
 import os
+import platform
 from pathlib import Path
 import sys
 import tempfile
@@ -40,7 +41,7 @@ def main():
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_db] = get_session
-    app.dependency_overrides[require_admin] = lambda: SimpleNamespace(username="Linux安装验收")
+    app.dependency_overrides[require_admin] = lambda: SimpleNamespace(username="服务器安装验收")
 
     try:
         with tempfile.TemporaryDirectory(prefix="qidao-public-jieqi-") as temporary:
@@ -53,7 +54,8 @@ def main():
                 response.raise_for_status()
                 info = response.json()
                 assert info["installer_available"], info
-                package = next(p for p in info["packages"] if p["os"] == "linux" and p["publicDownload"])
+                system = "windows" if platform.system() == "Windows" else "linux"
+                package = next(p for p in info["packages"] if p.get("os", "windows") == system and p["publicDownload"])
 
                 def operation(action):
                     result = client.post("/api/admin/engine/jieqi/installation", json={"action": action, "package_id": package["id"]})

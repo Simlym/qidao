@@ -45,11 +45,20 @@ class Engine:
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             bufsize=1,
             cwd=workdir,
         )
         # UCI 是有状态的串行协议；单例复用时需保证一次只有一个调用方在收发
         self._lock = threading.Lock()
+        try:
+            self._initialize(workdir)
+        except Exception:
+            self.close()
+            raise
+
+    def _initialize(self, workdir):
         self._cmd("uci")
         uci_lines = self._wait_for("uciok")
         self.name = next(
@@ -107,8 +116,8 @@ class Engine:
         for line in self.proc.stdout:
             lines.append(line.strip())
             if line.startswith(token):
-                break
-        return lines
+                return lines
+        raise OSError(f"引擎在返回 {token} 前退出")
 
     def analyze(
         self, fen: str, depth: int = 16, *, mode: str = "depth",
@@ -228,10 +237,20 @@ class Engine:
 
     def close(self) -> None:
         try:
-            self._cmd("quit")
-            self.proc.wait(timeout=5)
+            if self.proc.poll() is None:
+                self._cmd("quit")
+                self.proc.wait(timeout=5)
         except Exception:
-            self.proc.kill()
+            if self.proc.poll() is None:
+                self.proc.kill()
+                self.proc.wait(timeout=5)
+        finally:
+            for stream in (self.proc.stdin, self.proc.stdout):
+                if stream:
+                    try:
+                        stream.close()
+                    except OSError:
+                        pass
 
 
 def get_engine(path=None) -> Engine | None:

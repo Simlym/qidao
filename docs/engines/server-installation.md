@@ -10,7 +10,9 @@ Compose 构建上下文已调整为仓库根目录，通过 `backend/Dockerfile`
 使用 `docker compose build backend`，不要继续以 `backend/` 单独作为 Docker 构建上下文。
 安装文件保存在既有的 `/app/data/engines` 持久挂载中，不进入公开静态目录。
 
-非 Docker 部署先运行：
+Windows x86_64 源码部署无需预装 Rust：管理员首次点击「下载并安装」时，后端会从固定发行版本自动下载 Windows 安装组件，核验 SHA-256 后缓存到 `ENGINE_INSTALL_DIR/.installer/<校验前缀>/`。打开设置页只读取本地清单，不下载组件。下载失败、文件被修改或校验不符都不会执行该文件；原引擎配置保留。组件按固定版本静态编译，无需额外安装 Visual C++ 运行库。设置了 `ENGINE_INSTALLER` 时优先使用指定路径，不自动替换管理员的配置。
+
+其他非 Docker 部署，或希望自行构建 Windows 组件时，运行：
 
 ```powershell
 cargo build --release --locked --manifest-path src-tauri/engine-installer/Cargo.toml --bin qidao-engine-installer

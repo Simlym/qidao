@@ -28,6 +28,10 @@ def installer_path() -> str:
         candidate = target / profile / executable
         if candidate.is_file():
             return str(candidate)
+    from .installer_bootstrap import cached_path
+    cached = cached_path()
+    if cached:
+        return cached
     return executable
 
 
@@ -69,14 +73,23 @@ def install_info(variant: str) -> dict:
         info["installer_available"] = True
         return info
     except (OSError, subprocess.TimeoutExpired):
+        from .installer_bootstrap import catalog_info
+        available = catalog_info(variant)
+        if available is not None:
+            return available
         return {"packages": [], "installed": [], "installer_available": False,
                 "message": "未找到引擎安装器。源码启动请先编译安装器；Docker 部署请更新后端镜像。已有引擎路径配置仍保留。"}
 
 
 async def events(variant: str, action: str, value: str, archive: str = ""):
     """流式传回进度；取消连接时先请求安装器清理，再终止超时进程。"""
+    binary = installer_path()
+    if not os.path.isfile(binary) and not shutil.which(binary):
+        from .installer_bootstrap import ensure_installer
+        yield {"type": "progress", "data": {"phase": "preparing"}}
+        binary = await asyncio.to_thread(ensure_installer)
     process = await asyncio.create_subprocess_exec(
-        installer_path(), action, variant, str(install_root(variant)), value,
+        binary, action, variant, str(install_root(variant)), value,
         *([archive] if archive else []), stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
     )
