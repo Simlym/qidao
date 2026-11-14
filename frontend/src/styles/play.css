@@ -1,7 +1,7 @@
 /* 人机对弈 */
-/* 准备页统一约束内容宽度，避免本机对局随宽屏无限拉伸。 */
+/* 准备页靠左排列并约束内容宽度，避免本机对局随宽屏无限拉伸。 */
 .play-lobby {
-  width: 100%; max-width: 720px; margin: 18px auto 0;
+  width: 100%; max-width: 720px; margin: 18px 0 0;
   display: grid; gap: 20px; align-items: start; min-width: 0;
 }
 .play-lobby-primary { display: grid; gap: 20px; min-width: 0; }

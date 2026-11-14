@@ -20,6 +20,8 @@ export default function ServerEnginePanel({ variant }) {
   const configured = Boolean(info?.status.available);
   const setup = !configured || changing;
   const spec = info?.packages.find((p) => p.id === selected);
+  const downloadPackages = info?.packages.filter((p) => p.publicDownload) || [];
+  const otherInstalled = info?.installed.filter((item) => item.package.id !== current?.package.id) || [];
   const title = !info ? "正在读取服务器状态" : setup ? `让服务器帮你分析${name}棋局`
     : ready === true ? `${name}引擎已就绪` : ready === false ? "引擎检测未通过" : `${name}引擎已配置`;
   const description = setup ? "下载并安装适配的引擎，检查通过后自动启用。"
@@ -27,6 +29,7 @@ export default function ServerEnginePanel({ variant }) {
       : ready === false ? "原配置仍保留，可重试检测或更换引擎。"
         : "配置已保存在服务器，可重新检测确认是否可用。";
   const currentName = current?.package.name || "自定义 UCI 引擎";
+  const useOfficialDownload = variant === "xiangqi" && info && !info.packages.length;
   React.useEffect(() => {
     if (ready === true && !busy) setManual(false);
   }, [ready, busy]);
@@ -46,10 +49,9 @@ export default function ServerEnginePanel({ variant }) {
       <div><h3>服务器{name}引擎</h3><p>用于云端对弈、复盘与训练，与个人设备的本地引擎独立管理。</p></div>
       {info && <span className="server-engine-platform">{OS_NAMES[info.status.os] || info.status.os} · {info.status.arch}</span>}
     </header>
-    {variant === "xiangqi" && info && !info.packages.length ? <OfficialServerEngineDownload variant={variant} configuredPath={info.status.effective_path} onComplete={refresh} /> : <EngineStatusCard label={`服务器${name}引擎状态`} title={title} description={description} busy={busy} ready={ready === true && !setup}>
+    {useOfficialDownload ? <OfficialServerEngineDownload variant={variant} configuredPath={info.status.effective_path} onComplete={refresh} /> : <EngineStatusCard label={`服务器${name}引擎状态`} title={title} description={description} busy={busy} ready={ready === true && !setup}>
       {configured && !setup && <dl className="engine-current-info">
-        <div><dt>当前引擎</dt><dd>{currentName}</dd></div>
-        <div><dt>安装位置</dt><dd>{current ? "服务器 · 由棋岛管理" : "服务器 · 自定义位置"}</dd></div>
+        <div><dt>当前版本</dt><dd><strong>{currentName}</strong>{current && <span>{current.package.version}</span>}</dd></div>
       </dl>}
       {busy ? <EngineInstallProgress progress={progress} onCancel={progress?.phase === "saving" ? null : installer.cancel} /> : <div className="engine-main-actions">
         {!info ? <button type="button" onClick={() => refresh().catch(() => {})}>重新读取</button> : setup ? <>
@@ -67,6 +69,32 @@ export default function ServerEnginePanel({ variant }) {
       {feedback && <EngineMessage message={feedback} />}
     </EngineStatusCard>}
 
+    {info && <details className="engine-settings-disclosure server-engine-details"><summary>版本与维护</summary>
+      {useOfficialDownload && configured && <p className="engine-fine-print">当前引擎：{currentName}{current ? ` · ${current.package.version}` : ""}</p>}
+      <div className="server-engine-version-layout">
+        <fieldset className="server-engine-versions" disabled={busy}>
+          <legend>在线安装版本</legend>
+          {downloadPackages.length > 0 ? <>
+            <label className="server-engine-download-field"><span className="server-engine-visually-hidden">选择在线安装版本</span>
+              <select value={selected} onChange={(event) => setSelected(event.target.value)}>
+                {downloadPackages.map((p) => <option key={p.id} value={p.id}>{p.name} · {p.version} · {(p.size / 1048576).toFixed(1)} MB</option>)}
+              </select>
+            </label>
+            <p className="engine-fine-print">仅用于下次下载；上传文件时自动识别版本。</p>
+          </> : <p className="engine-fine-print">暂无适配的在线安装包。</p>}
+          {spec && <p className="server-engine-license"><a href={spec.sourceUrl} target="_blank" rel="noreferrer">源码</a><a href={spec.licenseUrl} target="_blank" rel="noreferrer">程序许可</a>{spec.networkLicense !== "not-applicable" && <span>资源许可：{spec.networkLicense || "见包内说明"}</span>}</p>}
+        </fieldset>
+        {otherInstalled.length > 0 && <div className="server-engine-installed"><h4>其他已安装版本</h4>{otherInstalled.map((item) => <div className="server-engine-installed-row" key={item.package.id}>
+          <div><strong>{item.package.name}</strong><span>{item.package.version}</span></div>
+          <button type="button" disabled={busy} onClick={() => run("verify", item.package.id)}>检测并启用</button>
+        </div>)}</div>}
+      </div>
+      <details className="server-engine-advanced"><summary>高级设置</summary>
+        {configured && <div className="server-engine-current-details"><span>当前程序路径</span><p className="engine-path">{info.status.effective_path}</p></div>}
+        <div className="engine-main-actions">
+          <button type="button" className="engine-text-button" disabled={busy || !info.installer_available} onClick={() => setManual(true)}>配置服务器路径</button>
+          {info.status.configured_path && <button type="button" className="engine-text-button server-engine-danger" disabled={busy} onClick={() => setConfirmClear(true)}>清除后台配置</button>}
+        </div>
     {manual && <div className="server-engine-manual">
       <div className="server-engine-manual-heading"><h4>高级：服务器程序路径</h4><button type="button" className="engine-text-button" disabled={busy} onClick={() => setManual(false)}>收起</button></div>
       <p className="engine-fine-print">填写服务器上的绝对路径，检测通过后启用。文件位于服务器，无需在此重新上传。</p>
@@ -76,25 +104,8 @@ export default function ServerEnginePanel({ variant }) {
       <button type="button" disabled={busy || !path.trim() || !info?.installer_available} className="native-install-primary" onClick={() => run("probe")}>检测并启用</button>
     </div>}
 
-    {info && <details className="engine-settings-disclosure"><summary>引擎详情与版本</summary>
-      {configured && <div className="server-engine-current-details"><strong>{currentName}</strong>{current && <span>{current.package.version}</span>}<p className="engine-path">{info.status.effective_path}</p></div>}
-      <fieldset className="server-engine-versions" disabled={busy}><legend>下载版本</legend>
-        <div className="engine-version-options">{info.packages.map((p) => <label key={p.id} className={`engine-version-option${selected === p.id ? " is-selected" : ""}`}>
-          <input type="radio" name={`server-engine-${variant}`} value={p.id} checked={selected === p.id} onChange={() => setSelected(p.id)} />
-          <span className="engine-version-copy"><strong>{p.name}</strong><span className="engine-version-number">{p.version}</span></span>
-          <span className="engine-version-badge">{p.publicDownload ? `${(p.size / 1048576).toFixed(1)} MB` : "仅手动导入"}</span>
-        </label>)}</div>
-        <p className="engine-fine-print">{info.packages.length ? "选择版本仅影响下次下载；上传文件会自动识别版本，不会立即更换当前引擎。" : "暂无适配的固定版本。"}</p>
-      </fieldset>
-      {spec && <p className="server-engine-license"><a href={spec.sourceUrl} target="_blank" rel="noreferrer">源码</a><a href={spec.licenseUrl} target="_blank" rel="noreferrer">程序许可</a><span>资源许可：{spec.networkLicense === "not-applicable" ? "无需独立资源" : spec.networkLicense || "见包内说明"}</span></p>}
-      {info.installed.length > 0 && <div className="server-engine-installed"><h4>已安装版本</h4>{info.installed.map((item) => <div className="server-engine-installed-row" key={item.package.id}>
-        <div><strong>{item.package.name}{item.package.id === current?.package.id && <span className="server-engine-current-badge">当前使用</span>}</strong><span>{item.package.version}</span></div>
-        <button type="button" disabled={busy} onClick={() => run("verify", item.package.id)}>{item.package.id === current?.package.id ? "重新检测" : "检测并启用"}</button>
-      </div>)}</div>}
-      <div className="server-engine-advanced"><button type="button" className="engine-text-button" disabled={busy || !info.installer_available} onClick={() => setManual(true)}>高级：配置服务器程序路径</button>
-        {info.status.configured_path && <button type="button" className="engine-text-button server-engine-danger" disabled={busy} onClick={() => setConfirmClear(true)}>清除后台配置</button>}
-      </div>
       {confirmClear && <div className="server-engine-clear" role="group" aria-label="确认清除后台配置"><p>清除后台路径配置？已下载文件会保留；环境变量配置如存在仍会生效。</p><div className="engine-main-actions"><button type="button" disabled={busy} onClick={async () => { await clear(); setConfirmClear(false); }}>确认清除</button><button type="button" disabled={busy} onClick={() => setConfirmClear(false)}>保留配置</button></div></div>}
+      </details>
     </details>}
   </section>;
 }
