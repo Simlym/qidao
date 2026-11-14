@@ -121,6 +121,7 @@ export function usePlayGame({ engine, onCreditsChanged }) {
 
   function restore(record) {
     if (record.owner !== localOwner()) return;
+    prepareSounds();
     stopSearch();
     epoch.current.invalidate();
     localRecord.current = { id: record.id, owner: record.owner, playedOn: record.playedOn };
@@ -171,7 +172,7 @@ export function usePlayGame({ engine, onCreditsChanged }) {
       if (d.engine_move) {
         moves.current.push(d.engine_move);
         moveTimes.current.push(Date.now() - t0);
-        playSound("move");
+        playSound(d.status === "check" ? "check" : "move");
       }
       setMoveLog([...moves.current]);
       setTimesLog([...moveTimes.current]);
@@ -204,6 +205,7 @@ export function usePlayGame({ engine, onCreditsChanged }) {
 
   async function onMove(move) {
     if (!yourTurn || thinking || over || !legalMoves.includes(move)) return;
+    prepareSounds();
     const ticket = epoch.current.begin();
     setMoveError("");
     const humanMs = Date.now() - turnStart.current;

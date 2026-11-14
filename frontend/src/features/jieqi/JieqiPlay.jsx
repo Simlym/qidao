@@ -8,6 +8,8 @@ import ResultOverlay from "../play/components/ResultOverlay";
 import { useGameExit } from "../play/hooks/useGameExit";
 import { useBackAction } from "../../shared/hooks/useBackAction";
 import { createReplyPacer } from "../play/replyPacer";
+import { playSound, prepareSounds } from "../../shared/sounds";
+import { jieqiMoveSound } from "./gameSounds.js";
 import JieqiSetup from "./components/JieqiSetup";
 import { createEngineManager } from "../../domain/xiangqi/engine/createEngineManager";
 import {
@@ -105,15 +107,18 @@ export default function JieqiPlay({ onOpenSettings }) {
     const baseMove = result.bestMove?.slice(0, 4);
     if (!baseMove || !legal.includes(baseMove)) throw new Error("揭棋引擎返回了不合法着法");
     const next = applyJieqiMove(position, result.bestMove, { perspective: engineSide });
+    const status = jieqiStatus(next);
     return {
       fen: next,
       // 搜索 FEN 中的扩展身份只是有限知识样本；棋谱必须从真实前后局面补全。
       move: completeJieqiMove(position, baseMove, next),
-      winner: winnerFor(jieqiStatus(next), side),
+      status,
+      winner: winnerFor(status, side),
     };
   }
 
   async function start() {
+    prepareSounds();
     stopTurn();
     const requestId = ++turnReqId.current;
     setThinking(gameMode === "human-ai");
@@ -135,6 +140,7 @@ export default function JieqiPlay({ onOpenSettings }) {
       if (gameMode === "human-ai" && humanSide === "b") {
         const reply = await engineTurn(position, "engine");
         if (requestId !== turnReqId.current) return;
+        playSound(jieqiMoveSound(position, reply.move, reply.status, reply.winner));
         position = reply.fen;
         setLastMove(reply.move);
         movesRef.current = [reply.move];
@@ -187,7 +193,8 @@ export default function JieqiPlay({ onOpenSettings }) {
     try {
       setAnalysisError("");
       const next = applyJieqiMove(previous, recordedMove, { identifyCapturedHidden: false });
-      const finalWinner = winnerFor(jieqiStatus(next), mover);
+      const status = jieqiStatus(next);
+      const finalWinner = winnerFor(status, mover);
       movesRef.current.push(recordedMove);
       positionsRef.current.push(next);
       setFen(next);
@@ -196,6 +203,7 @@ export default function JieqiPlay({ onOpenSettings }) {
       setLegalMoves(finalWinner ? [] : legalJieqiMoves(next));
       setWinner(finalWinner);
       setPendingFlip(null);
+      playSound(jieqiMoveSound(previous, recordedMove, status, finalWinner));
       if (finalWinner) saveGame(finalWinner);
     } catch (reason) {
       setPendingFlip(null);
@@ -228,6 +236,7 @@ export default function JieqiPlay({ onOpenSettings }) {
 
   async function onMove(move) {
     if (thinking || winner || !legalMoves.includes(move)) return;
+    prepareSounds();
     setError("");
     if (gameMode === "free") {
       requestFreeMove(move);
@@ -237,10 +246,12 @@ export default function JieqiPlay({ onOpenSettings }) {
     let afterHuman;
     let recordedHumanMove;
     let humanWinner;
+    let humanStatus;
     try {
       afterHuman = applyJieqiMove(previous, move);
       recordedHumanMove = completeJieqiMove(previous, move, afterHuman);
-      humanWinner = winnerFor(jieqiStatus(afterHuman), "human");
+      humanStatus = jieqiStatus(afterHuman);
+      humanWinner = winnerFor(humanStatus, "human");
     } catch (reason) {
       setError(reason.message || "走子失败");
       return;
@@ -253,6 +264,8 @@ export default function JieqiPlay({ onOpenSettings }) {
     setLastMove(recordedHumanMove);
     setMoves([...movesRef.current]);
     setLegalMoves([]);
+
+    playSound(jieqiMoveSound(previous, recordedHumanMove, humanStatus, humanWinner));
 
     if (humanWinner) {
       setWinner(humanWinner);
@@ -272,6 +285,7 @@ export default function JieqiPlay({ onOpenSettings }) {
       if (!await replyPacer.current.waitSince(movedAt)) return;
       if (requestId !== turnReqId.current) return;
       movesRef.current.push(reply.move);
+      playSound(jieqiMoveSound(afterHuman, reply.move, reply.status, reply.winner));
       positionsRef.current.push(reply.fen);
       setFen(reply.fen);
       setLastMove(reply.move);
@@ -402,6 +416,7 @@ export default function JieqiPlay({ onOpenSettings }) {
     const finalWinner = gameMode === "free" ? currentSide === "w" ? "b" : "w" : "engine";
     setWinner(finalWinner);
     setError("");
+    playSound(gameMode === "free" ? "win" : "lose");
     saveGame(finalWinner);
   }
 

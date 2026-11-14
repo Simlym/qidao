@@ -9,7 +9,7 @@ import { describeEval } from "../play/model";
 import EngineAnalysisView from "./EngineAnalysisView";
 import EngineSetupGuide from "../../shared/ui/EngineSetupGuide";
 import { analysisReducer, createAnalysis, recommendedMove } from "./freeAnalysisState.js";
-import { playSound } from "../../shared/sounds";
+import { playSound, prepareSounds } from "../../shared/sounds";
 import { isCapture } from "../play/model.js";
 import "./freeAnalysis.css";
 
@@ -46,6 +46,7 @@ export default function FreeAnalysis({ initialFen = INITIAL_FEN, onOpenSettings 
   function seek(cursor) { dispatch({ type: "seek", cursor }); }
   function onMove(move) {
     if (ended || !position.legal_moves.includes(move)) return;
+    prepareSounds();
     const next = analysisReducer(state, { type: "move", move });
     const nextPosition = getLocalPositionState(next.positions[next.cursor].fen);
     dispatch({ type: "move", move });
