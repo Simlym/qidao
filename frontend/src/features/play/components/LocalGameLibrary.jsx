@@ -35,10 +35,11 @@ export default function LocalGameLibrary({ onRestore }) {
     {guests.length > 0 && <button className="local-claim-button" onClick={claim}>认领本机游客对局（{guests.length}）</button>}
     {error && <p role="alert" className="local-library-error">{error}</p>}
     <ul className="local-game-list">{records.map((record) => <li className="local-game-card" key={record.id}>
-      <span className="local-game-mark" aria-hidden="true">{record.over ? "谱" : "弈"}</span>
       <div className="local-game-details">
-        <div className="local-game-title"><strong>{record.playedOn}</strong><span className={record.over ? "local-game-state finished" : "local-game-state"}>{record.over ? "已结束" : "进行中"}</span></div>
-        <p className="local-game-meta"><span>{record.moves.length} 手</span><span>{record.serverId ? "已同步到服务器" : record.payload ? "已保存到本机 · 待同步" : "已保存到本机"}</span></p>
+        <strong className="local-game-date">{record.playedOn}</strong>
+        <span className={record.over ? "local-game-state finished" : "local-game-state"}>{record.over ? "已结束" : "进行中"}</span>
+        <span className="local-game-meta">{record.moves.length} 手</span>
+        {(record.serverId || record.payload) && <span className="local-game-meta" title={record.serverId ? "已同步到服务器" : "已保存到本机 · 待同步"}>{record.serverId ? "已同步" : "待同步"}</span>}
         {record.syncError && <p className="local-game-sync-error" role="status">{record.syncError}</p>}
       </div>
       <div className="local-game-actions">
