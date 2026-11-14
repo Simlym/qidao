@@ -56,8 +56,8 @@ export default function JieqiSetup({
         <EngineReadiness variant="jieqi" localReady={runtimeKind === "native" || runtimeKind === "wasm"}
           localChecking={!runtimeKind} localRuntime={runtimeKind} cloudState={cloud.status} cloudLabel={cloud.label} onOpenSettings={onOpenSettings} />
         {error && <div className="import-error">{error}</div>}
-        <button className="btn-start" onClick={onStart} disabled={thinking}>
-          {thinking ? "引擎启动中…" : gameMode === "free" ? "开始自由翻子" : "开始揭棋"}
+        <button className={gameMode === "human-ai" && runtimeKind === "remote" ? "btn-newgame play-setup-cloud-start" : "btn-start"} onClick={onStart} disabled={thinking}>
+          {thinking ? "引擎启动中…" : gameMode === "free" ? "开始自由翻子" : runtimeKind === "remote" ? "暂用云端，开始揭棋" : "开始揭棋"}
         </button>
       </div>
   );

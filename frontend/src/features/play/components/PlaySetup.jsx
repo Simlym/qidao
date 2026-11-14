@@ -42,8 +42,8 @@ export default function PlaySetup({
         <EngineReadiness localReady={localReady} localRuntime={localRuntime} localChecking={localChecking}
           cloudState={!engineInfo ? "checking" : engineInfo.available ? "ready" : engineInfo.engine === "builtin" ? "builtin" : "error"}
           cloudLabel={engineInfo?.label} onOpenSettings={onOpenSettings} />
-        <button className="btn-start" onClick={() => onStart(humanSide, level)} disabled={thinking}>
-          {thinking ? "正在开局…" : "开始对弈"}
+        <button className={!localReady && engineInfo ? "btn-newgame play-setup-cloud-start" : "btn-start"} onClick={() => onStart(humanSide, level)} disabled={thinking}>
+          {thinking ? "正在开局…" : !localReady && engineInfo ? "暂用云端，开始对弈" : "开始对弈"}
         </button>
         {startError && <div className="result bad" role="alert">{startError}</div>}
       </div>
