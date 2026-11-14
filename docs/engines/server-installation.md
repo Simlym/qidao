@@ -38,9 +38,9 @@ cargo build --release --locked --manifest-path src-tauri/engine-installer/Cargo.
 
 ## Linux 发行前置条件
 
-揭棋 Linux x86_64 包已在 `engines-20261114.1` 发布，采用与 Windows 版相同的固定源码和传统评估，不需要 NNUE 权重。服务器 CPU 需支持 SSE4.1 与 POPCNT。更新后端镜像后，进入「系统设置 → 揭棋引擎」即可下载并安装，也可上传该版本 ZIP。
+揭棋 Linux x86_64 包已在 `engines-20261114.1` 发布，采用与 Windows 版相同的固定源码和传统评估，不需要 NNUE 权重。服务器 CPU 需支持 SSE4.1 与 POPCNT，系统需具备 glibc 2.34+ 及支持 GLIBCXX_3.4.30 的 libstdc++6；项目 Docker 镜像已包含所需运行库。更新后端镜像后，进入「系统设置 → 揭棋引擎」即可下载并安装，也可上传该版本 ZIP。
 
-构建、安装器回归、真实 ZIP 安装重验、服务端试算与容器构建记录：[Linux 候选验收](https://github.com/Simlym/qidao/actions/runs/43542015048)。正式附件、源码及校验和见[固定版本发布页](https://github.com/Simlym/qidao/releases/tag/engines-20261114.1)。公开下载后的管理员接口安装、红黑双方限知局面试算和篡改拒绝，由 `.github/workflows/server-jieqi-download.yml` 持续验证。
+构建、安装器回归、真实 ZIP 安装重验、服务端试算与容器构建记录：[Linux 候选验收](https://github.com/Simlym/qidao/actions/runs/43542015048)。正式附件、源码及校验和见[固定版本发布页](https://github.com/Simlym/qidao/releases/tag/engines-20261114.1)。[公开下载安装验收](https://github.com/Simlym/qidao/actions/runs/43542530978)已在 Linux runner 和实际后端部署镜像内通过，覆盖管理员接口安装、红黑双方限知局面试算、重验、篡改拒绝及象棋配置隔离。该验收由 `.github/workflows/server-jieqi-download.yml` 持续验证。
 
 普通象棋的 Linux 包仍可按以下流程验收登记；在没有对应固定 ZIP 时，管理页提供官方 Pikafish 包下载入口。
 

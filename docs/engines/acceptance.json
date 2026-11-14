@@ -5,10 +5,10 @@
       "id": "linux-jieqi-classical-20261114",
       "reportedOn": "2026-11-14",
       "platform": "linux-x86_64",
-      "status": "automated-linux-candidate-passed",
+      "status": "automated-integration-passed",
       "clientSourceCommit": "92b544a537ea60bd7bee7a175529173a076e2729",
       "workflowUrl": "https://github.com/Simlym/qidao/actions/runs/43542015048",
-      "scope": "固定揭棋源码在 Ubuntu 22.04 构建，传统评估无 NNUE；握手与揭棋局面试算、共用安装器回归、真实 ZIP 导入与重验、后端引擎封装试算、后端 Docker 构建通过。公开附件匿名下载与 SHA-256 复核通过。管理员接口及镜像内公开下载验收由 server-jieqi-download 流程执行。",
+      "scope": "固定揭棋源码在 Ubuntu 22.04 构建，传统评估无 NNUE；握手与揭棋局面试算、共用安装器回归、真实 ZIP 导入与重验、后端引擎封装试算、Docker 构建通过。正式清单安装器经管理员 API 实际匿名下载公开附件、校验安装、自动启用、红黑双方限知局面指定合法着法试算、重验及篡改拒绝均通过；同一套验收在实际部署镜像内再次通过，象棋配置始终保留。",
       "artifacts": [
         {
           "fileName": "jieqi-pikafish-23b9466-classical-v1-linux-x64-sse41-popcnt.zip",
@@ -19,7 +19,30 @@
           "evaluation": "classical",
           "network": null
         }
-      ]
+      ],
+      "publicDownloadWorkflow": "https://github.com/Simlym/qidao/actions/runs/43542530978",
+      "integrationSourceCommit": "cbf1bca4a26e79e6712e43a5748573d1f34e7fc6",
+      "ciWorkflow": "https://github.com/Simlym/qidao/actions/runs/43542530947",
+      "regression": {
+        "backendPassed": 250,
+        "backendSkipped": 3,
+        "frontendPassed": 140,
+        "configPassed": 7,
+        "frontendBuild": "passed",
+        "rustUnitPassedWindows": 17,
+        "publicDownloadHost": "passed",
+        "publicDownloadContainer": "passed"
+      },
+      "runtimeRequirements": {
+        "arch": "x86_64",
+        "cpu": [
+          "sse4.1",
+          "popcnt"
+        ],
+        "glibc": "2.34+",
+        "glibcxx": "3.4.30+",
+        "network": null
+      }
     },
     {
       "id": "public-engine-downloads-20261107",
