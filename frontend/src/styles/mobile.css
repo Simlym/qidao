@@ -1,4 +1,8 @@
 /* Web 与 Android 共用窄屏布局，集中覆盖历史样式，桌面客户端保持原布局。 */
+@media (max-width: 430px) {
+  .app-web .user-box:has(.web-admin-button) .web-account-name { display: none; }
+}
+
 @media (max-width: 760px) {
   html:has(.app-web) { scrollbar-gutter: auto; }
   .app-web {

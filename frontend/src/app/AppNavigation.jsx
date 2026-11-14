@@ -9,6 +9,7 @@ export function PrimaryNavigation({ tab, desktop, onNavigate }) {
         <button
           key={item.key}
           className={item.tabs.includes(tab) ? "active" : ""}
+          aria-current={item.tabs.includes(tab) ? "page" : undefined}
           onClick={() => onNavigate(item.defaultTab)}
           title={desktop ? undefined : item.label}
         >

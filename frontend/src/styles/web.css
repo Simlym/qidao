@@ -149,6 +149,8 @@ html:has(.app-web) { scrollbar-gutter: stable both-edges; }
   box-shadow: 0 4px 12px rgba(139, 62, 43, .18);
 }
 .app-web .user-box { gap: 7px; }
+.app-web .user-box .web-admin-button { flex-shrink: 0; white-space: nowrap; color: var(--web-accent); }
+.app-web .user-box .web-admin-button.active { background: var(--web-accent); border-color: var(--web-accent); color: #fff; }
 .app-web .user-box .btn-link { min-height: 40px; padding-inline: 15px; font-weight: 600; }
 .web-auth-actions { display: flex; align-items: center; gap: 8px; }
 .app-web .web-auth-actions .web-login-button { color: var(--web-ink); border-color: transparent; background: transparent; }

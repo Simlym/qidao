@@ -1,8 +1,7 @@
 import React from "react";
-import { runtime, RUNTIME } from "../../platform/runtime";
 
 // Web 与 Android 共享响应式外壳；Android 的能力差异由 platform/runtime 和适配器处理。
-export default function WebShell({ user, navigation, secondaryNavigation, reminderBanner, account, children, onNavigate }) {
+export default function WebShell({ tab, isAdmin, user, navigation, secondaryNavigation, reminderBanner, account, children, onNavigate }) {
   const accountMenuRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -38,6 +37,14 @@ export default function WebShell({ user, navigation, secondaryNavigation, remind
         </div>
         {navigation}
         <div className="user-box">
+          {isAdmin && (
+            <button
+              type="button"
+              className={`btn-link web-admin-button${tab === "admin" ? " active" : ""}`}
+              aria-current={tab === "admin" ? "page" : undefined}
+              onClick={() => onNavigate("admin")}
+            >管理后台</button>
+          )}
           {user ? <details className="web-account-menu" ref={accountMenuRef}>
             <summary aria-label={`${user.username}的账户菜单`}>
               <span className="web-account-avatar" aria-hidden>{user.username.slice(0, 1)}</span>
@@ -48,9 +55,6 @@ export default function WebShell({ user, navigation, secondaryNavigation, remind
               <div className="web-account-content">{account}</div>
               <div className="web-account-actions">
                 <button className="btn-link" onClick={() => onNavigate("settings")}>设置</button>
-                {runtime === RUNTIME.WEB && user?.role === "admin" && (
-                  <button className="btn-link" onClick={() => onNavigate("admin")}>管理后台</button>
-                )}
               </div>
             </div>
           </details> : <>

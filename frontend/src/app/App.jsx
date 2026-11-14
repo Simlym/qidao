@@ -372,6 +372,7 @@ export default function App() {
         </DesktopShell>
       ) : (
         <WebShell
+          tab={tab} isAdmin={isAdmin}
           user={user} navigation={navigation} secondaryNavigation={secondaryNavigation}
           reminderBanner={reminderBanner} account={account} onNavigate={setTab}
         >
