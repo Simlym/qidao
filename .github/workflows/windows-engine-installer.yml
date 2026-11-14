@@ -1,0 +1,34 @@
+name: Windows 服务器引擎安装组件
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      RUSTFLAGS: -C target-feature=+crt-static
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: 编译无需额外运行库的 Windows 安装组件
+        run: cargo build --release --locked --manifest-path src-tauri/engine-installer/Cargo.toml --bin qidao-engine-installer
+      - name: 验证 Windows 揭棋清单
+        shell: pwsh
+        run: |
+          $result = & ./src-tauri/engine-installer/target/release/qidao-engine-installer.exe info jieqi ./component-test
+          if ($LASTEXITCODE -ne 0) { throw '组件启动失败' }
+          $info = $result | ConvertFrom-Json
+          if (-not ($info.packages | Where-Object { $_.publicDownload -and $_.os -eq 'windows' })) { throw '缺少 Windows 揭棋包' }
+          New-Item -ItemType Directory -Path dist-component
+          Copy-Item ./src-tauri/engine-installer/target/release/qidao-engine-installer.exe ./dist-component/qidao-engine-installer-windows-x64.exe
+          $digest = (Get-FileHash ./dist-component/qidao-engine-installer-windows-x64.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$digest  qidao-engine-installer-windows-x64.exe" | Set-Content ./dist-component/SHA256SUMS.txt -Encoding utf8
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-server-engine-installer
+          path: dist-component/
