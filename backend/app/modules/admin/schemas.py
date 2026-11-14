@@ -101,6 +101,14 @@ class AdminLog(BaseModel):
     target: str
 
 
+class RuntimeLog(BaseModel):
+    seq: int
+    ts: str
+    level: str
+    logger: str
+    message: str
+
+
 class EnginePathUpdate(BaseModel):
     path: str = Field(default="", max_length=1000)
 

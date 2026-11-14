@@ -23,3 +23,4 @@ export const adminGetLlmSettings = () => request("/admin/settings/llm");
 export const adminUpdateLlmSettings = (payload) => request("/admin/settings/llm", { method: "PUT", body: payload });
 export const adminTestLlmSettings = () => request("/admin/settings/llm/test", { method: "POST", body: {} });
 export const adminLogs = (limit = 100, offset = 0, event = "") => request(`/admin/logs?limit=${limit}&offset=${offset}${event ? `&event=${encodeURIComponent(event)}` : ""}`);
+export const adminRuntimeLogs = (options) => request("/admin/logs/runtime?limit=200", options);

@@ -149,6 +149,26 @@ def test_server_engine_online_install_requires_admin(client, monkeypatch):
     assert not calls
 
 
+def test_runtime_logs_require_admin_and_include_engine_failure(client):
+    import logging
+    from app.core import log_config
+
+    assert client.get("/api/admin/logs/runtime").status_code == 401
+    admin = client.post("/api/auth/register", json={"username": "alice", "password": "password1"}).json()
+    user = client.post("/api/auth/register", json={"username": "bob", "password": "password2"}).json()
+    assert client.get("/api/admin/logs/runtime", headers={"Authorization": f"Bearer {user['token']}"}).status_code == 403
+    log_config.setup_buffer()
+    logger = logging.getLogger("xiangqidao.engine.installation")
+    logger.warning("安装诊断测试 编号=runtime-log-test")
+    headers = {"Authorization": f"Bearer {admin['token']}"}
+    response = client.get("/api/admin/logs/runtime", headers=headers)
+    assert response.status_code == 200
+    record = next(row for row in response.json() if "runtime-log-test" in row["message"])
+    assert record["logger"] == "xiangqidao.engine.installation"
+    newer = client.get(f"/api/admin/logs/runtime?after_seq={record['seq']}", headers=headers)
+    assert all(row["seq"] > record["seq"] for row in newer.json())
+
+
 def test_admin_starts_install_and_reads_progress(client, monkeypatch, tmp_path):
     from app.engine import installer
 

@@ -20,7 +20,7 @@ from app.modules.puzzles.validation import validate_item
 from app.modules.admin.schemas import (
     AdminCreditLogRow, AdminCredits, AdminLog, AdminPuzzle, AdminPuzzleList,
     AdminUser, CreditAdjustBody, LlmSettings, LlmSettingsUpdate,
-    MembershipUpdate, NewPuzzle,
+    MembershipUpdate, NewPuzzle, RuntimeLog,
 )
 from app.core.security_log import admin_action
 from app.core.settings import (
@@ -365,3 +365,11 @@ def list_logs(limit: int = 100, offset: int = 0, event: str | None = None,
         )
         for r in rows
     ]
+
+
+@router.get("/logs/runtime", response_model=list[RuntimeLog])
+def runtime_logs(after_seq: int = Query(0, ge=0), limit: int = Query(200, ge=1, le=500)):
+    """读取当前后端进程的运行日志，含引擎安装阶段与异常堆栈。"""
+    from app.core.log_config import get_records
+
+    return get_records(after_seq, limit)

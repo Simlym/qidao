@@ -29,3 +29,7 @@ jobs:
         env:
           PYTHONIOENCODING: utf-8
         run: python scripts/test_public_server_jieqi.py
+      - name: Windows 热重载事件循环回归
+        env:
+          PYTHONIOENCODING: utf-8
+        run: python scripts/test_public_server_jieqi.py --selector-loop

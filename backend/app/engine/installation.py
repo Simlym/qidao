@@ -1,6 +1,7 @@
 """通过 PC 共用的 Rust 安装器管理服务器原生引擎，不接受任意下载地址。"""
 import asyncio
 import json
+import logging
 import os
 from pathlib import Path
 import subprocess
@@ -9,6 +10,54 @@ import time
 import anyio
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
+logger = logging.getLogger("xiangqidao.engine.installation")
+
+
+async def _threaded_events(binary, variant, action, value, archive):
+    """Windows 热重载的 Selector 循环不支持异步子进程，以线程读取管道。"""
+    process = subprocess.Popen(
+        [binary, action, variant, str(install_root(variant)), value, *([archive] if archive else [])],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
+    logger.info("安装器已启动 进程=%s 管道模式=线程", process.pid)
+
+    def drain_stderr():
+        tail = b""
+        while chunk := process.stderr.read(4096):
+            tail = (tail + chunk)[-8192:]
+        return tail.decode("utf-8", errors="replace").strip()
+
+    stderr_task = asyncio.create_task(asyncio.to_thread(drain_stderr))
+    try:
+        deadline = time.monotonic() + 360
+        while line := await asyncio.wait_for(asyncio.to_thread(process.stdout.readline), max(0.01, deadline - time.monotonic())):
+            yield json.loads(line.decode("utf-8", errors="replace"))
+        code = await asyncio.wait_for(asyncio.to_thread(process.wait), max(0.01, deadline - time.monotonic()))
+        if code:
+            raise ValueError(f"引擎操作失败（安装器退出码 {code}），原配置已保留")
+    finally:
+        with anyio.CancelScope(shield=True):
+            if process.poll() is None:
+                try:
+                    process.stdin.write(b"cancel\n")
+                    process.stdin.flush()
+                except OSError:
+                    pass
+                try:
+                    await asyncio.to_thread(process.wait, timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    await asyncio.to_thread(process.wait)
+            diagnostic = await stderr_task
+            if diagnostic:
+                logger.warning("安装器错误输出 进程=%s 内容=%s", process.pid, diagnostic)
+            for stream in (process.stdin, process.stdout, process.stderr):
+                try:
+                    stream.close()
+                except OSError:
+                    pass
+            logger.info("安装器已退出 进程=%s 退出码=%s", process.pid, process.returncode)
 
 
 def installer_path() -> str:
@@ -88,11 +137,26 @@ async def events(variant: str, action: str, value: str, archive: str = ""):
         from .installer_bootstrap import ensure_installer
         yield {"type": "progress", "data": {"phase": "preparing"}}
         binary = await asyncio.to_thread(ensure_installer)
+    logger.info("准备启动安装器 程序=%s 操作=%s 棋种=%s 事件循环=%s", binary, action, variant, type(asyncio.get_running_loop()).__name__)
+    if os.name == "nt":
+        from contextlib import aclosing
+        async with aclosing(_threaded_events(binary, variant, action, value, archive)) as source:
+            async for event in source:
+                yield event
+        return
     process = await asyncio.create_subprocess_exec(
         binary, action, variant, str(install_root(variant)), value,
         *([archive] if archive else []), stdin=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
     )
+    logger.info("安装器已启动 进程=%s", process.pid)
+    async def drain_stderr():
+        tail = b""
+        while chunk := await process.stderr.read(4096):
+            tail = (tail + chunk)[-8192:]
+        return tail.decode("utf-8", errors="replace").strip()
+
+    stderr_task = asyncio.create_task(drain_stderr())
     try:
         deadline = time.monotonic() + 360
         while line := await asyncio.wait_for(process.stdout.readline(), max(0.01, deadline - time.monotonic())):
@@ -117,3 +181,7 @@ async def events(variant: str, action: str, value: str, archive: str = ""):
                     await process.wait()
             if process.stdin:
                 process.stdin.close()
+            diagnostic = await stderr_task
+            if diagnostic:
+                logger.warning("安装器错误输出 进程=%s 内容=%s", process.pid, diagnostic)
+            logger.info("安装器已退出 进程=%s 退出码=%s", process.pid, process.returncode)

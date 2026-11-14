@@ -1,4 +1,5 @@
 import React from "react";
+import RuntimeLogsPanel from "./RuntimeLogsPanel";
 import AiUsageAdmin from "./AiUsageAdmin";
 import ServerEnginePanel from "./ServerEnginePanel";
 import SystemSettingsTabs from "./SystemSettingsTabs";
@@ -131,7 +132,7 @@ export default function Admin() {
       {tab === "ai-usage" && <AiUsageAdmin users={users} />}
 
       {/* 日志 */}
-      {tab === "logs" && <LogsPanel />}
+      {tab === "logs" && <><RuntimeLogsPanel /><LogsPanel /></>}
 
       {/* 用户管理 */}
       {tab === "users" && (

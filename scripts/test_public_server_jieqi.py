@@ -12,7 +12,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 
-def main():
+def main(selector_loop=False):
+    if selector_loop:
+        import asyncio
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
     from sqlalchemy import create_engine
@@ -102,4 +105,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--selector-loop", action="store_true", help="验证 Windows 热重载使用的 Selector 事件循环")
+    main(parser.parse_args().selector_loop)

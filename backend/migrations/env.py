@@ -18,7 +18,7 @@ from app.core.database import Base, DB_URL  # noqa: E402
 
 config = context.config
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 # ConfigParser 会解释百分号；转义后再交给 SQLAlchemy。
 config.set_main_option("sqlalchemy.url", DB_URL.replace("%", "%%"))

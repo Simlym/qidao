@@ -86,6 +86,22 @@ def test_parallel_installations_rejected(monkeypatch, tmp_path):
         assert client.post("/api/admin/engine/xiangqi/installation", json={}).status_code == 409
 
 
+def test_unexpected_failure_returns_operation_id_and_logs_traceback(monkeypatch, tmp_path, caplog):
+    import logging
+    client, _ = client_database(monkeypatch, tmp_path)
+    async def events(*args):
+        raise NotImplementedError("事件循环不支持子进程")
+        yield
+    monkeypatch.setattr(installation, "events", events)
+    with caplog.at_level(logging.INFO, logger="xiangqidao.engine.installation"):
+        response = client.post("/api/admin/engine/xiangqi/installation", json={"package_id": "fixed"})
+    operation = response.headers["x-engine-operation-id"]
+    assert '"type": "error"' in response.text
+    assert operation in response.text and operation in caplog.text
+    assert "NotImplementedError" in caplog.text
+    installation.acquire_lock().close()
+
+
 def test_installation_requires_admin():
     app = FastAPI()
     app.include_router(routes.router)

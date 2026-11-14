@@ -3,6 +3,9 @@
 import os
 import asyncio
 import json
+import logging
+import time
+import uuid
 from contextlib import aclosing
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -26,6 +29,7 @@ router = APIRouter(
 )
 
 _KEYS = {"xiangqi": KEY_XIANGQI_ENGINE_PATH, "jieqi": KEY_JIEQI_ENGINE_PATH}
+logger = logging.getLogger("xiangqidao.engine.installation")
 
 
 @router.get("")
@@ -109,26 +113,37 @@ async def upload_installation(
 
 
 def installation_response(variant, action, value, archive, request, admin, db, guard, temporary=None):
+    operation_id = uuid.uuid4().hex[:12]
+    started = time.monotonic()
+    logger.info("安装操作开始 编号=%s 棋种=%s 操作=%s 目标=%s 管理员=%s", operation_id, variant, action, value, admin.username)
+
     async def stream():
         def encode(event):
             return json.dumps(event, ensure_ascii=False) + "\n"
 
         result = None
+        phase = None
         try:
             async with aclosing(installation.events(
                 variant, action, value, archive,
             )) as source:
                 async for event in source:
                     if event["type"] == "error":
+                        logger.error("安装器报告失败 编号=%s 错误=%s", operation_id, event.get("data", {}).get("message"))
                         yield encode(event)
                         return
                     if event["type"] == "result":
                         result = event["data"]
                     else:
+                        next_phase = event.get("data", {}).get("phase")
+                        if next_phase and next_phase != phase:
+                            phase = next_phase
+                            logger.info("安装阶段变化 编号=%s 阶段=%s 耗时=%.2f秒", operation_id, phase, time.monotonic() - started)
                         yield encode(event)
             if not result:
                 raise ValueError("安装器未返回检测结果")
             if await request.is_disconnected():
+                logger.warning("客户端已断开，未切换配置 编号=%s 耗时=%.2f秒", operation_id, time.monotonic() - started)
                 return
             # 安装和试算全部成功后才切换配置，失败时原路径保持不变。
             set_setting(db, _KEYS[variant], result["enginePath"])
@@ -136,15 +151,22 @@ def installation_response(variant, action, value, archive, request, admin, db, g
             reset = reset_shared_jieqi_engine if variant == "jieqi" else reset_shared_engine
             await asyncio.to_thread(reset)
             admin_action(request, admin.username, "install_server_engine", f"{variant}:{action}", db=db)
+            logger.info("安装并启用成功 编号=%s 路径=%s 耗时=%.2f秒", operation_id, result["enginePath"], time.monotonic() - started)
             yield encode({"type": "complete", "data": profile_status(variant)})
-        except (OSError, ValueError, TimeoutError) as error:
-            yield encode({"type": "error", "data": {"message": str(error)}})
+        except asyncio.CancelledError:
+            logger.warning("客户端取消安装 编号=%s 阶段=%s 耗时=%.2f秒", operation_id, phase or "启动", time.monotonic() - started)
+            raise
+        except Exception as error:
+            logger.exception("安装操作异常 编号=%s 阶段=%s 耗时=%.2f秒", operation_id, phase or "启动", time.monotonic() - started)
+            detail = str(error) or type(error).__name__
+            yield encode({"type": "error", "data": {"message": f"{detail}（操作编号：{operation_id}，可在后台日志查看原因）"}})
         finally:
             guard.close()
             if temporary is not None:
                 temporary.cleanup()
+            logger.info("安装操作结束 编号=%s 耗时=%.2f秒", operation_id, time.monotonic() - started)
 
-    return StreamingResponse(stream(), media_type="application/x-ndjson", headers={"X-Accel-Buffering": "no", "Cache-Control": "no-store"})
+    return StreamingResponse(stream(), media_type="application/x-ndjson", headers={"X-Accel-Buffering": "no", "Cache-Control": "no-store", "X-Engine-Operation-ID": operation_id})
 
 
 @router.put("/{variant}")
