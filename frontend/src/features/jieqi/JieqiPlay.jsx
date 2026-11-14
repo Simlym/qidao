@@ -330,12 +330,16 @@ export default function JieqiPlay({ onOpenSettings }) {
 
   if (!fen) {
     return (
-      <JieqiSetup
-        gameMode={gameMode} onGameModeChange={setGameMode} humanSide={humanSide}
-        onHumanSideChange={setHumanSide} level={level} onLevelChange={setLevel}
-        runtimeKind={runtimeKind} onOpenSettings={onOpenSettings} error={error}
-        onStart={start} thinking={thinking}
-      />
+      <div className="play-lobby">
+        <div className="play-lobby-primary">
+          <JieqiSetup
+            gameMode={gameMode} onGameModeChange={setGameMode} humanSide={humanSide}
+            onHumanSideChange={setHumanSide} level={level} onLevelChange={setLevel}
+            runtimeKind={runtimeKind} onOpenSettings={onOpenSettings} error={error}
+            onStart={start} thinking={thinking}
+          />
+        </div>
+      </div>
     );
   }
 

@@ -1,11 +1,11 @@
-.engine-readiness { margin: 18px 0; padding: 16px 18px; border: 1px solid var(--border, #dfd5c8); border-radius: 12px; background: var(--panel-bg, #faf7f1); }
+.engine-readiness { container: engine-status / inline-size; margin: 16px 0; padding: 14px 16px; border: 1px solid var(--app-border, #dfd5c8); border-radius: 11px; background: var(--app-surface-soft, #faf7f1); }
 .engine-readiness-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 12px; font-size: 14px; }
 .engine-readiness-heading > span { font-size: 12px; color: var(--text-muted, #82776b); }
-.engine-readiness-items { display: flex; flex-wrap: wrap; gap: 10px; }
-.engine-readiness-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border, #e3dbcf); border-radius: 9px; background: var(--bg, #fffdf9); font-size: 13px; }
+.engine-readiness-items { display: grid; gap: 8px; }
+.engine-readiness-item { display: flex; align-items: center; flex-wrap: wrap; min-width: 0; gap: 7px; padding: 10px 12px; border: 1px solid var(--app-border, #e3dbcf); border-radius: 9px; background: var(--app-surface, #fffdf9); font-size: 13px; }
 .engine-readiness-resource { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-muted, #82776b); }
 .engine-readiness-resource > svg { width: 23px; height: 23px; }
-.engine-readiness-label { font-weight: 600; }
+.engine-readiness-label { font-weight: 600; white-space: nowrap; }
 .engine-readiness-value { display: inline-flex; align-items: center; gap: 5px; color: var(--text-muted, #82776b); }
 .engine-readiness-mark { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%; background: #eeeae3; font-size: 11px; font-weight: 700; }
 .engine-readiness-item.is-ready, .engine-readiness-item.is-builtin { border-color: #bfdbca; }
@@ -18,23 +18,28 @@
 .engine-readiness-details p { margin: 8px 0; line-height: 1.7; }
 .engine-readiness > .btn-newgame { margin-top: 12px; }
 .engine-readiness-heading > .is-cloud-fallback { color: #966329; }
-.engine-readiness-item.is-local { flex: 1 1 320px; padding: 14px; border-width: 2px; border-color: #c69a62; background: #fffaf0; text-align: left; font-family: inherit; }
-.engine-readiness-item.is-local .engine-readiness-resource { width: 40px; height: 40px; border-radius: 10px; background: #f4e7cf; color: #8b5d31; }
-.engine-readiness-item.is-local .engine-readiness-resource > svg { width: 27px; height: 27px; }
+.engine-readiness-item.is-local { width: 100%; padding: 11px 12px; border-width: 1.5px; border-color: #c69a62; background: #fffaf0; color: #40352a; text-align: left; font-family: inherit; }
+.engine-readiness-item.is-local .engine-readiness-resource { width: 36px; height: 36px; border-radius: 9px; background: #f4e7cf; color: #8b5d31; }
+.engine-readiness-item.is-local .engine-readiness-resource > svg { width: 25px; height: 25px; }
 .engine-readiness-item.is-local .engine-readiness-mark { width: 21px; height: 21px; background: #f3d9b0; color: #8b5d31; font-size: 14px; }
 .engine-readiness-item.is-local.is-ready { border-color: #7fbc93; background: #f4faf4; }
 .engine-readiness-item.is-local.is-ready .engine-readiness-resource, .engine-readiness-item.is-local.is-ready .engine-readiness-mark { background: #dfefdf; color: #317249; }
 .engine-readiness-item.is-clickable { cursor: pointer; }
 .engine-readiness-item.is-clickable:hover { border-color: #8b5d31; box-shadow: 0 2px 8px #8b5d3114; }
 .engine-readiness-item.is-clickable:focus-visible, .engine-readiness-primary:focus-visible { outline: 2px solid #8b5d31; outline-offset: 3px; }
-.engine-readiness-item.is-cloud { flex: 0 1 auto; border-color: var(--border, #e3dbcf); }
+.engine-readiness-item.is-cloud { padding: 3px 12px; border: 0; background: transparent; color: var(--app-muted, #82776b); font-size: 12px; }
+.engine-readiness-item.is-cloud .engine-readiness-resource { width: 36px; }
+.engine-readiness-item.is-cloud .engine-readiness-resource > svg { width: 19px; height: 19px; }
+.engine-readiness-item.is-cloud .engine-readiness-value { margin-left: auto; }
 .engine-readiness-recommended { border-radius: 4px; padding: 2px 5px; font-size: 10px; color: #8b5d31; background: #f3e5cd; }
 .engine-readiness-action { margin-left: auto; white-space: nowrap; font-size: 12px; color: #8b5d31; }
-.engine-readiness-recommendation { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; margin-top: 14px; padding: 14px; background: #fff5e3; border: 1px solid #e8d1ac; border-radius: 9px; }
-.engine-readiness-recommendation > div { flex: 1 1 260px; }
+.engine-readiness-recommendation { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--app-border, #e8dcc9); }
 .engine-readiness-recommendation strong { font-size: 13px; color: #805323; }
 .engine-readiness-recommendation p { margin: 5px 0 0; color: #86735b; font-size: 12px; line-height: 1.8; }
-.engine-readiness-primary { padding: 11px 16px; border: 0; border-radius: 8px; background: #8b5d31; color: #fff; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.engine-readiness-primary { padding: 10px 14px; border: 0; border-radius: 7px; background: #8b5d31; color: #fff; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .engine-readiness-local-ready { margin: 12px 0 0; font-size: 12px; color: #317249; }
-@media (max-width: 600px) { .engine-readiness-item.is-local { flex-basis: auto; flex-wrap: wrap; } .engine-readiness-item.is-cloud { flex: 1 1 auto; } .engine-readiness-action { flex-basis: 100%; text-align: right; } .engine-readiness-recommendation .engine-readiness-primary { width: 100%; } }
-@media (max-width: 480px) { .engine-readiness-items { flex-direction: column; } .engine-readiness-item { justify-content: flex-start; } .engine-readiness-value { margin-left: auto; } }
+@container engine-status (max-width: 400px) {
+  .engine-readiness-heading > span { flex-basis: 100%; }
+  .engine-readiness-recommendation { grid-template-columns: minmax(0, 1fr); }
+  .engine-readiness-primary { width: 100%; }
+}

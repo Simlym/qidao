@@ -33,7 +33,7 @@ export default function EngineReadiness({ variant = "xiangqi", localReady = fals
   const cloudReady = cloudState === "ready" || cloudState === "builtin";
   const missing = !localReady && !cloudReady && !localChecking && cloudState !== "checking";
   const active = localReady ? "本机计算 · 不占用服务器资源" : cloudReady ? "暂用云端 · 建议优先配置本机" : null;
-  const localAction = localReady ? "管理本机引擎" : configured ? "检查本机配置" : "下载并配置";
+  const localAction = localReady ? "管理" : configured ? "检查" : "配置";
   return <section className="engine-readiness" aria-label="引擎状态">
     <div className="engine-readiness-heading"><strong>引擎状态</strong><span className={!localReady && cloudReady ? "is-cloud-fallback" : ""}>{active || (missing ? "请先配置本机引擎" : "正在检测…")}</span></div>
     <div className="engine-readiness-items" role="status" aria-live="polite">
@@ -42,8 +42,8 @@ export default function EngineReadiness({ variant = "xiangqi", localReady = fals
     </div>
     {!localReady && !localChecking && <div className="engine-readiness-recommendation">
       <div><strong>{configured ? "建议先检查并启用本机引擎" : "推荐使用本机引擎"}</strong>
-        <p>走法计算在这台设备上完成，可减轻服务器压力，减少云端繁忙时的等待。配置完成后会优先使用本机引擎；已有文件也可直接导入。</p></div>
-      {onOpenSettings && <button type="button" className="engine-readiness-primary" onClick={onOpenSettings}>{configured ? "检查并启用" : "下载并配置本机引擎"}</button>}
+        <p>优先在本机计算，减轻服务器压力，减少高峰等待。已有引擎文件也可直接导入。</p></div>
+      {onOpenSettings && <button type="button" className="engine-readiness-primary" aria-label={configured ? "检查并启用本机引擎" : "下载并配置本机引擎"} onClick={onOpenSettings}>{configured ? "检查配置" : "下载并配置"}</button>}
     </div>}
     {localReady && <p className="engine-readiness-local-ready">✓ 本机引擎已就绪，将优先在这台设备上计算。</p>}
     <details className="engine-readiness-details"><summary>引擎详情</summary>
