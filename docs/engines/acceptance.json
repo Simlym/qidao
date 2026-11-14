@@ -2,6 +2,33 @@
   "schemaVersion": 1,
   "records": [
     {
+      "id": "windows-server-jieqi-bootstrap-20261114",
+      "reportedOn": "2026-11-14",
+      "platform": "windows-x86_64",
+      "status": "automated-integration-passed",
+      "clientSourceCommit": "f1b10d8a38e9689628f1409909aba34dcb317d78",
+      "workflowUrl": "https://github.com/Simlym/qidao/actions/runs/43597039035",
+      "ciWorkflow": "https://github.com/Simlym/qidao/actions/runs/43597038984",
+      "scope": "本机无 Rust 环境与 GitHub 干净 Windows runner 均通过：页面读取固定清单，管理员首次操作自动匿名下载及校验预编译安装组件；再下载 Windows 揭棋包、校验安装、启用、红黑双方限知局面试算、重验及篡改拒绝，象棋配置保留。UCI 明确使用 UTF-8 并在启动失败时回收进程，覆盖 Windows 系统默认 GBK 的回归。",
+      "installerComponent": {
+        "schemaVersion": 1,
+        "releaseTag": "engines-20261114.2",
+        "fileName": "qidao-engine-installer-windows-x64.exe",
+        "size": 4164608,
+        "sha256": "99b3fe1df251e25f7652fc447910599cb725cb6578117e09edefd1713f3a54bc",
+        "sourceCommit": "b2f5e0b7b2755d182f76f72dcc443f80b987645d",
+        "workflowUrl": "https://github.com/Simlym/qidao/actions/runs/43596349101"
+      },
+      "enginePackageId": "jieqi-classical-20261107",
+      "regression": {
+        "backendPassed": 258,
+        "backendSkipped": 3,
+        "windowsPublicDownload": "passed",
+        "windowsBootstrap": "passed",
+        "utf8OnGbk": "passed"
+      }
+    },
+    {
       "id": "linux-jieqi-classical-20261114",
       "reportedOn": "2026-11-14",
       "platform": "linux-x86_64",
