@@ -16,6 +16,11 @@ ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
 
 WORKDIR /app
 
+# Linux 原生揭棋程序依赖 C++ 运行库，精简 Python 镜像需显式安装。
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -i ${PIP_INDEX_URL} -r requirements.txt
 

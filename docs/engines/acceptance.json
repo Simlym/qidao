@@ -2,6 +2,26 @@
   "schemaVersion": 1,
   "records": [
     {
+      "id": "linux-jieqi-classical-20261114",
+      "reportedOn": "2026-11-14",
+      "platform": "linux-x86_64",
+      "status": "automated-linux-candidate-passed",
+      "clientSourceCommit": "92b544a537ea60bd7bee7a175529173a076e2729",
+      "workflowUrl": "https://github.com/Simlym/qidao/actions/runs/43542015048",
+      "scope": "固定揭棋源码在 Ubuntu 22.04 构建，传统评估无 NNUE；握手与揭棋局面试算、共用安装器回归、真实 ZIP 导入与重验、后端引擎封装试算、后端 Docker 构建通过。公开附件匿名下载与 SHA-256 复核通过。管理员接口及镜像内公开下载验收由 server-jieqi-download 流程执行。",
+      "artifacts": [
+        {
+          "fileName": "jieqi-pikafish-23b9466-classical-v1-linux-x64-sse41-popcnt.zip",
+          "sha256": "e513b620748ebff460a4dc438cad4838d0082f1ea6da0c6d9e8191f85bac4550",
+          "manifestSha256": "5f1937a317842d62a3aad284c9184ac12ae6f4e55b599c93f72d9f5fcccd3c5c",
+          "releaseTag": "engines-20261114.1",
+          "sourceCommit": "23b9466c981f0f3a1133f92de1a6f86406c4eccc",
+          "evaluation": "classical",
+          "network": null
+        }
+      ]
+    },
+    {
       "id": "public-engine-downloads-20261107",
       "reportedOn": "2026-11-07",
       "status": "automated-integration-passed",
