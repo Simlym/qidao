@@ -5,6 +5,15 @@
 .server-engine-heading p { color: var(--app-muted, #817365); font-size: 13px; line-height: 1.8; margin: 0; }
 .server-engine-platform { flex-shrink: 0; padding: 6px 11px; border: 1px solid var(--app-border, #e3d7c5); border-radius: 7px; color: var(--app-muted, #817365); font-size: 12px; }
 .server-engine-panel.engine-settings-v2 .engine-main-card { margin: 0 0 22px; }
+.server-engine-panel.engine-settings-v2 .engine-main-card.is-configured { border-color: var(--app-success-border, #b9d6c2); }
+.server-engine-panel .engine-main-title { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 12px; }
+.server-engine-panel.engine-settings-v2 .engine-main-title h3 { margin: 0; }
+.server-engine-status-badge { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border: 1px solid var(--app-success-border, #b9d6c2); border-radius: 6px; background: var(--app-success-soft, #e9f2e9); color: var(--app-success, #36764b); font-size: 12px; font-weight: 600; line-height: 1.5; }
+.server-engine-status-badge::before { content: ""; width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: currentColor; }
+.server-engine-panel .server-engine-configured-info { padding: 14px 16px; border-radius: 8px; background: var(--app-surface-soft, #eee9e0); }
+.server-engine-panel.engine-settings-v2 .engine-main-card.has-error { border-color: var(--app-danger-border, #ecd1c7); }
+.server-engine-panel .engine-main-icon.is-error, .server-engine-status-badge.is-warning { color: var(--app-danger, #9b4936); background: var(--app-danger-soft, #fff4ef); }
+.server-engine-status-badge.is-warning { border-color: var(--app-danger-border, #ecd1c7); }
 .server-engine-panel .engine-settings-disclosure:last-child { padding-bottom: 0; }
 .server-engine-manual { padding: 18px 0 0; }
 .server-engine-manual-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }

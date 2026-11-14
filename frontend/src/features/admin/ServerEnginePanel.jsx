@@ -4,6 +4,7 @@ import EngineInstallProgress from "../settings/EngineInstallProgress";
 import EngineMessage from "../settings/EngineSetupFeedback";
 import useServerEngineInstaller from "./useServerEngineInstaller";
 import OfficialServerEngineDownload from "./OfficialServerEngineDownload";
+import ServerEngineStatusCard from "./ServerEngineStatusCard";
 import "../settings/native-engine-settings.css";
 import "./server-engine-settings.css";
 
@@ -22,13 +23,6 @@ export default function ServerEnginePanel({ variant }) {
   const spec = info?.packages.find((p) => p.id === selected);
   const downloadPackages = info?.packages.filter((p) => p.publicDownload) || [];
   const otherInstalled = info?.installed.filter((item) => item.package.id !== current?.package.id) || [];
-  const title = !info ? "正在读取服务器状态" : setup ? `让服务器帮你分析${name}棋局`
-    : ready === true ? `${name}引擎已就绪` : ready === false ? "引擎检测未通过" : `${name}引擎已配置`;
-  const description = setup ? "下载并安装适配的引擎，检查通过后自动启用。"
-    : ready === true ? "可用于云端对弈、棋局复盘和题目生成，无需重复下载。"
-      : ready === false ? "原配置仍保留，可重试检测或更换引擎。"
-        : "配置已保存在服务器，可重新检测确认是否可用。";
-  const currentName = current?.package.name || "自定义 UCI 引擎";
   const useOfficialDownload = variant === "xiangqi" && info && !info.packages.length;
   React.useEffect(() => {
     if (ready === true && !busy) setManual(false);
@@ -49,17 +43,19 @@ export default function ServerEnginePanel({ variant }) {
       <div><h3>服务器{name}引擎</h3><p>用于云端对弈、复盘与训练，与个人设备的本地引擎独立管理。</p></div>
       {info && <span className="server-engine-platform">{OS_NAMES[info.status.os] || info.status.os} · {info.status.arch}</span>}
     </header>
-    {useOfficialDownload ? <OfficialServerEngineDownload variant={variant} configuredPath={info.status.effective_path} onComplete={refresh} /> : <EngineStatusCard label={`服务器${name}引擎状态`} title={title} description={description} busy={busy} ready={ready === true && !setup}>
-      {configured && !setup && <dl className="engine-current-info">
-        <div><dt>当前版本</dt><dd><strong>{currentName}</strong>{current && <span>{current.package.version}</span>}</dd></div>
-      </dl>}
+    {useOfficialDownload ? <OfficialServerEngineDownload variant={variant} configuredPath={info.status.effective_path} onComplete={refresh}
+      configured={configured} current={current} checked={ready} checking={busy} progress={progress} feedback={feedback}
+      onDetect={detect} onCancel={installer.cancel} canDetect={info.installer_available} /> : !info ? <EngineStatusCard label={`服务器${name}引擎状态`} title="正在读取服务器状态" description="正在读取服务器引擎配置，请稍候。" busy={busy}>
+      <div className="engine-main-actions"><button type="button" onClick={() => refresh().catch(() => {})}>重新读取</button></div>
+      {feedback && <EngineMessage message={feedback} />}
+    </EngineStatusCard> : <ServerEngineStatusCard name={name} configured={configured} setup={setup} ready={ready} busy={busy} current={current}>
       {busy ? <EngineInstallProgress progress={progress} onCancel={progress?.phase === "saving" ? null : installer.cancel} /> : <div className="engine-main-actions">
-        {!info ? <button type="button" onClick={() => refresh().catch(() => {})}>重新读取</button> : setup ? <>
+        {setup ? <>
           {spec?.publicDownload && <button type="button" className="native-install-primary" onClick={() => run("download")}>{feedback?.error ? "重试下载" : "下载并安装"}</button>}
           <button type="button" disabled={!info.installer_available || !info.packages.length} onClick={() => uploadInput.current?.click()}>已有文件，上传导入</button>
           {configured && <button type="button" className="engine-text-button" onClick={() => { setChanging(false); setManual(false); }}>返回当前引擎</button>}
         </> : <>
-          <button type="button" className={ready === false ? "native-install-primary" : ""} disabled={!info.installer_available} onClick={detect}>{ready === false ? "重试检测" : "重新检测"}</button>
+          <button type="button" className="native-install-primary" disabled={!info.installer_available} onClick={detect}>{ready === false ? "重试检测" : "重新检测"}</button>
           <button type="button" className="engine-text-button" disabled={!info.installer_available} onClick={() => { setChanging(true); setManual(false); }}>更换引擎</button>
         </>}
       </div>}
@@ -67,10 +63,9 @@ export default function ServerEnginePanel({ variant }) {
         : spec ? `已选择服务器适配版本 · 约 ${(spec.size / 1048576).toFixed(1)} MB · 安装成功后再替换当前配置`
           : "当前平台暂无适配的在线安装包，可配置服务器已有的引擎。"}</p>}
       {feedback && <EngineMessage message={feedback} />}
-    </EngineStatusCard>}
+    </ServerEngineStatusCard>}
 
     {info && <details className="engine-settings-disclosure server-engine-details"><summary>版本与维护</summary>
-      {useOfficialDownload && configured && <p className="engine-fine-print">当前引擎：{currentName}{current ? ` · ${current.package.version}` : ""}</p>}
       <div className="server-engine-version-layout">
         <fieldset className="server-engine-versions" disabled={busy}>
           <legend>在线安装版本</legend>

@@ -1,19 +1,20 @@
 import React from "react";
 import { adminGetVariantEngine, adminInstallVariantEngine } from "../../shared/api";
-import EngineStatusCard from "../settings/EngineStatusCard";
+import ServerEngineStatusCard from "./ServerEngineStatusCard";
 import EngineInstallProgress from "../settings/EngineInstallProgress";
 import EngineMessage from "../settings/EngineSetupFeedback";
 
 const PHASES = { downloading: true, extracting: true, testing: true, activating: true };
 
-export default function OfficialServerEngineDownload({ variant, configuredPath, onComplete }) {
+export default function OfficialServerEngineDownload({ variant, configuredPath, onComplete, configured, current, checked, checking,
+  progress, feedback, onDetect, onCancel, canDetect }) {
   const [status, setStatus] = React.useState(null);
   const [starting, setStarting] = React.useState(false);
   const [error, setError] = React.useState("");
   const mounted = React.useRef(false);
   const installation = status?.installation;
   const installing = Boolean(PHASES[installation?.phase]);
-  const busy = starting || installing;
+  const busy = starting || installing || checking;
 
   React.useEffect(() => {
     mounted.current = true;
@@ -63,19 +64,21 @@ export default function OfficialServerEngineDownload({ variant, configuredPath, 
   }
 
   const online = status?.online_package;
-  const ready = installation?.phase === "completed" && status?.available;
+  const ready = checked ?? (installation?.phase === "completed" && status?.available ? true : null);
   const message = error || (installation?.phase === "failed" ? installation.error : "");
-  return <EngineStatusCard label="官方服务器象棋引擎" title={ready ? "象棋引擎已就绪" : "让服务器帮你分析象棋棋局"}
-    description="从官方发布页下载引擎与权重，校验并试算通过后自动启用。失败时保留当前配置。" busy={busy} ready={ready}>
-    {busy ? <><EngineInstallProgress progress={{ ...installation, phase: starting ? "preparing" : installation.phase, downloaded: installation?.received || 0 }} />
+  return <ServerEngineStatusCard name="象棋" configured={configured} ready={ready} busy={busy} current={current}>
+    {checking ? <EngineInstallProgress progress={progress} onCancel={progress?.phase === "saving" ? null : onCancel} /> : busy ? <><EngineInstallProgress progress={{ ...installation, phase: starting ? "preparing" : installation.phase, downloaded: installation?.received || 0 }} />
       <p className="engine-fine-print">可离开页面，服务器会继续安装。重新打开即可查看进度。</p></>
-      : <div className="engine-main-actions"><button type="button" className="native-install-primary" disabled={!online?.supported} onClick={install}>
+      : <div className="engine-main-actions">
+        {configured && <button type="button" className="native-install-primary" disabled={!canDetect} onClick={onDetect}>{ready === false ? "重试检测" : "重新检测"}</button>}
+        <button type="button" className={configured ? "engine-text-button" : "native-install-primary"} disabled={!online?.supported} onClick={install}>
         {installation?.phase === "failed" ? "重试下载安装" : status?.available ? "重新下载并安装" : "下载并安装"}
       </button></div>}
     <p className="engine-fine-print">{!online ? "正在读取官方安装信息…" : online.supported
-      ? `${online.name} · ${online.version} · 约 ${(online.size / 1048576).toFixed(1)} MB`
+      ? `在线版本：${online.name} · ${online.version} · 约 ${(online.size / 1048576).toFixed(1)} MB`
       : online.reason}</p>
-    {online?.supported && <p className="engine-fine-print"><a href={online.source_url} target="_blank" rel="noreferrer">官方版本与许可说明</a></p>}
+    {online?.supported && <p className="server-engine-license"><a href={online.source_url} target="_blank" rel="noreferrer">官方版本与许可说明</a></p>}
+    {feedback && <EngineMessage message={feedback} />}
     {message && <EngineMessage message={{ error: true, summary: message }} />}
-  </EngineStatusCard>;
+  </ServerEngineStatusCard>;
 }
