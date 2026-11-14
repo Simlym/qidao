@@ -22,5 +22,6 @@ export const adminUpdateVariantEngine = (variant, path) => request(`/admin/engin
 export const adminGetLlmSettings = () => request("/admin/settings/llm");
 export const adminUpdateLlmSettings = (payload) => request("/admin/settings/llm", { method: "PUT", body: payload });
 export const adminTestLlmSettings = () => request("/admin/settings/llm/test", { method: "POST", body: {} });
-export const adminLogs = (limit = 100, offset = 0, event = "") => request(`/admin/logs?limit=${limit}&offset=${offset}${event ? `&event=${encodeURIComponent(event)}` : ""}`);
-export const adminRuntimeLogs = (options) => request("/admin/logs/runtime?limit=200", options);
+export const adminLogs = (limit = 100, offset = 0, event = "", options, query = "") => request(`/admin/logs?limit=${limit}&offset=${offset}${event ? `&event=${encodeURIComponent(event)}` : ""}${query ? `&q=${encodeURIComponent(query)}` : ""}`, options);
+export const adminRuntimeLogs = (options) => request("/admin/logs/runtime?limit=500", options);
+export const adminLogCatalog = () => request("/admin/logs/catalog");

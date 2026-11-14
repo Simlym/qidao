@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from fastapi.responses import StreamingResponse
 from app.engine import installation, installer
+from app.core.product_log import emit_event
 from .engine_upload import receive_package
 
 from app.core.dependencies import get_db
@@ -114,7 +115,16 @@ async def upload_installation(
 
 def installation_response(variant, action, value, archive, request, admin, db, guard, temporary=None):
     operation_id = uuid.uuid4().hex[:12]
+    request.state.log_operation_id = operation_id
+    request.state.log_actor = admin.username
     started = time.monotonic()
+    name = "揭棋" if variant == "jieqi" else "象棋"
+    operation_name = {"download": "下载安装", "import": "导入", "verify": "检测", "probe": "检测"}.get(action, "配置")
+    def record(status, title, exc_info=False):
+        emit_event("engine.operation", status=status, title=title, actor=admin.username,
+                   resource=variant, operation_id=operation_id,
+                   duration_ms=round((time.monotonic() - started) * 1000), exc_info=exc_info)
+    record("running", f"{name}引擎{operation_name}")
     logger.info("安装操作开始 编号=%s 棋种=%s 操作=%s 目标=%s 管理员=%s", operation_id, variant, action, value, admin.username)
 
     async def stream():
@@ -129,6 +139,7 @@ def installation_response(variant, action, value, archive, request, admin, db, g
             )) as source:
                 async for event in source:
                     if event["type"] == "error":
+                        record("failed", f"{name}引擎{operation_name}失败")
                         logger.error("安装器报告失败 编号=%s 错误=%s", operation_id, event.get("data", {}).get("message"))
                         yield encode(event)
                         return
@@ -143,6 +154,7 @@ def installation_response(variant, action, value, archive, request, admin, db, g
             if not result:
                 raise ValueError("安装器未返回检测结果")
             if await request.is_disconnected():
+                record("cancelled", f"{name}引擎操作已取消")
                 logger.warning("客户端已断开，未切换配置 编号=%s 耗时=%.2f秒", operation_id, time.monotonic() - started)
                 return
             # 安装和试算全部成功后才切换配置，失败时原路径保持不变。
@@ -152,12 +164,14 @@ def installation_response(variant, action, value, archive, request, admin, db, g
             await asyncio.to_thread(reset)
             admin_action(request, admin.username, "install_server_engine", f"{variant}:{action}", db=db)
             logger.info("安装并启用成功 编号=%s 路径=%s 耗时=%.2f秒", operation_id, result["enginePath"], time.monotonic() - started)
+            record("success", f"{name}引擎已启用")
             yield encode({"type": "complete", "data": profile_status(variant)})
         except asyncio.CancelledError:
+            record("cancelled", f"{name}引擎操作已取消")
             logger.warning("客户端取消安装 编号=%s 阶段=%s 耗时=%.2f秒", operation_id, phase or "启动", time.monotonic() - started)
             raise
         except Exception as error:
-            logger.exception("安装操作异常 编号=%s 阶段=%s 耗时=%.2f秒", operation_id, phase or "启动", time.monotonic() - started)
+            record("failed", f"{name}引擎{operation_name}失败", exc_info=True)
             detail = str(error) or type(error).__name__
             yield encode({"type": "error", "data": {"message": f"{detail}（操作编号：{operation_id}，可在后台日志查看原因）"}})
         finally:

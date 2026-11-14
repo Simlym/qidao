@@ -32,6 +32,17 @@ class _BufferHandler(logging.Handler):
             msg = self.format(record)
         except Exception:  # noqa: BLE001 — 格式化失败不应影响业务
             msg = record.getMessage()
+        from .product_log import request_context, operation_context, redact, safe_details
+        context = request_context.get() or {}
+        state = context.get("state", {})
+        event = getattr(record, "product_event", {})
+        name = record.name
+        category = event.get("category") or ("engines" if name.startswith("xiangqidao.engine") else
+                   "ai" if name.startswith("xiangqidao.llm") else "auth" if name.startswith("xiangqidao.security") else "system")
+        import re
+        operation = re.search(r"编号=([a-f0-9]{12})", msg)
+        title = event.get("title") or re.split(r" (?:编号|程序|进程|路径|操作|棋种|耗时)=", msg.split("\n")[0])[0]
+        status = event.get("status") or ("failed" if record.levelno >= logging.ERROR else "warning" if record.levelno >= logging.WARNING else "info")
         with _lock:
             _seq += 1
             _records.append({
@@ -39,7 +50,14 @@ class _BufferHandler(logging.Handler):
                 "ts": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(record.created)),
                 "level": record.levelname,
                 "logger": record.name,
-                "message": msg,
+                "message": redact(msg), "timestamp": record.created,
+                "category": category, "event": event.get("event", ""), "title": redact(title),
+                "status": status, "actor": event.get("actor") or state.get("log_actor", ""),
+                "resource": redact(event.get("resource", "")),
+                "request_id": context.get("request_id", ""),
+                "operation_id": event.get("operation_id") or operation_context.get() or state.get("log_operation_id") or (operation.group(1) if operation else ""),
+                "duration_ms": event.get("duration_ms"),
+                "context": safe_details(event.get("context", {})),
             })
 
     def format(self, record: logging.LogRecord) -> str:

@@ -13,6 +13,7 @@ from app.core.dependencies import get_db
 from app.core.models import Attempt, CoachPlan, Game, LearningPack, Puzzle, PuzzleSession, Review, User, UserStat
 from app.core.rate_limit import limiter
 from app.core.security_log import login_failed
+from app.core.product_log import emit_event
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -53,6 +54,8 @@ def register(request: Request, body: Credentials, db: Session = Depends(get_db))
     # 注册赠送初始积分，便于新用户立即体验 AI 教练等大模型功能
     from app.modules.credits import service as credits
     credits.grant_signup(db, username)
+    request.state.log_actor = username
+    emit_event("auth.registered", actor=username)
     return AuthResponse(token=make_token(username), username=username, role=role)
 
 
@@ -66,6 +69,8 @@ def login(request: Request, body: Credentials, db: Session = Depends(get_db)):
         raise HTTPException(401, "用户名或密码错误")
     user.last_login = datetime.utcnow()  # 供管理后台查看用户活跃情况
     db.commit()
+    request.state.log_actor = user.username
+    emit_event("auth.login", actor=user.username)
     return AuthResponse(token=make_token(user.username), username=user.username, role=user.role)
 
 

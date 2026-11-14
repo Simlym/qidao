@@ -124,7 +124,7 @@ def test_disconnected_stream_closes_installer_and_preserves_path(monkeypatch, tm
     async def disconnect():
         with sessions() as db:
             response = routes.manage_installation("xiangqi", routes.EngineInstallRequest(),
-                                                 None, SimpleNamespace(username="管理员"), db)
+                                                 SimpleNamespace(state=SimpleNamespace()), SimpleNamespace(username="管理员"), db)
             await anext(response.body_iterator)
             await response.body_iterator.aclose()
             assert get_setting(db, KEY_XIANGQI_ENGINE_PATH) == "/old/engine"

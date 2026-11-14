@@ -20,7 +20,7 @@ from app.modules.puzzles.validation import validate_item
 from app.modules.admin.schemas import (
     AdminCreditLogRow, AdminCredits, AdminLog, AdminPuzzle, AdminPuzzleList,
     AdminUser, CreditAdjustBody, LlmSettings, LlmSettingsUpdate,
-    MembershipUpdate, NewPuzzle, RuntimeLog,
+    MembershipUpdate, NewPuzzle, RuntimeLog, LogCategory,
 )
 from app.core.security_log import admin_action
 from app.core.settings import (
@@ -350,18 +350,31 @@ def delete_puzzle(puzzle_id: int, request: Request, db: Session = Depends(get_db
 
 
 @router.get("/logs", response_model=list[AdminLog])
-def list_logs(limit: int = 100, offset: int = 0, event: str | None = None,
+def list_logs(limit: int = 100, offset: int = 0, event: str | None = None, search: str = Query("", alias="q", max_length=120),
               db: Session = Depends(get_db)):
     """安全审计日志，按时间倒序分页。event 可选过滤（login_failed / admin_action）。"""
     q = select(SecurityLog).order_by(SecurityLog.id.desc())
     if event:
         q = q.where(SecurityLog.event == event)
+    from app.core.product_log import ADMIN_ACTIONS
+    if search.strip():
+        text = search.strip()
+        actions = [key for key, (_, label) in ADMIN_ACTIONS.items() if text.casefold() in label.casefold()]
+        match = [SecurityLog.actor.contains(text, autoescape=True), SecurityLog.target.contains(text, autoescape=True),
+                 SecurityLog.ip.contains(text, autoescape=True), SecurityLog.action.contains(text, autoescape=True)]
+        if actions:
+            match.append(SecurityLog.action.in_(actions))
+        if text in "登录失败":
+            match.append(SecurityLog.event == "login_failed")
+        q = q.where(or_(*match))
     rows = db.scalars(q.offset(max(offset, 0)).limit(min(max(limit, 1), 500))).all()
     return [
         AdminLog(
             id=r.id, ts=r.ts.isoformat(sep=" ", timespec="seconds"),
             level=r.level, event=r.event, ip=r.ip,
             actor=r.actor, action=r.action, target=r.target,
+            title="登录失败" if r.event == "login_failed" else ADMIN_ACTIONS.get(r.action, ("admin", "管理操作"))[1],
+            category="auth" if r.event == "login_failed" else ADMIN_ACTIONS.get(r.action, ("admin", "管理操作"))[0],
         )
         for r in rows
     ]
@@ -373,3 +386,9 @@ def runtime_logs(after_seq: int = Query(0, ge=0), limit: int = Query(200, ge=1, 
     from app.core.log_config import get_records
 
     return get_records(after_seq, limit)
+
+
+@router.get("/logs/catalog", response_model=list[LogCategory])
+def log_catalog():
+    from app.core.product_log import CATEGORIES
+    return [{"key": key, "label": value[0], "description": value[1]} for key, value in CATEGORIES.items()]

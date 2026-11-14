@@ -1,6 +1,8 @@
 """棋局分析路由。"""
 
 import json
+import time
+from app.core.product_log import emit_event
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -103,19 +105,24 @@ def _run_analysis(game_id: int, owner: str = "default", run_key: str | None = No
 
     db = SessionLocal()
     run_key = run_key or str(uuid4())
+    started = time.monotonic()
     call_key = lambda suffix: hashlib.sha256(f"{run_key}:{suffix}".encode()).hexdigest()
     try:
         game = db.get(Game, game_id)
         if not game:
+            emit_event("analysis.completed", status="cancelled", title="复盘已取消：棋谱已移除", actor=owner, resource=f"棋谱 #{game_id}", operation_id=run_key)
             return
 
         move_list = game.moves.split() if game.moves.strip() else []
         if not move_list:
+            emit_event("analysis.completed", status="cancelled", title="复盘未执行：棋谱为空", actor=owner, resource=f"棋谱 #{game_id}", operation_id=run_key)
             return
 
         is_jieqi = (game.variant or "xiangqi") == "jieqi"
         engine = get_shared_jieqi_engine() if is_jieqi else get_shared_engine()
         if is_jieqi and engine is None:
+            emit_event("analysis.failed", status="failed", actor=owner, resource=f"棋谱 #{game_id}",
+                       operation_id=run_key, details={"reason": "揭棋引擎未就绪"})
             return
         if engine is not None:
             engine.new_game()  # 每局开头清一次置换表即可，不在每个局面重复
@@ -247,10 +254,15 @@ def _run_analysis(game_id: int, owner: str = "default", run_key: str | None = No
             generate_plan(db, owner, trigger=f"game:{game_id}", request_key=call_key("coach"))
         except Exception:
             db.rollback()  # 计划生成失败不影响已落库的分析结果
+            emit_event("training.plan", status="warning", actor=owner, resource=f"棋谱 #{game_id}", exc_info=True)
 
         # 共享引擎进程跨棋局复用，分析结束不再 close()
+        emit_event("analysis.completed", actor=owner, resource=f"棋谱 #{game_id}", operation_id=run_key,
+                   duration_ms=round((time.monotonic() - started) * 1000), details={"moves": len(move_list)})
     except Exception:
         db.rollback()
+        emit_event("analysis.failed", status="failed", actor=owner, resource=f"棋谱 #{game_id}",
+                   operation_id=run_key, duration_ms=round((time.monotonic() - started) * 1000), exc_info=True)
     finally:
         db.close()
 
@@ -316,7 +328,9 @@ def analyze_game(
             detail="服务器尚未配置揭棋 UCI 引擎，请管理员前往“管理后台 → 系统设置 → 揭棋引擎”配置",
         )
 
-    background_tasks.add_task(_run_analysis, game_id, user.username, http_request_key(request))
+    run_key = http_request_key(request)
+    emit_event("analysis.requested", status="running", actor=user.username, resource=f"棋谱 #{game_id}", operation_id=run_key)
+    background_tasks.add_task(_run_analysis, game_id, user.username, run_key)
     return {"status": "analyzing", "game_id": game_id}
 
 

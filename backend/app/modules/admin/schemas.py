@@ -99,6 +99,8 @@ class AdminLog(BaseModel):
     actor: str
     action: str
     target: str
+    title: str = ""
+    category: str = "admin"
 
 
 class RuntimeLog(BaseModel):
@@ -107,6 +109,23 @@ class RuntimeLog(BaseModel):
     level: str
     logger: str
     message: str
+    timestamp: float = 0
+    category: str = "system"
+    event: str = ""
+    title: str = ""
+    status: str = "info"
+    actor: str = ""
+    resource: str = ""
+    request_id: str = ""
+    operation_id: str = ""
+    duration_ms: int | None = None
+    context: dict = Field(default_factory=dict)
+
+
+class LogCategory(BaseModel):
+    key: str
+    label: str
+    description: str
 
 
 class EnginePathUpdate(BaseModel):

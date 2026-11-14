@@ -17,7 +17,7 @@ from app.core.settings import get_setting
 from app.modules.auth.entitlements import membership_active
 from .context import current_operation
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("xiangqidao.ai")
 DEFAULT_COSTS = {"coach_plan": 20, "game_report": 10, "mistake_explain": 2, "puzzle_explain": 8, "play_coach": 4}
 DEFAULT_FREE_MONTHLY = 20
 DEFAULT_PRO_MONTHLY = 600
@@ -174,10 +174,15 @@ def settle(source_db, operation_id, text="", error_code="generation_failed"):
 
 
 def generate(db, user_id, action, ref, producer, key=None):
+    from app.core.product_log import emit_event, operation_context
     reservation = reserve(db, user_id, action, ref, key)
     if reservation.status != "reserved":
+        if reservation.status not in ("cached", "pending"):
+            emit_event("ai.declined", status="warning", actor=user_id, resource=action,
+                       details={"reason": reservation.status})
         return reservation
     token = current_operation.set((reservation.operation_id, db.get_bind()))
+    log_token = operation_context.set(reservation.operation_id)
     text = ""
     try:
         text = producer() or ""
@@ -188,7 +193,11 @@ def generate(db, user_id, action, ref, producer, key=None):
         logger.exception("AI 生成失败，退回预留额度，operation=%s", reservation.operation_id)
     finally:
         current_operation.reset(token)
+        operation_context.reset(log_token)
     committed = settle(db, reservation.operation_id, text)
+    emit_event("ai.generated" if text and committed else "ai.refunded" if committed else "ai.declined",
+               status="success" if text and committed else "warning", actor=user_id, resource=action,
+               operation_id=reservation.operation_id, title=None if committed else "AI 结算状态待确认")
     return Reservation("succeeded" if text and committed else "refunded", reservation.operation_id, text if committed else "")
 
 

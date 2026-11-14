@@ -169,6 +169,22 @@ def test_runtime_logs_require_admin_and_include_engine_failure(client):
     assert all(row["seq"] > record["seq"] for row in newer.json())
 
 
+def test_audit_search_uses_chinese_action_names_before_pagination(client):
+    from app.core import models
+    from app.core.security_log import admin_action
+
+    admin = client.post("/api/auth/register", json={"username": "alice", "password": "password1"}).json()
+    headers = {"Authorization": f"Bearer {admin['token']}"}
+    with models.SessionLocal() as db:
+        admin_action(None, "alice", "update_llm_settings", "model", db)
+        admin_action(None, "alice", "delete_puzzle", "42", db)
+    response = client.get("/api/admin/logs?q=AI&limit=1", headers=headers)
+    assert response.status_code == 200
+    assert [row["action"] for row in response.json()] == ["update_llm_settings"]
+    assert response.json()[0]["title"] == "修改 AI 服务设置"
+    assert client.get("/api/admin/logs?q=AI&offset=1", headers=headers).json() == []
+
+
 def test_admin_starts_install_and_reads_progress(client, monkeypatch, tmp_path):
     from app.engine import installer
 

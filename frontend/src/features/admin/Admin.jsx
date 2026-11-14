@@ -1,5 +1,5 @@
 import React from "react";
-import RuntimeLogsPanel from "./RuntimeLogsPanel";
+import LogCenter from "./LogCenter";
 import AiUsageAdmin from "./AiUsageAdmin";
 import ServerEnginePanel from "./ServerEnginePanel";
 import SystemSettingsTabs from "./SystemSettingsTabs";
@@ -8,7 +8,6 @@ import {
   adminAdjustCredits,
   adminDeleteUser,
   adminGetLlmSettings,
-  adminLogs,
   adminOverview,
   adminTestLlmSettings,
   adminUpdateLlmSettings,
@@ -132,7 +131,7 @@ export default function Admin() {
       {tab === "ai-usage" && <AiUsageAdmin users={users} />}
 
       {/* 日志 */}
-      {tab === "logs" && <><RuntimeLogsPanel /><LogsPanel /></>}
+      {tab === "logs" && <LogCenter />}
 
       {/* 用户管理 */}
       {tab === "users" && (
@@ -480,99 +479,6 @@ function LlmSettingsPanel() {
           })}
         >
           保存设置
-        </button>
-      </div>
-    </div>
-  );
-}
-
-const LOG_FILTERS = [
-  { key: "", label: "全部" },
-  { key: "login_failed", label: "登录失败" },
-  { key: "admin_action", label: "管理操作" },
-];
-const EVENT_LABEL = { login_failed: "登录失败", admin_action: "管理操作" };
-const PAGE = 50;
-
-function LogsPanel() {
-  const [rows, setRows] = React.useState([]);
-  const [filter, setFilter] = React.useState("");
-  const [offset, setOffset] = React.useState(0);
-  const [err, setErr] = React.useState("");
-
-  React.useEffect(() => {
-    adminLogs(PAGE, offset, filter)
-      .then(setRows)
-      .catch((e) => setErr(e.message));
-  }, [filter, offset]);
-
-  const pickFilter = (key) => {
-    setFilter(key);
-    setOffset(0);
-  };
-
-  return (
-    <div className="panel">
-      <h3>安全审计日志</h3>
-      <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
-        记录登录失败与管理员敏感操作（删用户、删题、改 AI 设置），不含密码、密钥等敏感值。
-      </p>
-
-      <div className="admin-tabs" style={{ marginBottom: 12 }}>
-        {LOG_FILTERS.map((f) => (
-          <button
-            key={f.key}
-            className={filter === f.key ? "active" : ""}
-            aria-pressed={filter === f.key}
-            onClick={() => pickFilter(f.key)}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      {err && <div className="import-error">{err}</div>}
-
-      <div className="admin-table-wrap" role="region" aria-label="安全审计日志" tabIndex={0}><table className="admin-table">
-        <thead>
-          <tr><th>时间</th><th>类型</th><th>IP</th><th>用户/操作者</th><th>动作</th><th>目标</th></tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.id}>
-              <td style={{ whiteSpace: "nowrap" }}>{r.ts}</td>
-              <td>
-                <span className={"tag" + (r.level === "warning" ? "" : " muted")}>
-                  {EVENT_LABEL[r.event] || r.event}
-                </span>
-              </td>
-              <td><code>{r.ip}</code></td>
-              <td>{r.actor || "—"}</td>
-              <td>{r.action || "—"}</td>
-              <td>{r.target || "—"}</td>
-            </tr>
-          ))}
-          {rows.length === 0 && (
-            <tr><td colSpan={6} className="muted" style={{ textAlign: "center" }}>暂无日志</td></tr>
-          )}
-        </tbody>
-      </table></div>
-
-      <div className="import-row" style={{ marginTop: 10, alignItems: "center" }}>
-        <button
-          className="btn-import-submit"
-          disabled={offset === 0}
-          onClick={() => setOffset((o) => Math.max(0, o - PAGE))}
-        >
-          上一页
-        </button>
-        <span className="muted" style={{ fontSize: 13 }}>第 {offset / PAGE + 1} 页</span>
-        <button
-          className="btn-import-submit"
-          disabled={rows.length < PAGE}
-          onClick={() => setOffset((o) => o + PAGE)}
-        >
-          下一页
         </button>
       </div>
     </div>

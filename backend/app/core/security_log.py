@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import logging
+from .product_log import emit_event, ADMIN_ACTIONS
 
 from fastapi import Request
 from sqlalchemy.orm import Session
@@ -42,13 +43,16 @@ def _persist(db: Session | None, level: str, event: str, ip: str,
 def login_failed(request: Request | None, username: str, db: Session | None = None) -> None:
     # 用户名可能含敏感/超长内容，截断并标注，避免日志注入与膨胀
     safe = (username or "")[:40].replace("\n", " ").replace("\r", " ")
+    if request is not None:
+        request.state.log_auth_failure_recorded = True
     ip = _client_ip(request)
-    logger.warning("login_failed ip=%s user=%r", ip, safe)
+    emit_event("auth.login_failed", status="warning", actor=safe, details={"ip": ip})
     _persist(db, "warning", "login_failed", ip, actor=safe)
 
 
 def admin_action(request: Request | None, actor: str, action: str,
                  target: str = "", db: Session | None = None) -> None:
     ip = _client_ip(request)
-    logger.info("admin_action ip=%s actor=%r action=%s target=%s", ip, actor, action, target)
+    category, title = ADMIN_ACTIONS.get(action, ("admin", "管理操作"))
+    emit_event(f"admin.{action}", category=category, title=title, actor=actor, resource=target, details={"ip": ip})
     _persist(db, "info", "admin_action", ip, actor=actor, action=action, target=target)

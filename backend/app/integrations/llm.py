@@ -180,6 +180,10 @@ def _record_call(feature: str, user_id: str, model: str, usage: dict | None,
     cdetails = usage.get("completion_tokens_details") or {}
     reasoning_tokens = int(cdetails.get("reasoning_tokens", 0) or 0)
     cost = _compute_cost(model, prompt_tokens, cached_tokens, completion_tokens)
+    from app.core.product_log import emit_event
+    emit_event("ai.call", status="success" if success else "warning", actor=user_id,
+               resource=feature, duration_ms=duration_ms,
+               details={"model": model, "total_tokens": total_tokens, "error_type": error.split(":", 1)[0][:80] if error else ""})
 
     logger.debug(
         "LLM 用量 feature=%s user=%s model=%s prompt=%d(cache=%d) completion=%d(reason=%d) "
@@ -247,8 +251,8 @@ def _chat_raw(prompt: str, max_tokens: int = 200, timeout: int = 15,
     url, headers, body = _request_parts(cfg, prompt, output_budget)
 
     logger.debug(
-        "===== LLM 请求 feature=%s protocol=%s model=%s output_budget=%d timeout=%ss =====\n%s",
-        feature, cfg.protocol, cfg.model, output_budget, timeout, prompt,
+        "LLM 请求 feature=%s protocol=%s model=%s output_budget=%d timeout=%ss",
+        feature, cfg.protocol, cfg.model, output_budget, timeout,
     )
     started = time.monotonic()
 
@@ -267,8 +271,8 @@ def _chat_raw(prompt: str, max_tokens: int = 200, timeout: int = 15,
             usage = _normalize_usage(cfg.protocol, data.get("usage"))
             content, reasoning, finish = _response_text(cfg.protocol, data)
             if reasoning:
-                logger.debug("----- 模型思考 -----\n%s", reasoning)
-            logger.debug("----- 模型输出 (finish_reason=%s) -----\n%s", finish, content)
+                logger.debug("模型返回思考内容，已省略正文")
+            logger.debug("模型响应 finish_reason=%s output_chars=%d", finish, len(content))
             if not content:
                 # 正文为空：多半是 token 预算被思考耗尽（finish_reason=length）。
                 # 绝不把截断的思考当成答案返回，否则就是“乱分析”。
@@ -283,7 +287,7 @@ def _chat_raw(prompt: str, max_tokens: int = 200, timeout: int = 15,
     except httpx.HTTPStatusError as e:
         status = e.response.status_code if e.response is not None else "?"
         body_text = e.response.text[:300] if e.response is not None else ""
-        logger.warning("LLM HTTP %s: %s", status, body_text)
+        logger.warning("模型服务请求失败 HTTP %s", status)
         # 请求失败通常未产生 token 费用（usage 缺失），仍记一笔失败便于排查
         _record_call(feature, user_id, cfg.model, None, _elapsed_ms(),
                      False, f"HTTP {status}", ref)

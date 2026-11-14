@@ -12,6 +12,7 @@ from .routes import register_routes
 from .core.database import init_db
 from .core.rate_limit import limiter
 from .modules.puzzles.seeding import seed_default_library
+from .core.product_log import ProductLogMiddleware, emit_event
 
 _IS_PROD = os.environ.get("APP_ENV", "").lower() in ("prod", "production")
 
@@ -39,6 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(ProductLogMiddleware)
 register_routes(app)
 
 
@@ -47,6 +49,7 @@ def _startup() -> None:
     init_db()
     seed_default_library()  # 首次启动自动导入 backend/seeds/ 种子题库
     _setup_logging()  # 安装内存日志缓冲，等级取自数据库设置（后台可调）
+    emit_event("system.started", details={"version": app.version})
 
 
 def _setup_logging() -> None:
